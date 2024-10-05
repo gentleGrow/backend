@@ -1,4 +1,5 @@
 from datetime import date, datetime
+from statistics import mean
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from redis.asyncio import Redis
@@ -188,6 +189,8 @@ async def get_sample_performance_analysis(
             values1={"values": [user_analysis_result[date] for date in sorted_dates], "name": "내 수익률"},
             values2={"values": [market_analysis_result[date] for date in sorted_dates], "name": "코스피"},
             unit="%",
+            myReturnRate=mean([user_analysis_result[date] for date in sorted_dates]),
+            contrastMarketReturns=mean([market_analysis_result[date] for date in sorted_dates]),
         )
     elif interval in IntervalType.FIVEDAY:
         start_datetime, end_datetime = interval.get_start_end_time()
@@ -219,6 +222,8 @@ async def get_sample_performance_analysis(
                 "name": "코스피",
             },
             unit="%",
+            myReturnRate=mean([user_analysis_result_short[datetime] for datetime in sorted_datetimes]),
+            contrastMarketReturns=mean([market_analysis_result_short[datetime] for datetime in sorted_datetimes]),
         )
     else:
         start_date, end_date = interval.get_start_end_time()
@@ -257,6 +262,8 @@ async def get_performance_analysis(
             values1={"values": [user_analysis_result[date] for date in sorted_dates], "name": "내 수익률"},
             values2={"values": [market_analysis_result[date] for date in sorted_dates], "name": "코스피"},
             unit="%",
+            myReturnRate=mean([user_analysis_result[date] for date in sorted_dates]),
+            contrastMarketReturns=mean([market_analysis_result[date] for date in sorted_dates]),
         )
     elif interval in IntervalType.FIVEDAY:
         start_datetime, end_datetime = interval.get_start_end_time()
@@ -288,6 +295,8 @@ async def get_performance_analysis(
                 "name": "코스피",
             },
             unit="%",
+            myReturnRate=mean([user_analysis_result_short[datetime] for datetime in sorted_datetimes]),
+            contrastMarketReturns=mean([market_analysis_result_short[datetime] for datetime in sorted_datetimes]),
         )
     else:
         start_date, end_date = interval.get_start_end_time()
