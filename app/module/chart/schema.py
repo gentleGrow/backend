@@ -95,17 +95,11 @@ class PerformanceAnalysisResponse(BaseModel):
         return PerformanceAnalysisResponse(
             xAxises=formatted_xAxises,
             dates=formatted_year_months,
-            values1={
-                "values": averaged_user_analysis, 
-                "name": "내 수익률"
-            },
-            values2={
-                "values": averaged_market_analysis, 
-                "name": "코스피"
-            },
+            values1={"values": averaged_user_analysis, "name": "내 수익률"},
+            values2={"values": averaged_market_analysis, "name": "코스피"},
             unit="%",
             myReturnRate=mean(averaged_user_analysis),
-            contrastMarketReturns=mean(averaged_market_analysis)
+            contrastMarketReturns=mean(averaged_market_analysis),
         )
 
 

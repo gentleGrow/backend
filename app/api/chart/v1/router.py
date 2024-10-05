@@ -1,9 +1,10 @@
 from datetime import date, datetime
+from statistics import mean
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from redis.asyncio import Redis
 from sqlalchemy.ext.asyncio import AsyncSession
-from statistics import mean
+
 from app.common.auth.security import verify_jwt_token
 from app.module.asset.constant import MARKET_INDEX_KR_MAPPING, MONTHS
 from app.module.asset.enum import AssetType, CurrencyType
@@ -185,17 +186,11 @@ async def get_sample_performance_analysis(
         return PerformanceAnalysisResponse(
             xAxises=[date.strftime("%m.%d") for date in sorted_dates],
             dates=[date.strftime("%Y.%m.%d") for date in sorted_dates],
-            values1={
-                "values": [user_analysis_result[date] for date in sorted_dates], 
-                "name": "내 수익률"
-            },
-            values2={
-                "values": [market_analysis_result[date] for date in sorted_dates], 
-                "name": "코스피"
-            },
+            values1={"values": [user_analysis_result[date] for date in sorted_dates], "name": "내 수익률"},
+            values2={"values": [market_analysis_result[date] for date in sorted_dates], "name": "코스피"},
             unit="%",
             myReturnRate=mean([user_analysis_result[date] for date in sorted_dates]),
-            contrastMarketReturns=mean([market_analysis_result[date] for date in sorted_dates])
+            contrastMarketReturns=mean([market_analysis_result[date] for date in sorted_dates]),
         )
     elif interval in IntervalType.FIVEDAY:
         start_datetime, end_datetime = interval.get_start_end_time()
@@ -220,15 +215,15 @@ async def get_sample_performance_analysis(
             dates=[datetime.strftime("%Y.%m.%d %H:%M") for datetime in sorted_datetimes],
             values1={
                 "values": [user_analysis_result_short[datetime] for datetime in sorted_datetimes],
-                "name": "내 수익률"
+                "name": "내 수익률",
             },
             values2={
                 "values": [market_analysis_result_short[datetime] for datetime in sorted_datetimes],
-                "name": "코스피"
+                "name": "코스피",
             },
             unit="%",
-            myReturnRate = mean([user_analysis_result_short[datetime] for datetime in sorted_datetimes]),
-            contrastMarketReturns = mean([market_analysis_result_short[datetime] for datetime in sorted_datetimes])
+            myReturnRate=mean([user_analysis_result_short[datetime] for datetime in sorted_datetimes]),
+            contrastMarketReturns=mean([market_analysis_result_short[datetime] for datetime in sorted_datetimes]),
         )
     else:
         start_date, end_date = interval.get_start_end_time()
@@ -267,6 +262,8 @@ async def get_performance_analysis(
             values1={"values": [user_analysis_result[date] for date in sorted_dates], "name": "내 수익률"},
             values2={"values": [market_analysis_result[date] for date in sorted_dates], "name": "코스피"},
             unit="%",
+            myReturnRate=mean([user_analysis_result[date] for date in sorted_dates]),
+            contrastMarketReturns=mean([market_analysis_result[date] for date in sorted_dates]),
         )
     elif interval in IntervalType.FIVEDAY:
         start_datetime, end_datetime = interval.get_start_end_time()
@@ -298,6 +295,8 @@ async def get_performance_analysis(
                 "name": "코스피",
             },
             unit="%",
+            myReturnRate=mean([user_analysis_result_short[datetime] for datetime in sorted_datetimes]),
+            contrastMarketReturns=mean([market_analysis_result_short[datetime] for datetime in sorted_datetimes]),
         )
     else:
         start_date, end_date = interval.get_start_end_time()
