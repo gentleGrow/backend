@@ -1,13 +1,13 @@
-FROM python:3.11-slim
+FROM python:3.11
 
 WORKDIR /app
 
 RUN apt-get update && \
-    apt-get install -y gcc g++ make && \
+    apt-get install --no-install-recommends -y gcc g++ make && \
     apt-get clean
 
 RUN pip install poetry
-RUN pip install peewee==3.17.5
+RUN pip install  peewee==3.17.6
 
 COPY pyproject.toml poetry.lock /app/
 
@@ -15,6 +15,6 @@ RUN poetry config virtualenvs.create false && poetry install --no-interaction --
 
 COPY . /app/
 
-COPY ./app/data/initial/insert_basic_data.py /app/task.py
+EXPOSE 8000
 
-CMD ["python", "task.py"]
+CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000"]

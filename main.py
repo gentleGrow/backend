@@ -1,5 +1,6 @@
 from os import getenv
 
+import sentry_sdk
 from dotenv import load_dotenv
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
@@ -15,7 +16,18 @@ app = FastAPI()
 
 load_dotenv()
 
+
 SESSION_KEY = getenv("SESSION_KEY", None)
+SENTRY_DSN = getenv("SENTRY_DSN", None)
+ENVIRONMENT = getenv("ENVIRONMENT", None)
+
+
+if ENVIRONMENT == "prod":
+    sentry_sdk.init(
+        dsn=SENTRY_DSN,
+        traces_sample_rate=1.0,
+        profiles_sample_rate=1.0,
+    )
 
 app.add_middleware(
     CORSMiddleware,

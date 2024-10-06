@@ -1,0 +1,22 @@
+version: '3.8'
+
+services:
+  fastapi:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: app_container
+    ports:
+      - "8000:8000"
+    env_file:
+      - .env
+
+  nginx:
+    image: nginx:latest
+    container_name: nginx_container
+    volumes:
+      - ./nginx.conf:/etc/nginx/nginx.conf
+    ports:
+      - "80:80"
+    depends_on:
+      - fastapi
