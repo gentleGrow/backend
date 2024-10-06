@@ -1,11 +1,10 @@
 from os import getenv
 
-import sentry_sdk
 from dotenv import load_dotenv
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from starlette.middleware.sessions import SessionMiddleware
-
+from app.common.middleware.request_timeout import TimeoutMiddleware
 from app.api.asset.v1.router import asset_stock_router
 from app.api.auth.v1.router import auth_router
 from app.api.chart.v1.router import chart_router
@@ -22,12 +21,6 @@ SENTRY_DSN = getenv("SENTRY_DSN", None)
 ENVIRONMENT = getenv("ENVIRONMENT", None)
 
 
-if ENVIRONMENT == "prod":
-    sentry_sdk.init(
-        dsn=SENTRY_DSN,
-        traces_sample_rate=1.0,
-        profiles_sample_rate=1.0,
-    )
 
 app.add_middleware(
     CORSMiddleware,
@@ -36,8 +29,8 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
-
 app.add_middleware(SessionMiddleware, secret_key=SESSION_KEY)
+app.add_middleware(TimeoutMiddleware)
 
 app.include_router(auth_router, prefix="/api/auth", tags=["auth"])
 app.include_router(chart_router, prefix="/api/chart", tags=["chart"])
