@@ -12,12 +12,12 @@ ENVIRONMENT = getenv("ENVIRONMENT", None)
 
 sentry_logging = LoggingIntegration(level=logging.INFO, event_level=logging.ERROR)
 
-if ENVIRONMENT == "prod":
-    sentry_sdk.init(
-        dsn=SENTRY_DSN,
-        integrations=[sentry_logging],
-        traces_sample_rate=1.0,
-    )
+sentry_sdk.init(
+    dsn=SENTRY_DSN,
+    integrations=[sentry_logging],
+    traces_sample_rate=1.0,
+    debug=True
+)
 
 logging.basicConfig(
     level=logging.INFO,

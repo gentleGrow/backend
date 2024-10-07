@@ -1,6 +1,6 @@
 from datetime import date, datetime
 from statistics import mean
-
+from app.common.util.logging import logging
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from redis.asyncio import Redis
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -174,6 +174,7 @@ async def get_sample_performance_analysis(
     session: AsyncSession = Depends(get_mysql_session_router),
     redis_client: Redis = Depends(get_redis_pool),
 ) -> PerformanceAnalysisResponse:
+    logging.error('test')
     if interval is IntervalType.ONEMONTH:
         start_date, end_date = interval.get_start_end_time()
         market_analysis_result: dict[date, float] = await PerformanceAnalysisFacade.get_market_analysis(

@@ -11,4 +11,4 @@ class TimeoutMiddleware(BaseHTTPMiddleware):
         try:
             return await asyncio.wait_for(call_next(request), timeout=REQUEST_TIMEOUT_SECOND)
         except asyncio.TimeoutError:
-            raise HTTPException(status_code=status.HTTP_504_GATEWAY_TIMEOUT, detail="Request timed out")
+            raise HTTPException(status_code=status.HTTP_504_GATEWAY_TIMEOUT, detail="요청 시간이 초과 되었습니다.")

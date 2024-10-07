@@ -34,7 +34,6 @@ async def naver_login(
     redis_client: Redis = Depends(get_redis_pool),
 ) -> TokenResponse:
     access_token = request.access_token
-
     if not access_token:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
@@ -62,8 +61,6 @@ async def naver_login(
 
     access_token = JWTBuilder.generate_access_token(user.id, social_id)
     refresh_token = JWTBuilder.generate_refresh_token(user.id, social_id)
-
-    logging.error(f"access_token: {access_token}, refresh_token : {refresh_token}, social_id : {social_id}, SESSION_SPECIAL_KEY : {SESSION_SPECIAL_KEY}, REDIS_JWT_REFRESH_EXPIRE_TIME_SECOND : {REDIS_JWT_REFRESH_EXPIRE_TIME_SECOND}")    
 
     await RedisSessionRepository.save(
         redis_client, f"{social_id}_{SESSION_SPECIAL_KEY}", refresh_token, REDIS_JWT_REFRESH_EXPIRE_TIME_SECOND
