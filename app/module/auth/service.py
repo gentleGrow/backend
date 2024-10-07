@@ -1,10 +1,12 @@
 from os import getenv
-from app.common.util.logging import logging
+
 import httpx
 from dotenv import load_dotenv
 from fastapi import status
 from google.auth.transport import requests
 from google.oauth2 import id_token
+
+from app.common.util.logging import logging
 
 load_dotenv()
 

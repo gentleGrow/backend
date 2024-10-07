@@ -54,12 +54,12 @@ async def get_mysql_session() -> AsyncGenerator[AsyncSession, None]:
 
 def get_redis_pool() -> Redis:
     pool = ConnectionPool(
-        host=REDIS_HOST, 
-        port=REDIS_PORT, 
-        max_connections=POOL_SIZE, 
+        host=REDIS_HOST,
+        port=REDIS_PORT,
+        max_connections=POOL_SIZE,
         decode_responses=True,
-        socket_connect_timeout=REDIS_SOCKET_CONNECTION_TIMEOUT_SECOND, 
-        socket_timeout=REDIS_SOCKET_CONNECTION_TIMEOUT_SECOND
+        socket_connect_timeout=REDIS_SOCKET_CONNECTION_TIMEOUT_SECOND,
+        socket_timeout=REDIS_SOCKET_CONNECTION_TIMEOUT_SECOND,
     )
     return Redis(connection_pool=pool)
 

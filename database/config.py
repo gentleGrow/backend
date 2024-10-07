@@ -5,7 +5,7 @@ from dotenv import load_dotenv
 from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine
 from sqlalchemy.orm import declarative_base, sessionmaker
 
-from database.constant import MAX_OVERFLOW, POOL_SIZE, CONNECTION_TIMEOUT_SECOND, POOL_TIMEOUT_SECOND
+from database.constant import CONNECTION_TIMEOUT_SECOND, MAX_OVERFLOW, POOL_SIZE, POOL_TIMEOUT_SECOND
 from database.enum import EnvironmentType
 
 load_dotenv()
@@ -33,12 +33,12 @@ elif ENVIRONMENT == EnvironmentType.TEST:
 else:
     MYSQL_URL = getenv("MYSQL_URL", None)
     mysql_engine = create_async_engine(
-        MYSQL_URL, 
-        pool_pre_ping=True, 
-        pool_size=POOL_SIZE, 
+        MYSQL_URL,
+        pool_pre_ping=True,
+        pool_size=POOL_SIZE,
         max_overflow=MAX_OVERFLOW,
         pool_timeout=POOL_TIMEOUT_SECOND,
-        connect_args={"connect_timeout": CONNECTION_TIMEOUT_SECOND}
+        connect_args={"connect_timeout": CONNECTION_TIMEOUT_SECOND},
     )
 
 mysql_session_factory = sessionmaker(bind=mysql_engine, class_=AsyncSession, expire_on_commit=False)

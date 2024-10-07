@@ -1,6 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from redis.asyncio import Redis
 from sqlalchemy.ext.asyncio import AsyncSession
+
 from app.common.util.logging import logging
 from app.module.auth.constant import REDIS_JWT_REFRESH_EXPIRE_TIME_SECOND, SESSION_SPECIAL_KEY
 from app.module.auth.enum import ProviderEnum
@@ -61,6 +62,8 @@ async def naver_login(
 
     access_token = JWTBuilder.generate_access_token(user.id, social_id)
     refresh_token = JWTBuilder.generate_refresh_token(user.id, social_id)
+
+    logging.error(f"access_token: {access_token}, refresh_token : {refresh_token}, social_id : {social_id}, SESSION_SPECIAL_KEY : {SESSION_SPECIAL_KEY}, REDIS_JWT_REFRESH_EXPIRE_TIME_SECOND : {REDIS_JWT_REFRESH_EXPIRE_TIME_SECOND}")    
 
     await RedisSessionRepository.save(
         redis_client, f"{social_id}_{SESSION_SPECIAL_KEY}", refresh_token, REDIS_JWT_REFRESH_EXPIRE_TIME_SECOND
