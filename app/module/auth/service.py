@@ -1,5 +1,5 @@
 from os import getenv
-
+from app.common.util.logging import logging
 import httpx
 from dotenv import load_dotenv
 from fastapi import status
@@ -20,7 +20,8 @@ class Naver:
         async with httpx.AsyncClient() as client:
             response = await client.get(NAVER_USER_INFO_URL, headers=headers)
 
-            if response.status_code is not status.HTTP_200_OK:
+            if response.status_code != status.HTTP_200_OK:
+                logging.error(f"Token verification failed: {response.status_code} {response.text}")
                 raise ValueError(f"Token verification failed: {response.status_code} {response.text}")
             return response.json()
 

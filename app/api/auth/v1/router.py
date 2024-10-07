@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from redis.asyncio import Redis
 from sqlalchemy.ext.asyncio import AsyncSession
-
+from app.common.util.logging import logging
 from app.module.auth.constant import REDIS_JWT_REFRESH_EXPIRE_TIME_SECOND, SESSION_SPECIAL_KEY
 from app.module.auth.enum import ProviderEnum
 from app.module.auth.jwt import JWTBuilder
@@ -43,10 +43,12 @@ async def naver_login(
     try:
         user_info = await Naver.verify_token(access_token)
     except ValueError as e:
+        logging.error(e)
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
 
     social_id = user_info["response"].get("id")
     if social_id is None:
+        logging.error("access token에 유저 정보가 없습니다.")
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="access token에 유저 정보가 없습니다.")
 
     user = await UserRepository.get_by_social_id(session, social_id, ProviderEnum.NAVER)
