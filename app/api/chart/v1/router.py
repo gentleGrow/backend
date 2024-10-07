@@ -1,11 +1,12 @@
 from datetime import date, datetime
 from statistics import mean
-from app.common.util.logging import logging
+
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from redis.asyncio import Redis
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.common.auth.security import verify_jwt_token
+from app.common.util.logging import logging
 from app.module.asset.constant import MARKET_INDEX_KR_MAPPING, MONTHS
 from app.module.asset.enum import AssetType, CurrencyType
 from app.module.asset.model import Asset, StockDaily
@@ -269,7 +270,9 @@ async def get_performance_analysis(
         elif interval in IntervalType.FIVEDAY:
             start_datetime, end_datetime = interval.get_start_end_time()
 
-            market_analysis_result_short: dict[datetime, float] = await PerformanceAnalysisFacade.get_market_analysis_short(
+            market_analysis_result_short: dict[
+                datetime, float
+            ] = await PerformanceAnalysisFacade.get_market_analysis_short(
                 session, redis_client, start_datetime, end_datetime, interval
             )
             user_analysis_result_short: dict[datetime, float] = await PerformanceAnalysisFacade.get_user_analysis_short(
@@ -313,9 +316,7 @@ async def get_performance_analysis(
             )
     except Exception as e:
         logging.error(f"Error occurred in /performance-analysis endpoint: {e}")
-        raise HTTPException(status_code=500, detail="Internal Server Error")
-
-    
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Internal Server Error")
 
 
 @chart_router.get("/sample/composition", summary="종목 구성", response_model=CompositionResponse)

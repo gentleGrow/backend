@@ -17,11 +17,10 @@ if ENVIRONMENT == "prod":
         dsn=SENTRY_DSN,
         integrations=[sentry_logging],
         traces_sample_rate=1.0,
-)
+    )
 
 logging.basicConfig(
     level=logging.INFO,
     format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
     handlers=[logging.StreamHandler()],
 )
-
