@@ -1,11 +1,12 @@
 from os import getenv
+
 import sentry_sdk
 from dotenv import load_dotenv
 from fastapi import FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from starlette.middleware.sessions import SessionMiddleware
-from app.common.util.logging import logging
+
 from app.api.asset.v1.router import asset_stock_router
 from app.api.auth.v1.router import auth_router
 from app.api.chart.v1.router import chart_router
@@ -42,7 +43,7 @@ async def custom_http_exception_handler(request: Request, exc: HTTPException):
         status_code=exc.status_code,
         content={"detail": exc.detail},
     )
-    
+
 
 app.include_router(auth_router, prefix="/api/auth", tags=["auth"])
 app.include_router(chart_router, prefix="/api/chart", tags=["chart"])

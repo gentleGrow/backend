@@ -10,14 +10,15 @@ load_dotenv()
 SENTRY_DSN = getenv("SENTRY_DSN", None)
 ENVIRONMENT = getenv("ENVIRONMENT", None)
 
-sentry_logging = LoggingIntegration(level=logging.INFO, event_level=logging.ERROR)
+sentry_logging = LoggingIntegration(level=logging.ERROR, event_level=logging.ERROR)
 
 sentry_sdk.init(
     dsn=SENTRY_DSN,
     integrations=[sentry_logging],
     traces_sample_rate=1.0,
-    debug=True
+    debug=True,
 )
+
 
 logging.basicConfig(
     level=logging.INFO,
