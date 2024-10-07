@@ -4,10 +4,11 @@ from dotenv import load_dotenv
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from starlette.middleware.sessions import SessionMiddleware
-from app.common.middleware.request_timeout import TimeoutMiddleware
+
 from app.api.asset.v1.router import asset_stock_router
 from app.api.auth.v1.router import auth_router
 from app.api.chart.v1.router import chart_router
+from app.common.middleware.request_timeout import TimeoutMiddleware
 from app.module.asset.model import Asset  # noqa: F401 > table 생성 시 필요합니다.
 from app.module.auth.model import User  # noqa: F401 > table 생성 시 필요합니다.
 
@@ -19,7 +20,6 @@ load_dotenv()
 SESSION_KEY = getenv("SESSION_KEY", None)
 SENTRY_DSN = getenv("SENTRY_DSN", None)
 ENVIRONMENT = getenv("ENVIRONMENT", None)
-
 
 
 app.add_middleware(
