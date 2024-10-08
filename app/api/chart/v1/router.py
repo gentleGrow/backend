@@ -313,7 +313,7 @@ async def get_performance_analysis(
             return PerformanceAnalysisResponse.get_performance_analysis_response(
                 market_analysis_result_month, user_analysis_result_month, interval
             )
-    except Exception as e:
+    except Exception:
         raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Internal Server Error")
 
 
