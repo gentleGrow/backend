@@ -6,7 +6,6 @@ from redis.asyncio import Redis
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.common.auth.security import verify_jwt_token
-from app.common.util.logging import logging
 from app.module.asset.constant import MARKET_INDEX_KR_MAPPING, MONTHS
 from app.module.asset.enum import AssetType, CurrencyType
 from app.module.asset.model import Asset, StockDaily
@@ -315,7 +314,6 @@ async def get_performance_analysis(
                 market_analysis_result_month, user_analysis_result_month, interval
             )
     except Exception as e:
-        logging.error(f"Error occurred in /performance-analysis endpoint: {e}")
         raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Internal Server Error")
 
 

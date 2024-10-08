@@ -3,7 +3,6 @@ from typing import Any
 from fastapi import HTTPException, Security, status
 from fastapi.security import OAuth2PasswordBearer
 
-from app.common.util.logging import logging
 from app.module.auth.jwt import JWTBuilder
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token")
@@ -12,7 +11,6 @@ oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token")
 def verify_jwt_token(encode_token: str = Security(oauth2_scheme)) -> dict[str, Any]:
     try:
         token = JWTBuilder.decode_token(encode_token)
-        logging.error(f"{encode_token=}, {token=}")
     except Exception:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid token")
     user_id = token.get("user")
