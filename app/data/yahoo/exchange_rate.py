@@ -2,12 +2,13 @@ import asyncio
 
 import yfinance
 from icecream import ic
-
+from app.data.celery_app.base import celery_task
 from app.data.common.constant import STOCK_CACHE_SECOND
 from app.module.asset.constant import CURRENCY_PAIRS
 from app.module.asset.redis_repository import RedisExchangeRateRepository
 from database.dependency import get_redis_pool
 
+_task_started = False
 
 async def fetch_exchange_rate(source_currency: str, target_currency: str) -> float | None:
     url = f"{source_currency}{target_currency}=X"
@@ -26,7 +27,7 @@ async def fetch_exchange_rate(source_currency: str, target_currency: str) -> flo
         return None
 
 
-async def main():
+async def execute_async_task():
     redis_client = get_redis_pool()
 
     while True:
@@ -45,5 +46,9 @@ async def main():
         await asyncio.sleep(10)
 
 
-if __name__ == "__main__":
-    asyncio.run(main())
+@celery_task.task
+def main():
+    global _task_started
+    if not _task_started:
+        _task_started = True
+        asyncio.run(execute_async_task())

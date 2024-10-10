@@ -1,12 +1,12 @@
-import asyncio
-
 from redis.asyncio import Redis
 from sqlalchemy.ext.asyncio import AsyncSession
-
 from app.module.chart.constant import TIP_EXPIRE_SECOND, TIP_TODAY_ID_REDIS_KEY
 from app.module.chart.redis_repository import RedisTipRepository
 from app.module.chart.repository import TipRepository
 from database.dependency import get_mysql_session, get_redis_pool
+from app.data.celery_app.base import celery_task
+from app.module.auth.model import User  # noqa: F401 > relationship 설정시 필요합니다.
+import asyncio
 
 
 async def set_invest_tip_key(session: AsyncSession, redis_client: Redis):
@@ -14,13 +14,11 @@ async def set_invest_tip_key(session: AsyncSession, redis_client: Redis):
 
     if today_tip_id_str is None:
         await RedisTipRepository.save(redis_client, TIP_TODAY_ID_REDIS_KEY, 1, TIP_EXPIRE_SECOND)
-        print("invest tip key 저장을 완료 했습니다.")
         return
 
     try:
         today_tip_id = int(today_tip_id_str)
     except ValueError:
-        print(f"Invalid tip ID from Redis: {today_tip_id_str}")
         await RedisTipRepository.save(redis_client, TIP_TODAY_ID_REDIS_KEY, 1, TIP_EXPIRE_SECOND)
         return
 
@@ -40,11 +38,14 @@ async def set_invest_tip_key(session: AsyncSession, redis_client: Redis):
     print("invest tip key 저장을 완료 했습니다.")
 
 
-async def main():
+async def execute_async_task():
     redis_client = get_redis_pool()
     async with get_mysql_session() as session:
         await set_invest_tip_key(session, redis_client)
-
-
-if __name__ == "__main__":
-    asyncio.run(main())
+    
+@celery_task.task
+def main():
+    asyncio.run(execute_async_task())
+    
+    
+    

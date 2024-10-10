@@ -1,5 +1,5 @@
 import asyncio
-
+from app.data.celery_app.base import celery_task
 import yfinance
 from icecream import ic
 from sqlalchemy.exc import IntegrityError
@@ -77,7 +77,7 @@ async def process_stock_data(session: AsyncSession, stock_list: list[StockInfo],
                 continue
 
 
-async def main():
+async def execute_async_task():
     start_period, end_period = get_last_week_period_bounds()
     stock_list: list[StockInfo] = get_all_stock_code_list()
 
@@ -85,5 +85,6 @@ async def main():
         await process_stock_data(session, stock_list, start_period, end_period)
 
 
-if __name__ == "__main__":
-    asyncio.run(main())
+@celery_task.task
+def main():
+    asyncio.run(execute_async_task())

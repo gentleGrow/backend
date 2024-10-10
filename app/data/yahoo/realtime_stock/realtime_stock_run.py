@@ -2,7 +2,7 @@ import asyncio
 import json
 import os
 from os import getenv
-
+from app.data.celery_app.base import celery_task
 from dotenv import load_dotenv
 from more_itertools import chunked
 
@@ -13,6 +13,7 @@ from database.enum import EnvironmentType
 load_dotenv()
 
 ENVIRONMENT = getenv("ENVIRONMENT", None)
+_task_started = False
 
 
 async def spawn_cluster_process(stock_code_list_chunk):
@@ -53,7 +54,7 @@ async def spawn_cluster_process(stock_code_list_chunk):
     return process.pid
 
 
-async def main():
+async def execute_async_task():
     stock_code_list = StockCodeFileReader.get_all_stock_code_list()
 
     stock_code_list_chunks = chunked(stock_code_list, REALTIME_STOCK_LIST)
@@ -67,5 +68,9 @@ async def main():
         await asyncio.sleep(3600)
 
 
-if __name__ == "__main__":
-    asyncio.run(main())
+@celery_task.task
+def main():
+    global _task_started
+    if not _task_started:
+        _task_started = True
+        asyncio.run(execute_async_task())

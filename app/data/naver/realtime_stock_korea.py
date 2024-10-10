@@ -2,7 +2,7 @@ import asyncio
 
 from redis.asyncio import Redis
 from sqlalchemy.ext.asyncio import AsyncSession
-
+from app.data.celery_app.base import celery_task
 from app.common.util.time import get_now_datetime
 from app.data.common.constant import STOCK_CACHE_SECOND, STOCK_CHUNK_SIZE
 from app.data.common.service import StockCodeFileReader
@@ -13,6 +13,8 @@ from app.module.asset.repository.stock_minutely_repository import StockMinutelyR
 from app.module.asset.schema import StockInfo
 from app.module.auth.model import User  # noqa: F401 > relationship 설정시 필요합니다.
 from database.dependency import get_mysql_session, get_redis_pool
+
+_task_started = False
 
 
 async def collect_stock_data(redis_client: Redis, session: AsyncSession) -> None:
@@ -37,7 +39,7 @@ async def collect_stock_data(redis_client: Redis, session: AsyncSession) -> None
         await StockMinutelyRepository.bulk_upsert(session, db_bulk_data)
 
 
-async def main():
+async def execute_async_task():
     redis_client = get_redis_pool()
     async with get_mysql_session() as session:
         while True:
@@ -48,5 +50,9 @@ async def main():
             await asyncio.sleep(5)
 
 
-if __name__ == "__main__":
-    asyncio.run(main())
+@celery_task.task
+def main():
+    global _task_started
+    if not _task_started:
+        _task_started = True
+        asyncio.run(execute_async_task())

@@ -2,7 +2,7 @@ import asyncio
 import json
 from datetime import date
 from os import getenv
-
+from app.data.celery_app.base import celery_task
 from dotenv import load_dotenv
 from icecream import ic
 from redis.asyncio import Redis
@@ -119,12 +119,13 @@ async def fetch_rich_porfolio(redis_client: Redis, session: AsyncSession, person
     driver.quit()
 
 
-async def main():
+async def execute_async_task():
     redis_client = get_redis_pool()
     async with get_mysql_session() as session:
         for person in RicePeople:
             await fetch_rich_porfolio(redis_client, session, person.value)
 
 
-if __name__ == "__main__":
-    asyncio.run(main())
+@celery_task.task
+def main():
+    asyncio.run(execute_async_task())
