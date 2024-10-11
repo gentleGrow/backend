@@ -1,10 +1,8 @@
 from os import getenv
 
-import sentry_sdk
 from dotenv import load_dotenv
-from fastapi import FastAPI, HTTPException, Request
+from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import JSONResponse
 from starlette.middleware.sessions import SessionMiddleware
 
 from app.api.asset.v1.router import asset_stock_router
@@ -33,17 +31,6 @@ app.add_middleware(
 )
 app.add_middleware(SessionMiddleware, secret_key=SESSION_KEY)
 app.add_middleware(TimeoutMiddleware)
-
-
-@app.exception_handler(HTTPException)
-async def custom_http_exception_handler(request: Request, exc: HTTPException):
-    if exc.status_code == 401:
-        sentry_sdk.capture_message(f"401 Unauthorized access attempt: {request.url}")
-    return JSONResponse(
-        status_code=exc.status_code,
-        content={"detail": exc.detail},
-    )
-
 
 app.include_router(auth_router, prefix="/api/auth", tags=["auth"])
 app.include_router(chart_router, prefix="/api/chart", tags=["chart"])

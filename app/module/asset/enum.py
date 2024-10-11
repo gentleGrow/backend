@@ -3,10 +3,10 @@ from enum import StrEnum
 
 class StockAsset(StrEnum):
     ID = "id"
-    BUY_DATE = "buy_date"
     PURCHASE_CURRENCY_TYPE = "purchase_currency_type"
-    QUANTITY = "quantity"
     STOCK_CODE = "stock_code"
+    BUY_DATE = "buy_date"
+    QUANTITY = "quantity"
     ACCOUNT_TYPE = "account_type"
     CURRENT_PRICE = "current_price"
     DIVIDEND = "dividend"

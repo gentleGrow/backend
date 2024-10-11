@@ -12,8 +12,9 @@ from app.module.asset.enum import (
 MONTHS = ["1월", "2월", "3월", "4월", "5월", "6월", "7월", "8월", "9월", "10월", "11월", "12월"]
 
 ASSET_FIELD = [
-    "buy_date",
+    "stock_name",
     "quantity",
+    "buy_date",
     "account_type",
     "current_price",
     "dividend",
@@ -25,7 +26,6 @@ ASSET_FIELD = [
     "profit_amount",
     "purchase_amount",
     "purchase_price",
-    "stock_name",
     "stock_volume",
 ]
 

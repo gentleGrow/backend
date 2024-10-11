@@ -88,6 +88,7 @@ class StockListResponse(RootModel[list[StockListValue]]):
 
 class AssetStockResponse(BaseModel):
     stock_assets: list[dict]
+    asset_fields:list
     total_asset_amount: float
     total_invest_amount: float
     total_profit_rate: float
@@ -98,12 +99,14 @@ class AssetStockResponse(BaseModel):
     def parse(
         cls,
         stock_assets: list[dict],
+        asset_fields:list,
         total_asset_amount: float,
         total_invest_amount: float,
         total_dividend_amount: float,
     ) -> "AssetStockResponse":
         return cls(
             stock_assets=stock_assets,
+            asset_fields=asset_fields,
             total_asset_amount=total_asset_amount,
             total_invest_amount=total_invest_amount,
             total_profit_rate=((total_asset_amount - total_invest_amount) / total_invest_amount) * 100

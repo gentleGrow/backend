@@ -1,7 +1,7 @@
 from datetime import date, datetime
 
 from sqlalchemy.ext.asyncio import AsyncSession
-
+from icecream import ic
 from app.module.asset.enum import AssetType, CurrencyType, PurchaseCurrencyType, StockAsset
 from app.module.asset.model import Asset, AssetStock, StockDaily
 from app.module.asset.repository.asset_field_repository import AssetFieldRepository
@@ -75,16 +75,14 @@ class AssetStockService:
         return result
 
     @staticmethod
-    async def get_stock_assets(
-        session: AsyncSession,
-        user_id: int,
+    def get_stock_assets(
         assets: list[Asset],
         stock_daily_map: dict[tuple[str, date], StockDaily],
         current_stock_price_map: dict[str, float],
         dividend_map: dict[str, float],
         exchange_rate_map: dict[str, float],
+        asset_fields:list
     ) -> list[dict]:
-        asset_field = await AssetFieldRepository.get(session, user_id)
         stock_assets = []
 
         for asset in assets:
@@ -155,14 +153,12 @@ class AssetStockService:
             }
 
             stock_asset_data_filter = {
-                field: value for field, value in stock_asset_data.items() if field in asset_field.field_preference
+                field: value for field, value in stock_asset_data.items() if field in asset_fields
             }
             stock_asset_data_filter[StockAsset.ID.value] = stock_asset_data[StockAsset.ID.value]
-            stock_asset_data_filter[StockAsset.STOCK_CODE.value] = stock_asset_data[StockAsset.STOCK_CODE.value]
             stock_asset_data_filter[StockAsset.PURCHASE_CURRENCY_TYPE.value] = stock_asset_data[
                 StockAsset.PURCHASE_CURRENCY_TYPE.value
             ]
-
             stock_assets.append(stock_asset_data_filter)
 
         return stock_assets
