@@ -4,8 +4,9 @@ import requests
 from bs4 import BeautifulSoup
 from redis.asyncio import Redis
 from sqlalchemy.ext.asyncio import AsyncSession
-from app.data.celery_app.base import celery_task
+
 from app.common.util.time import get_now_datetime
+from app.data.celery_app.base import celery_task
 from app.data.common.constant import MARKET_INDEX_CACHE_SECOND
 from app.module.asset.enum import Country, MarketIndex
 from app.module.asset.model import (  # noqa: F401 > relationship 설정시 필요합니다.
@@ -21,8 +22,8 @@ from app.module.asset.schema import MarketIndexData
 from app.module.auth.model import User  # noqa: F401 > relationship 설정시 필요합니다.
 from database.dependency import get_mysql_session, get_redis_pool
 
-
 _task_started = False
+
 
 async def fetch_market_data(redis_client: Redis, session: AsyncSession):
     url = "https://finance.naver.com/"

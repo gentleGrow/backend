@@ -2,10 +2,11 @@ import asyncio
 import json
 import os
 from os import getenv
-from app.data.celery_app.base import celery_task
+
 from dotenv import load_dotenv
 from more_itertools import chunked
 
+from app.data.celery_app.base import celery_task
 from app.data.common.service import StockCodeFileReader
 from app.data.yahoo.source.constant import REALTIME_STOCK_LIST
 from database.enum import EnvironmentType

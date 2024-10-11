@@ -2,8 +2,9 @@ import asyncio
 
 from redis.asyncio import Redis
 from sqlalchemy.ext.asyncio import AsyncSession
-from app.data.celery_app.base import celery_task
+
 from app.common.util.time import get_now_datetime
+from app.data.celery_app.base import celery_task
 from app.data.common.constant import STOCK_CACHE_SECOND, STOCK_CHUNK_SIZE
 from app.data.common.service import StockCodeFileReader
 from app.data.naver.sources.service import get_stock_prices

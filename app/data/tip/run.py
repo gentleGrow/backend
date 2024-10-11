@@ -1,12 +1,14 @@
+import asyncio
+
 from redis.asyncio import Redis
 from sqlalchemy.ext.asyncio import AsyncSession
+
+from app.data.celery_app.base import celery_task
+from app.module.auth.model import User  # noqa: F401 > relationship 설정시 필요합니다.
 from app.module.chart.constant import TIP_EXPIRE_SECOND, TIP_TODAY_ID_REDIS_KEY
 from app.module.chart.redis_repository import RedisTipRepository
 from app.module.chart.repository import TipRepository
 from database.dependency import get_mysql_session, get_redis_pool
-from app.data.celery_app.base import celery_task
-from app.module.auth.model import User  # noqa: F401 > relationship 설정시 필요합니다.
-import asyncio
 
 
 async def set_invest_tip_key(session: AsyncSession, redis_client: Redis):
@@ -42,10 +44,8 @@ async def execute_async_task():
     redis_client = get_redis_pool()
     async with get_mysql_session() as session:
         await set_invest_tip_key(session, redis_client)
-    
+
+
 @celery_task.task
 def main():
     asyncio.run(execute_async_task())
-    
-    
-    

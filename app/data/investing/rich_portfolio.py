@@ -2,7 +2,7 @@ import asyncio
 import json
 from datetime import date
 from os import getenv
-from app.data.celery_app.base import celery_task
+
 from dotenv import load_dotenv
 from icecream import ic
 from redis.asyncio import Redis
@@ -15,6 +15,7 @@ from selenium.webdriver.support.ui import WebDriverWait
 from sqlalchemy.ext.asyncio import AsyncSession
 from webdriver_manager.chrome import ChromeDriverManager
 
+from app.data.celery_app.base import celery_task
 from app.data.investing.sources.enum import RicePeople
 from app.module.asset.enum import AssetType, PurchaseCurrencyType
 from app.module.asset.model import Asset, AssetStock

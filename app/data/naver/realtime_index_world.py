@@ -1,6 +1,6 @@
 import asyncio
 from os import getenv
-from app.data.celery_app.base import celery_task
+
 from dotenv import load_dotenv
 from icecream import ic
 from redis.asyncio import Redis
@@ -14,6 +14,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from webdriver_manager.chrome import ChromeDriverManager
 
 from app.common.util.time import get_now_datetime
+from app.data.celery_app.base import celery_task
 from app.data.common.constant import MARKET_INDEX_CACHE_SECOND
 from app.module.asset.constant import COUNTRY_TRANSLATIONS, INDEX_NAME_TRANSLATIONS
 from app.module.asset.model import (  # noqa: F401 > relationship 설정시 필요합니다.
@@ -35,6 +36,7 @@ ENVIRONMENT = getenv("ENVIRONMENT", None)
 
 _task_started = False
 
+
 async def fetch_market_data(redis_client: Redis, session: AsyncSession):
     now = get_now_datetime()
 
@@ -46,8 +48,7 @@ async def fetch_market_data(redis_client: Redis, session: AsyncSession):
     if ENVIRONMENT == EnvironmentType.DEV:
         driver = webdriver.Chrome(service=Service(ChromeDriverManager().install()), options=chrome_options)
     else:
-        driver = webdriver.Chrome(service=Service("/usr/bin/chromedriver"), options=chrome_options)            
-            
+        driver = webdriver.Chrome(service=Service("/usr/bin/chromedriver"), options=chrome_options)
 
     try:
         driver.get("https://finance.naver.com/world/")
