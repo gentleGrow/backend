@@ -1,6 +1,7 @@
 from datetime import date, datetime
 
 from sqlalchemy.ext.asyncio import AsyncSession
+
 from app.module.asset.constant import REQUIRED_ASSET_FIELD
 from app.module.asset.enum import AssetType, CurrencyType, PurchaseCurrencyType, StockAsset
 from app.module.asset.model import Asset, AssetStock, StockDaily
@@ -152,8 +153,9 @@ class AssetStockService:
             }
 
             stock_asset_data_filter = {
-                field: {'isRequired':field in REQUIRED_ASSET_FIELD,'value':value} for field, value in stock_asset_data.items() if field in asset_fields
-          
+                field: {"isRequired": field in REQUIRED_ASSET_FIELD, "value": value}
+                for field, value in stock_asset_data.items()
+                if field in asset_fields
             }
             stock_asset_data_filter[StockAsset.ID.value] = stock_asset_data[StockAsset.ID.value]
             stock_asset_data_filter[StockAsset.PURCHASE_CURRENCY_TYPE.value] = stock_asset_data[

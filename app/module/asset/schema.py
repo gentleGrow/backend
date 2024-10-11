@@ -25,21 +25,21 @@ class UpdateAssetFieldRequest(RootModel[list[str]]):
     class Config:
         json_schema_extra = {
             "example": [
-                "buy_date",
-                "quantity",
-                "account_type",
-                "current_price",
-                "dividend",
-                "highest_price",
-                "investment_bank",
-                "lowest_price",
-                "opening_price",
-                "profit_rate",
-                "profit_amount",
-                "purchase_amount",
-                "purchase_price",
-                "stock_name",
-                "stock_volume",
+                "구매일자",
+                "수량",
+                "계좌종류",
+                "현재가",
+                "배당금",
+                "고가",
+                "증권사",
+                "저가",
+                "시가",
+                "수익률",
+                "수익금",
+                "매입금",
+                "매입가",
+                "종목명",
+                "거래량",
             ]
         }
 

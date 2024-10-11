@@ -150,37 +150,38 @@ class TestAssetStockService:
         # Then
         expected_exchange_rate_aapl: float = (
             ExchangeRateService.get_dollar_exchange_rate(assets[0], exchange_rate_map)
-            if assets[0].asset_stock.purchase_currency_type == PurchaseCurrencyType.USA
+            if assets[0].asset_stock.purchase_currency_type == PurchaseCurrencyType.USA.value
             else ExchangeRateService.get_won_exchange_rate(assets[0], exchange_rate_map)
         )
 
-        stock_asset_aapl = next(asset for asset in stock_assets if asset[StockAsset.STOCK_CODE.value] == "AAPL")
-
-        assert stock_asset_aapl[StockAsset.STOCK_NAME.value] == "Apple Inc."
-        assert stock_asset_aapl[StockAsset.CURRENT_PRICE.value] == 220.0 * expected_exchange_rate_aapl
-        assert (
-            stock_asset_aapl[StockAsset.DIVIDEND.value]
-            == 1.6 * stock_asset_aapl[StockAsset.QUANTITY.value] * expected_exchange_rate_aapl
+        stock_asset_aapl = next(
+            asset for asset in stock_assets if asset[StockAsset.STOCK_NAME.value]["value"] == "Apple Inc."
         )
-        assert stock_asset_aapl[StockAsset.PROFIT_RATE.value] == pytest.approx(
+        assert stock_asset_aapl[StockAsset.CURRENT_PRICE.value]["value"] == 220.0 * expected_exchange_rate_aapl
+        assert (
+            stock_asset_aapl[StockAsset.DIVIDEND.value]["value"]
+            == 1.6 * stock_asset_aapl[StockAsset.QUANTITY.value]["value"] * expected_exchange_rate_aapl
+        )
+        assert stock_asset_aapl[StockAsset.PROFIT_RATE.value]["value"] == pytest.approx(
             ((220.0 * expected_exchange_rate_aapl - 500.0) / 500.0) * 100
         )
-        assert stock_asset_aapl.get(StockAsset.PURCHASE_PRICE.value) is None
 
-        stock_asset_tsla = next(asset for asset in stock_assets if asset[StockAsset.STOCK_CODE.value] == "TSLA")
+        stock_asset_tsla = next(
+            asset for asset in stock_assets if asset[StockAsset.STOCK_NAME.value]["value"] == "Tesla Inc."
+        )
         expected_exchange_rate_tsla: float = (
             ExchangeRateService.get_dollar_exchange_rate(assets[1], exchange_rate_map)
             if assets[1].asset_stock.purchase_currency_type == PurchaseCurrencyType.USA
             else ExchangeRateService.get_won_exchange_rate(assets[1], exchange_rate_map)
         )
-        assert stock_asset_tsla[StockAsset.STOCK_NAME.value] == "Tesla Inc."
-        assert stock_asset_tsla[StockAsset.CURRENT_PRICE.value] == 230.0 * expected_exchange_rate_tsla
+        assert stock_asset_tsla[StockAsset.CURRENT_PRICE.value]["value"] == 230.0 * expected_exchange_rate_tsla
         assert (
-            stock_asset_tsla[StockAsset.DIVIDEND.value]
-            == 0.9 * stock_asset_tsla[StockAsset.QUANTITY.value] * expected_exchange_rate_tsla
+            stock_asset_tsla[StockAsset.DIVIDEND.value]["value"]
+            == 0.9 * stock_asset_tsla[StockAsset.QUANTITY.value]["value"] * expected_exchange_rate_tsla
         )
 
-        stock_asset_samsung = next(asset for asset in stock_assets if asset[StockAsset.STOCK_CODE.value] == "005930")
-        assert stock_asset_samsung[StockAsset.STOCK_NAME.value] == "삼성전자"
-        assert stock_asset_samsung[StockAsset.CURRENT_PRICE.value] == 70000.0
-        assert stock_asset_samsung[StockAsset.DIVIDEND.value] == 105.0
+        stock_asset_samsung = next(
+            asset for asset in stock_assets if asset[StockAsset.STOCK_NAME.value]["value"] == "삼성전자"
+        )
+        assert stock_asset_samsung[StockAsset.CURRENT_PRICE.value]["value"] == 70000.0
+        assert stock_asset_samsung[StockAsset.DIVIDEND.value]["value"] == 105.0

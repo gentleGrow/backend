@@ -11,7 +11,7 @@ from app.module.asset.enum import (
 
 MONTHS = ["1월", "2월", "3월", "4월", "5월", "6월", "7월", "8월", "9월", "10월", "11월", "12월"]
 
-REQUIRED_ASSET_FIELD = ['종목명', '수량', '구매일자']
+REQUIRED_ASSET_FIELD = ["종목명", "수량", "구매일자"]
 
 ASSET_FIELD = [
     "종목명",
@@ -213,5 +213,3 @@ COUNTRY_TRANSLATIONS = {
     "유로존": Country.EUROZONE,
     "한국": Country.KOREA,
 }
-
-

@@ -19,7 +19,7 @@ from app.module.auth.constant import DUMMY_USER_ID
 class TestUpdateAssetFieldRequest:
     def test_validate_request_data_missing_required_fields(self):
         # Given
-        request_data = UpdateAssetFieldRequest(root=["stock_name", "quantity"])
+        request_data = UpdateAssetFieldRequest(root=["종목명", "수량"])
 
         # When
         try:
@@ -32,11 +32,11 @@ class TestUpdateAssetFieldRequest:
         # Then
         assert validation_passed is False
         assert "필수 필드가 누락되었습니다" in error_detail
-        assert "['buy_date']" in error_detail
+        assert "['구매일자']" in error_detail
 
     def test_validate_request_data_success(self):
         # Given
-        valid_request_data = UpdateAssetFieldRequest(root=["buy_date", "quantity", "stock_name"])
+        valid_request_data = UpdateAssetFieldRequest(root=["구매일자", "수량", "종목명"])
 
         # When
         try:
@@ -50,7 +50,7 @@ class TestUpdateAssetFieldRequest:
 
     def test_validate_request_data_fail(self):
         # Given
-        invalid_request_data = UpdateAssetFieldRequest(root=["invalid_field", "quantity"])
+        invalid_request_data = UpdateAssetFieldRequest(root=["invalid_field", "수량"])
 
         # When
         try:
