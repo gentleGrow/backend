@@ -1,10 +1,9 @@
 from datetime import date, datetime
 
 from sqlalchemy.ext.asyncio import AsyncSession
-from icecream import ic
+from app.module.asset.constant import REQUIRED_ASSET_FIELD
 from app.module.asset.enum import AssetType, CurrencyType, PurchaseCurrencyType, StockAsset
 from app.module.asset.model import Asset, AssetStock, StockDaily
-from app.module.asset.repository.asset_field_repository import AssetFieldRepository
 from app.module.asset.repository.asset_repository import AssetRepository
 from app.module.asset.schema import AssetStockPostRequest
 from app.module.asset.services.exchange_rate_service import ExchangeRateService
@@ -81,7 +80,7 @@ class AssetStockService:
         current_stock_price_map: dict[str, float],
         dividend_map: dict[str, float],
         exchange_rate_map: dict[str, float],
-        asset_fields:list
+        asset_fields: list,
     ) -> list[dict]:
         stock_assets = []
 
@@ -153,7 +152,8 @@ class AssetStockService:
             }
 
             stock_asset_data_filter = {
-                field: value for field, value in stock_asset_data.items() if field in asset_fields
+                field: {'isRequired':field in REQUIRED_ASSET_FIELD,'value':value} for field, value in stock_asset_data.items() if field in asset_fields
+          
             }
             stock_asset_data_filter[StockAsset.ID.value] = stock_asset_data[StockAsset.ID.value]
             stock_asset_data_filter[StockAsset.PURCHASE_CURRENCY_TYPE.value] = stock_asset_data[
@@ -188,3 +188,83 @@ class AssetStockService:
             total_invest_amount += invest_price * asset.asset_stock.quantity
 
         return total_invest_amount
+
+    @staticmethod
+    def get_stock_assets_all_fields(
+        assets: list[Asset],
+        stock_daily_map: dict[tuple[str, date], StockDaily],
+        current_stock_price_map: dict[str, float],
+        dividend_map: dict[str, float],
+        exchange_rate_map: dict[str, float],
+    ) -> list[dict]:
+        stock_assets = []
+
+        for asset in assets:
+            apply_exchange_rate: float = (
+                ExchangeRateService.get_dollar_exchange_rate(asset, exchange_rate_map)
+                if asset.asset_stock.purchase_currency_type == PurchaseCurrencyType.USA
+                else ExchangeRateService.get_won_exchange_rate(asset, exchange_rate_map)
+            )
+
+            stock_daily = stock_daily_map.get((asset.asset_stock.stock.code, asset.asset_stock.purchase_date), None)
+            if stock_daily is None:
+                continue
+
+            purchase_price = (
+                asset.asset_stock.purchase_price if asset.asset_stock.purchase_price else stock_daily.adj_close_price
+            )
+
+            stock_asset_data = {
+                StockAsset.ID.value: asset.id,
+                StockAsset.ACCOUNT_TYPE.value: asset.asset_stock.account_type or None,
+                StockAsset.BUY_DATE.value: asset.asset_stock.purchase_date,
+                StockAsset.CURRENT_PRICE.value: (
+                    current_stock_price_map.get(asset.asset_stock.stock.code, 0.0) * apply_exchange_rate
+                ),
+                StockAsset.DIVIDEND.value: (
+                    dividend_map.get((asset.asset_stock.stock.code), 0.0)
+                    * asset.asset_stock.quantity
+                    * apply_exchange_rate
+                ),
+                StockAsset.HIGHEST_PRICE.value: (stock_daily.highest_price * apply_exchange_rate)
+                if stock_daily.highest_price
+                else None,
+                StockAsset.INVESTMENT_BANK.value: asset.asset_stock.investment_bank or None,
+                StockAsset.LOWEST_PRICE.value: (stock_daily.lowest_price * apply_exchange_rate)
+                if stock_daily.lowest_price
+                else None,
+                StockAsset.OPENING_PRICE.value: (stock_daily.opening_price * apply_exchange_rate)
+                if stock_daily.opening_price
+                else None,
+                StockAsset.PROFIT_RATE.value: (
+                    (
+                        current_stock_price_map.get(asset.asset_stock.stock.code, 0.0) * apply_exchange_rate
+                        - purchase_price
+                    )
+                    / purchase_price
+                    * 100
+                )
+                if purchase_price
+                else None,
+                StockAsset.PROFIT_AMOUNT.value: (
+                    (
+                        current_stock_price_map.get(asset.asset_stock.stock.code, 0.0) * apply_exchange_rate
+                        - purchase_price
+                    )
+                    * asset.asset_stock.quantity
+                )
+                if purchase_price
+                else None,
+                StockAsset.PURCHASE_AMOUNT.value: (asset.asset_stock.purchase_price * asset.asset_stock.quantity)
+                if asset.asset_stock.purchase_price
+                else None,
+                StockAsset.PURCHASE_PRICE.value: asset.asset_stock.purchase_price or None,
+                StockAsset.PURCHASE_CURRENCY_TYPE.value: asset.asset_stock.purchase_currency_type or None,
+                StockAsset.QUANTITY.value: asset.asset_stock.quantity,
+                StockAsset.STOCK_CODE.value: asset.asset_stock.stock.code,
+                StockAsset.STOCK_NAME.value: asset.asset_stock.stock.name,
+                StockAsset.STOCK_VOLUME.value: stock_daily.trade_volume if stock_daily.trade_volume else None,
+            }
+            stock_assets.append(stock_asset_data)
+
+        return stock_assets

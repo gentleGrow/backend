@@ -8,6 +8,7 @@ from app.module.asset.enum import AccountType, AssetType, InvestmentBankType, Pu
 from app.module.asset.model import Asset
 from app.module.asset.repository.asset_repository import AssetRepository
 from app.module.asset.schema import AssetStockPostRequest
+from app.module.asset.services.asset_field_service import AssetFieldService
 from app.module.asset.services.asset_stock_service import AssetStockService
 from app.module.asset.services.dividend_service import DividendService
 from app.module.asset.services.exchange_rate_service import ExchangeRateService
@@ -134,16 +135,16 @@ class TestAssetStockService:
         current_stock_price_map = await StockService.get_current_stock_price(
             redis_client, lastest_stock_daily_map, assets
         )
+        asset_fields = await AssetFieldService.get_asset_field(session, DUMMY_USER_ID)
 
         # When
-        stock_assets: list[dict] = await AssetStockService.get_stock_assets(
-            session=session,
-            user_id=DUMMY_USER_ID,
+        stock_assets: list[dict] = AssetStockService.get_stock_assets(
             assets=assets,
             stock_daily_map=stock_daily_map,
             current_stock_price_map=current_stock_price_map,
             dividend_map=dividend_map,
             exchange_rate_map=exchange_rate_map,
+            asset_fields=asset_fields,
         )
 
         # Then

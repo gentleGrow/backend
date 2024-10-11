@@ -422,8 +422,8 @@ async def get_sample_my_stock(
         redis_client, lastest_stock_daily_map, [asset.asset_stock.stock.code for asset in assets]
     )
     exchange_rate_map: dict[str, float] = await ExchangeRateService.get_exchange_rate_map(redis_client)
-    stock_assets: list[dict] = await AssetStockService.get_stock_assets(
-        session, DUMMY_USER_ID, assets, stock_daily_map, current_stock_price_map, dividend_map, exchange_rate_map
+    stock_assets: list[dict] = AssetStockService.get_stock_assets_all_fields(
+        assets, stock_daily_map, current_stock_price_map, dividend_map, exchange_rate_map
     )
 
     return MyStockResponse(
@@ -459,8 +459,8 @@ async def get_my_stock(
         redis_client, lastest_stock_daily_map, [asset.asset_stock.stock.code for asset in assets]
     )
     exchange_rate_map = await ExchangeRateService.get_exchange_rate_map(redis_client)
-    stock_assets: list[dict] = await AssetStockService.get_stock_assets(
-        session, token.get("user"), assets, stock_daily_map, current_stock_price_map, dividend_map, exchange_rate_map
+    stock_assets: list[dict] = AssetStockService.get_stock_assets_all_fields(
+        assets, stock_daily_map, current_stock_price_map, dividend_map, exchange_rate_map
     )
 
     return MyStockResponse(

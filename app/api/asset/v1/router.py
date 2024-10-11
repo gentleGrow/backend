@@ -104,7 +104,9 @@ async def get_sample_asset_stock(
     total_invest_amount = AssetStockService.get_total_investment_amount(assets, stock_daily_map, exchange_rate_map)
     total_dividend_amount = DividendService.get_total_dividend(assets, dividend_map, exchange_rate_map)
 
-    return AssetStockResponse.parse(stock_assets, asset_fields, total_asset_amount, total_invest_amount, total_dividend_amount)
+    return AssetStockResponse.parse(
+        stock_assets, asset_fields, total_asset_amount, total_invest_amount, total_dividend_amount
+    )
 
 
 @asset_stock_router.get("/assetstock", summary="사용자의 자산 정보를 반환합니다.", response_model=AssetStockResponse)
@@ -141,7 +143,9 @@ async def get_asset_stock(
     total_invest_amount = AssetStockService.get_total_investment_amount(assets, stock_daily_map, exchange_rate_map)
     total_dividend_amount = DividendService.get_total_dividend(assets, dividend_map, exchange_rate_map)
 
-    return AssetStockResponse.parse(stock_assets, asset_fields, total_asset_amount, total_invest_amount, total_dividend_amount)
+    return AssetStockResponse.parse(
+        stock_assets, asset_fields, total_asset_amount, total_invest_amount, total_dividend_amount
+    )
 
 
 @asset_stock_router.post("/assetstock", summary="자산관리 정보를 등록합니다.", response_model=PostResponse)

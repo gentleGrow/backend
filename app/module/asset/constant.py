@@ -11,22 +11,24 @@ from app.module.asset.enum import (
 
 MONTHS = ["1월", "2월", "3월", "4월", "5월", "6월", "7월", "8월", "9월", "10월", "11월", "12월"]
 
+REQUIRED_ASSET_FIELD = ['종목명', '수량', '구매일자']
+
 ASSET_FIELD = [
-    "stock_name",
-    "quantity",
-    "buy_date",
-    "account_type",
-    "current_price",
-    "dividend",
-    "highest_price",
-    "investment_bank",
-    "lowest_price",
-    "opening_price",
-    "profit_rate",
-    "profit_amount",
-    "purchase_amount",
-    "purchase_price",
-    "stock_volume",
+    "종목명",
+    "수량",
+    "구매일자",
+    "계좌종류",
+    "현재가",
+    "배당금",
+    "고가",
+    "증권사",
+    "저가",
+    "시가",
+    "수익률",
+    "수익금",
+    "매입금",
+    "매입가",
+    "거래량",
 ]
 
 
@@ -212,4 +214,4 @@ COUNTRY_TRANSLATIONS = {
     "한국": Country.KOREA,
 }
 
-REQUIRED_ASSET_FIELD = ["buy_date", "quantity", "stock_name"]
+

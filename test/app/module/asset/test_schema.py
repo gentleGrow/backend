@@ -7,6 +7,7 @@ from app.module.asset.enum import AssetType
 from app.module.asset.model import Asset
 from app.module.asset.repository.asset_repository import AssetRepository
 from app.module.asset.schema import AssetStockResponse, UpdateAssetFieldRequest
+from app.module.asset.services.asset_field_service import AssetFieldService
 from app.module.asset.services.asset_stock_service import AssetStockService
 from app.module.asset.services.dividend_service import DividendService
 from app.module.asset.services.exchange_rate_service import ExchangeRateService
@@ -75,6 +76,7 @@ class TestAssetStockResponse:
         # Then
         expected_response = AssetStockResponse(
             stock_assets=[],
+            asset_fields=[],
             total_asset_amount=0.0,
             total_invest_amount=0.0,
             total_profit_rate=0.0,
@@ -94,17 +96,7 @@ class TestAssetStockResponse:
         # Then
         assert response is None
 
-    async def test_parse(
-        self,
-        session: AsyncSession,
-        redis_client: Redis,
-        setup_asset,
-        setup_dividend,
-        setup_exchange_rate,
-        setup_realtime_stock_price,
-        setup_stock_daily,
-        setup_asset_field,
-    ):
+    async def test_parse(self, session: AsyncSession, redis_client: Redis, setup_all):
         # Given
         assets: list[Asset] = await AssetRepository.get_eager(session, DUMMY_USER_ID, AssetType.STOCK)
         stock_daily_map = await StockDailyService.get_map_range(session, assets)
@@ -114,8 +106,10 @@ class TestAssetStockResponse:
         current_stock_price_map = await StockService.get_current_stock_price(
             redis_client, lastest_stock_daily_map, assets
         )
-        stock_assets = await AssetStockService.get_stock_assets(
-            session, DUMMY_USER_ID, assets, stock_daily_map, current_stock_price_map, dividend_map, exchange_rate_map
+
+        asset_fields = await AssetFieldService.get_asset_field(session, DUMMY_USER_ID)
+        stock_assets = AssetStockService.get_stock_assets(
+            assets, stock_daily_map, current_stock_price_map, dividend_map, exchange_rate_map, asset_fields
         )
         total_asset_amount = AssetStockService.get_total_asset_amount(
             assets, current_stock_price_map, exchange_rate_map
@@ -126,6 +120,7 @@ class TestAssetStockResponse:
         # When
         stock_asset_response = AssetStockResponse.parse(
             stock_assets=stock_assets,
+            asset_fields=asset_fields,
             total_asset_amount=total_asset_amount,
             total_invest_amount=total_invest_amount,
             total_dividend_amount=total_dividend_amount,
