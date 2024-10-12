@@ -89,3 +89,6 @@ async def execute_async_task():
 @celery_task.task
 def main():
     asyncio.run(execute_async_task())
+
+
+asyncio.run(execute_async_task())

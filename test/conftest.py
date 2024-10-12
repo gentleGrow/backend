@@ -19,8 +19,6 @@ load_dotenv()
 
 
 TEST_DATABASE_URL = getenv("TEST_DATABASE_URL", None)
-
-
 test_engine = create_async_engine(TEST_DATABASE_URL, pool_pre_ping=True, poolclass=NullPool)
 TestSessionLocal = sessionmaker(bind=test_engine, class_=AsyncSession, expire_on_commit=False)
 

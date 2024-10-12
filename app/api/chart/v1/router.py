@@ -1,13 +1,14 @@
-from datetime import date, datetime
+from datetime import date, datetime, timedelta
 from statistics import mean
-
+from icecream import ic
 from fastapi import APIRouter, Depends, HTTPException, Query, status
+from numpy import average
 from redis.asyncio import Redis
 from sqlalchemy.ext.asyncio import AsyncSession
-
+from app.common.util.time import get_now_date, get_now_datetime
 from app.common.auth.security import verify_jwt_token
-from app.module.asset.constant import MARKET_INDEX_KR_MAPPING, MONTHS
-from app.module.asset.enum import AssetType, CurrencyType
+from app.module.asset.constant import MARKET_INDEX_KR_MAPPING, MONTHS, THREE_MONTH, INFLATION_RATE, ASSET_SAVE_TREND_YEAR
+from app.module.asset.enum import AssetType, CurrencyType, AmountUnit
 from app.module.asset.model import Asset, StockDaily
 from app.module.asset.repository.asset_repository import AssetRepository
 from app.module.asset.schema import MarketIndexData
@@ -46,12 +47,168 @@ from app.module.chart.schema import (
     RichPortfolioResponse,
     RichPortfolioValue,
     SummaryResponse,
+    AssetSaveTrendResponse
 )
 from app.module.chart.service.index_service import IndexService
 from app.module.chart.service.rich_portfolio_service import RichPortfolioService
 from database.dependency import get_mysql_session_router, get_redis_pool
 
 chart_router = APIRouter(prefix="/v1")
+
+
+@chart_router.get('/sample/asset-save-trend', summary="자산적립 추이", response_model=AssetSaveTrendResponse)
+async def get_sameple_asset_save_trend(
+    session: AsyncSession = Depends(get_mysql_session_router),
+    redis_client: Redis = Depends(get_redis_pool)
+)->AssetSaveTrendResponse:
+    asset_all:list = await AssetRepository.get_eager(session, DUMMY_USER_ID, AssetType.STOCK)
+    
+    if len(asset_all) == 0:
+        return AssetSaveTrendResponse(
+            xAxises=[],
+            dates=[],
+            values1={},
+            values2={},
+            unit=''
+        )
+    
+    lastest_stock_daily_map_all = await StockDailyService.get_latest_map(session, asset_all)
+    current_stock_price_map_all = await StockService.get_current_stock_price(redis_client, lastest_stock_daily_map_all, asset_all)
+    exchange_rate_map = await ExchangeRateService.get_exchange_rate_map(redis_client)
+    total_asset_amount_all = AssetStockService.get_total_asset_amount(asset_all, current_stock_price_map_all, exchange_rate_map)
+  
+    end_date = get_now_date()
+    start_date = end_date - timedelta(days=THREE_MONTH)
+    asset_3month:list = await AssetRepository.get_eager_by_range(
+            session, DUMMY_USER_ID, AssetType.STOCK, (start_date, end_date)
+        )
+    
+    if len(asset_3month) == 0:
+        return AssetSaveTrendResponse.no_near_invest_response(total_asset_amount_all)
+    
+    lastest_stock_daily_map = await StockDailyService.get_latest_map(session, asset_3month)
+    current_stock_price_map = await StockService.get_current_stock_price(redis_client, lastest_stock_daily_map, asset_3month)
+    stock_daily_map = await StockDailyService.get_map_range(session, asset_3month)
+    dividend_map: dict[str, float] = await DividendService.get_recent_map(session, asset_3month)
+
+    total_asset_amount = AssetStockService.get_total_asset_amount(asset_3month, current_stock_price_map, exchange_rate_map)
+    total_invest_amount = AssetStockService.get_total_investment_amount(asset_3month, stock_daily_map, exchange_rate_map)
+    total_dividend_amount = DividendService.get_total_dividend(asset_3month, dividend_map, exchange_rate_map)
+    
+    average_invest_amount_month = total_invest_amount/3 if total_invest_amount > 0.0 else 0.0
+    average_dividend_month = total_dividend_amount/3.0 if total_dividend_amount> 0.0 else 0.0
+    
+    increase_invest_year = (average_invest_amount_month + average_dividend_month) * 12
+    total_profit_rate=AssetStockService.get_total_profit_rate(total_asset_amount, total_invest_amount)
+    total_profit_rate_real=AssetStockService.get_total_profit_rate_real(total_asset_amount, total_invest_amount, INFLATION_RATE)
+    
+    values1 = {"values": [], "name": "예상자산"}
+    values2 = {"values": [], "name": "실질자산"}
+
+    current_value1 = total_asset_amount
+    current_value2 = total_asset_amount
+
+    for _ in range(ASSET_SAVE_TREND_YEAR):
+        current_value1 += increase_invest_year
+        current_value1 *= (1 + total_profit_rate)
+        values1["values"].append(current_value1)
+
+        current_value2 += increase_invest_year
+        current_value2 *= (1 + total_profit_rate_real)
+        values2["values"].append(current_value2)
+        
+    if total_asset_amount >= 100000000:
+        unit = AmountUnit.BILLION_WON
+        values1["values"] = [v / 100000000 for v in values1["values"]]
+        values2["values"] = [v / 100000000 for v in values2["values"]]
+    else:
+        unit = AmountUnit.MILLION_WON
+     
+    return AssetSaveTrendResponse(
+        xAxises=[f"`{i + int(str(get_now_datetime().year)[-2:]) + 1}" for i in range(ASSET_SAVE_TREND_YEAR)],
+        dates=[f"{i + 1}년후" for i in range(ASSET_SAVE_TREND_YEAR)],
+        values1=values1,
+        values2=values2,
+        unit=unit,
+    )
+
+@chart_router.get('/asset-save-trend', summary="자산적립 추이", response_model=AssetSaveTrendResponse)
+async def get_asset_save_trend(
+    token: AccessToken = Depends(verify_jwt_token),
+    session: AsyncSession = Depends(get_mysql_session_router),
+    redis_client: Redis = Depends(get_redis_pool)
+)->AssetSaveTrendResponse:
+    asset_all:list = await AssetRepository.get_eager(session, token.get('user'), AssetType.STOCK)
+    
+    if len(asset_all) == 0:
+        return AssetSaveTrendResponse(
+            xAxises=[],
+            dates=[],
+            values1={},
+            values2={},
+            unit=''
+        )
+    
+    lastest_stock_daily_map_all = await StockDailyService.get_latest_map(session, asset_all)
+    current_stock_price_map_all = await StockService.get_current_stock_price(redis_client, lastest_stock_daily_map_all, asset_all)
+    exchange_rate_map = await ExchangeRateService.get_exchange_rate_map(redis_client)
+    total_asset_amount_all = AssetStockService.get_total_asset_amount(asset_all, current_stock_price_map_all, exchange_rate_map)
+  
+    end_date = get_now_date()
+    start_date = end_date - timedelta(days=THREE_MONTH)
+    asset_3month:list = await AssetRepository.get_eager_by_range(
+            session, token.get('user'), AssetType.STOCK, (start_date, end_date)
+        )
+    
+    if len(asset_3month) == 0:
+        return AssetSaveTrendResponse.no_near_invest_response(total_asset_amount_all)
+    
+    lastest_stock_daily_map = await StockDailyService.get_latest_map(session, asset_3month)
+    current_stock_price_map = await StockService.get_current_stock_price(redis_client, lastest_stock_daily_map, asset_3month)
+    stock_daily_map = await StockDailyService.get_map_range(session, asset_3month)
+    dividend_map: dict[str, float] = await DividendService.get_recent_map(session, asset_3month)
+
+    total_asset_amount = AssetStockService.get_total_asset_amount(asset_3month, current_stock_price_map, exchange_rate_map)
+    total_invest_amount = AssetStockService.get_total_investment_amount(asset_3month, stock_daily_map, exchange_rate_map)
+    total_dividend_amount = DividendService.get_total_dividend(asset_3month, dividend_map, exchange_rate_map)
+    
+    average_invest_amount_month = total_invest_amount/3 if total_invest_amount > 0.0 else 0.0
+    average_dividend_month = total_dividend_amount/3.0 if total_dividend_amount> 0.0 else 0.0
+    
+    increase_invest_year = (average_invest_amount_month + average_dividend_month) * 12
+    total_profit_rate=AssetStockService.get_total_profit_rate(total_asset_amount, total_invest_amount)
+    total_profit_rate_real=AssetStockService.get_total_profit_rate_real(total_asset_amount, total_invest_amount, INFLATION_RATE)
+    
+    values1 = {"values": [], "name": "예상자산"}
+    values2 = {"values": [], "name": "실질자산"}
+
+    current_value1 = total_asset_amount
+    current_value2 = total_asset_amount
+
+    for _ in range(ASSET_SAVE_TREND_YEAR):
+        current_value1 += increase_invest_year
+        current_value1 *= (1 + total_profit_rate)
+        values1["values"].append(current_value1)
+
+        current_value2 += increase_invest_year
+        current_value2 *= (1 + total_profit_rate_real)
+        values2["values"].append(current_value2)
+        
+    if total_asset_amount >= 100000000:
+        unit = AmountUnit.BILLION_WON
+        values1["values"] = [v / 100000000 for v in values1["values"]]
+        values2["values"] = [v / 100000000 for v in values2["values"]]
+    else:
+        unit = AmountUnit.MILLION_WON
+     
+    return AssetSaveTrendResponse(
+        xAxises=[f"`{i + int(str(get_now_datetime().year)[-2:]) + 1}" for i in range(ASSET_SAVE_TREND_YEAR)],
+        dates=[f"{i + 1}년후" for i in range(ASSET_SAVE_TREND_YEAR)],
+        values1=values1,
+        values2=values2,
+        unit=unit,
+    )
+
 
 
 @chart_router.get("/rich-portfolio", summary="부자들의 포트폴리오", response_model=RichPortfolioResponse)

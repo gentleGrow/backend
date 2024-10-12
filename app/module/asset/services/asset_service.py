@@ -6,6 +6,8 @@ from app.module.asset.schema import AssetStockPutRequest
 
 
 class AssetService:
+    
+    
     @staticmethod
     async def get_asset_map(session: AsyncSession, asset_id: int) -> dict[int, Asset] | None:
         asset = await AssetRepository.get_asset_by_id(session, asset_id)

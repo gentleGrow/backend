@@ -18,7 +18,6 @@ from app.common.mixin.timestamp import TimestampMixin
 from app.module.asset.enum import AccountType, AssetType, InvestmentBankType, PurchaseCurrencyType
 from database.config import MySQLBase
 
-
 class AssetField(TimestampMixin, MySQLBase):
     __tablename__ = "asset_field"
 

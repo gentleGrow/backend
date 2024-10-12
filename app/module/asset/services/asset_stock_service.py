@@ -12,6 +12,21 @@ from app.module.asset.services.exchange_rate_service import ExchangeRateService
 
 class AssetStockService:
     @staticmethod
+    def get_total_profit_rate(
+        total_asset_amount:float,
+        total_invest_amount:float,
+    ) -> float:
+        return ((total_asset_amount - total_invest_amount) / total_invest_amount) * 100 if total_invest_amount > 0 else 0.0
+    
+    @staticmethod
+    def get_total_profit_rate_real(
+        total_asset_amount:float,
+        total_invest_amount:float,
+        real_value_rate:float
+    ) -> float:
+        return (((total_asset_amount - total_invest_amount) / total_invest_amount) * 100)-real_value_rate if total_invest_amount > 0 else 0.0
+    
+    @staticmethod
     def get_total_asset_amount(
         assets: list[Asset],
         current_stock_price_map: dict[str, float],

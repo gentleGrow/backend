@@ -1,5 +1,9 @@
 from enum import StrEnum
 
+class AmountUnit(StrEnum):
+    BILLION_WON = '억원'
+    MILLION_WON = '만원'
+
 
 class StockAsset(StrEnum):
     ID = "id"

@@ -1,12 +1,46 @@
 from collections import defaultdict
 from datetime import date, datetime
 from statistics import mean
-
+from app.common.util.time import get_now_datetime
 from pydantic import BaseModel, Field, RootModel
 
-from app.module.asset.constant import MARKET_INDEX_KR_MAPPING
-from app.module.asset.enum import MarketIndex
+from app.module.asset.constant import MARKET_INDEX_KR_MAPPING, INFLATION_RATE, ASSET_SAVE_TREND_YEAR
+from app.module.asset.enum import MarketIndex, AmountUnit
 from app.module.chart.enum import IntervalType
+
+class AssetSaveTrendResponse(BaseModel):
+    xAxises: list[str]
+    dates: list[str]
+    values1: dict
+    values2: dict
+    unit: str
+    
+    @staticmethod
+    def no_near_invest_response(
+        total_asset_amount_all: float
+    ):
+        values1 = {"values": [total_asset_amount_all] * ASSET_SAVE_TREND_YEAR, "name": "예상자산"}
+        values2 = {
+            "values": [
+                total_asset_amount_all * ((1 - INFLATION_RATE * 0.01) ** i) for i in range(ASSET_SAVE_TREND_YEAR)
+            ],
+            "name": "실질자산",
+        }
+
+        if total_asset_amount_all >= 100000000:
+            unit = AmountUnit.BILLION_WON
+            values1["values"] = [v / 100000000 for v in values1["values"]]
+            values2["values"] = [v / 100000000 for v in values2["values"]]
+        else:
+            unit = AmountUnit.MILLION_WON
+
+        return AssetSaveTrendResponse(
+            xAxises=[f"`{i + int(str(get_now_datetime().year)[-2:]) + 1}" for i in range(ASSET_SAVE_TREND_YEAR)],
+            dates=[f"{i + 1}년후" for i in range(ASSET_SAVE_TREND_YEAR)],
+            values1=values1,
+            values2=values2,
+            unit=unit,
+        )
 
 
 class ChartTipResponse(RootModel[str]):
@@ -153,3 +187,5 @@ class RichPortfolioValue(BaseModel):
 
 class RichPortfolioResponse(RootModel[list[RichPortfolioValue]]):
     pass
+
+
