@@ -4,22 +4,24 @@ from statistics import mean
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from redis.asyncio import Redis
 from sqlalchemy.ext.asyncio import AsyncSession
-
+from icecream import ic
 from app.common.auth.security import verify_jwt_token
-from app.common.util.time import get_now_date, get_now_datetime
+from app.common.util.time import get_now_date
 from app.module.asset.constant import (
     ASSET_SAVE_TREND_YEAR,
     INFLATION_RATE,
     MARKET_INDEX_KR_MAPPING,
     MONTHS,
     THREE_MONTH,
-    THREE_MONTH_DAY
+    THREE_MONTH_DAY,
 )
-from app.module.asset.facades.asset_facade import AssetFacade
 from app.module.asset.enum import AssetType, CurrencyType
+from app.module.asset.facades.asset_facade import AssetFacade
+from app.module.asset.facades.dividend_facade import DividendFacade
 from app.module.asset.model import Asset, StockDaily
 from app.module.asset.repository.asset_repository import AssetRepository
 from app.module.asset.schema import MarketIndexData
+from app.module.asset.services.asset_service import AssetService
 from app.module.asset.services.asset_stock_service import AssetStockService
 from app.module.asset.services.dividend_service import DividendService
 from app.module.asset.services.exchange_rate_service import ExchangeRateService
@@ -30,7 +32,6 @@ from app.module.auth.schema import AccessToken
 from app.module.chart.constant import DEFAULT_TIP, TIP_TODAY_ID_REDIS_KEY
 from app.module.chart.enum import CompositionType, EstimateDividendType, IntervalType
 from app.module.chart.facade.composition_facade import CompositionFacade
-from app.module.chart.facade.dividend_facade import DividendFacade
 from app.module.chart.facade.performance_analysis_facade import PerformanceAnalysisFacade
 from app.module.chart.facade.rich_facade import RichFacade
 from app.module.chart.facade.summary_facade import SummaryFacade
@@ -59,11 +60,8 @@ from app.module.chart.schema import (
 )
 from app.module.chart.service.index_service import IndexService
 from app.module.chart.service.rich_portfolio_service import RichPortfolioService
-from database.dependency import get_mysql_session_router, get_redis_pool
-from app.module.asset.facades.dividend_facade import DividendFacade
-from app.module.asset.services.asset_service import AssetService
 from app.module.chart.service.save_trend_service import SaveTrendService
-
+from database.dependency import get_mysql_session_router, get_redis_pool
 
 chart_router = APIRouter(prefix="/v1")
 
@@ -83,24 +81,22 @@ async def get_sameple_asset_save_trend(
     if len(asset_3month) == 0:
         return AssetSaveTrendResponse.no_near_invest_response(total_asset_amount_all)
 
-    total_asset_amount:float = await AssetFacade.get_total_asset_amount(session, redis_client, asset_3month)
-    total_invest_amount:float = await AssetFacade.get_total_investment_amount(session, redis_client, asset_3month)    
-    total_dividend_amount:float = await DividendFacade.get_total_dividend(session, redis_client, asset_3month)
+    total_asset_amount: float = await AssetFacade.get_total_asset_amount(session, redis_client, asset_3month)
+    total_invest_amount: float = await AssetFacade.get_total_investment_amount(session, redis_client, asset_3month)
+    total_dividend_amount: float = await DividendFacade.get_total_dividend(session, redis_client, asset_3month)
 
     total_profit_rate = AssetStockService.get_total_profit_rate(total_asset_amount, total_invest_amount)
     total_profit_rate_real = AssetStockService.get_total_profit_rate_real(
         total_asset_amount, total_invest_amount, INFLATION_RATE
     )
 
-    increase_invest_year = AssetService.get_average_investment_with_dividend_year(total_invest_amount, total_dividend_amount, THREE_MONTH)
-
+    increase_invest_year = AssetService.get_average_investment_with_dividend_year(
+        total_invest_amount, total_dividend_amount, THREE_MONTH
+    )
+    
     values1, values2, unit = AssetService.calculate_trend_values(
-            total_asset_amount,
-            increase_invest_year,
-            total_profit_rate,
-            total_profit_rate_real,
-            ASSET_SAVE_TREND_YEAR
-        )
+        total_asset_amount_all, increase_invest_year, total_profit_rate, total_profit_rate_real, ASSET_SAVE_TREND_YEAR
+    )
 
     return AssetSaveTrendResponse(
         xAxises=SaveTrendService.get_x_axises(ASSET_SAVE_TREND_YEAR),
@@ -117,35 +113,33 @@ async def get_asset_save_trend(
     session: AsyncSession = Depends(get_mysql_session_router),
     redis_client: Redis = Depends(get_redis_pool),
 ) -> AssetSaveTrendResponse:
-    asset_all: list = await AssetRepository.get_eager(session, token.get('user'), AssetType.STOCK)
+    asset_all: list = await AssetRepository.get_eager(session, token.get("user"), AssetType.STOCK)
     if len(asset_all) == 0:
         return AssetSaveTrendResponse(xAxises=[], dates=[], values1={}, values2={}, unit="")
     total_asset_amount_all = await AssetFacade.get_total_asset_amount(session, redis_client, asset_all)
 
     asset_3month: list = await AssetRepository.get_eager_by_range(
-        session, token.get('user'), AssetType.STOCK, (get_now_date() - timedelta(days=THREE_MONTH_DAY), get_now_date())
+        session, token.get("user"), AssetType.STOCK, (get_now_date() - timedelta(days=THREE_MONTH_DAY), get_now_date())
     )
     if len(asset_3month) == 0:
         return AssetSaveTrendResponse.no_near_invest_response(total_asset_amount_all)
 
-    total_asset_amount:float = await AssetFacade.get_total_asset_amount(session, redis_client, asset_3month)
-    total_invest_amount:float = await AssetFacade.get_total_investment_amount(session, redis_client, asset_3month)    
-    total_dividend_amount:float = await DividendFacade.get_total_dividend(session, redis_client, asset_3month)
+    total_asset_amount: float = await AssetFacade.get_total_asset_amount(session, redis_client, asset_3month)
+    total_invest_amount: float = await AssetFacade.get_total_investment_amount(session, redis_client, asset_3month)
+    total_dividend_amount: float = await DividendFacade.get_total_dividend(session, redis_client, asset_3month)
 
     total_profit_rate = AssetStockService.get_total_profit_rate(total_asset_amount, total_invest_amount)
     total_profit_rate_real = AssetStockService.get_total_profit_rate_real(
         total_asset_amount, total_invest_amount, INFLATION_RATE
     )
 
-    increase_invest_year = AssetService.get_average_investment_with_dividend_year(total_invest_amount, total_dividend_amount, THREE_MONTH)
+    increase_invest_year = AssetService.get_average_investment_with_dividend_year(
+        total_invest_amount, total_dividend_amount, THREE_MONTH
+    )
 
     values1, values2, unit = AssetService.calculate_trend_values(
-            total_asset_amount,
-            increase_invest_year,
-            total_profit_rate,
-            total_profit_rate_real,
-            ASSET_SAVE_TREND_YEAR
-        )
+        total_asset_amount, increase_invest_year, total_profit_rate, total_profit_rate_real, ASSET_SAVE_TREND_YEAR
+    )
 
     return AssetSaveTrendResponse(
         xAxises=SaveTrendService.get_x_axises(ASSET_SAVE_TREND_YEAR),
@@ -154,7 +148,6 @@ async def get_asset_save_trend(
         values2=values2,
         unit=unit,
     )
-
 
 
 @chart_router.get("/rich-portfolio", summary="부자들의 포트폴리오", response_model=RichPortfolioResponse)
@@ -611,7 +604,7 @@ async def get_summary(
         )
 
     total_asset_amount = await AssetFacade.get_total_asset_amount(session, redis_client, assets)
-    total_investment_amount = await AssetFacade.get_total_investment_amount(session, redis_client, assets) 
+    total_investment_amount = await AssetFacade.get_total_investment_amount(session, redis_client, assets)
     today_review_rate: float = SummaryFacade.get_today_review_rate(
         assets, total_asset_amount, current_stock_price_map, exchange_rate_map
     )
@@ -656,7 +649,7 @@ async def get_sample_summary(
         )
 
     total_asset_amount = await AssetFacade.get_total_asset_amount(session, redis_client, assets)
-    total_investment_amount = await AssetFacade.get_total_investment_amount(session, redis_client, assets) 
+    total_investment_amount = await AssetFacade.get_total_investment_amount(session, redis_client, assets)
     today_review_rate: float = SummaryFacade.get_today_review_rate(
         assets, total_asset_amount, current_stock_price_map, exchange_rate_map
     )

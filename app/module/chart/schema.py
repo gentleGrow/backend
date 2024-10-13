@@ -7,7 +7,7 @@ from pydantic import BaseModel, Field, RootModel
 
 from app.common.util.time import get_now_datetime
 from app.module.asset.constant import ASSET_SAVE_TREND_YEAR, INFLATION_RATE, MARKET_INDEX_KR_MAPPING
-from app.module.asset.enum import AmountUnit, MarketIndex
+from app.module.asset.enum import ASSETNAME, AmountUnit, MarketIndex
 from app.module.chart.enum import IntervalType
 
 
@@ -20,24 +20,27 @@ class AssetSaveTrendResponse(BaseModel):
 
     @staticmethod
     def no_near_invest_response(total_asset_amount_all: float) -> "AssetSaveTrendResponse":
-        values1 = {"values": [], "name": "예상자산"}
-        values2 = {
-            "values": [],
-            "name": "실질자산",
-        }
-
         if total_asset_amount_all >= 100000000:
-            values1["values"] = [total_asset_amount_all / 100000000] * ASSET_SAVE_TREND_YEAR
-            values2["values"] = [
-                (total_asset_amount_all * ((1 - INFLATION_RATE * 0.01) ** i)) / 100000000
-                for i in range(ASSET_SAVE_TREND_YEAR)
-            ]
+            values1 = {
+                "values": [total_asset_amount_all / 100000000] * ASSET_SAVE_TREND_YEAR,
+                "name": ASSETNAME.ESTIMATE_ASSET,
+            }
+            values2 = {
+                "values": [
+                    (total_asset_amount_all * ((1 - INFLATION_RATE * 0.01) ** i)) / 100000000
+                    for i in range(ASSET_SAVE_TREND_YEAR)
+                ],
+                "name": ASSETNAME.REAL_ASSET,
+            }
             unit = AmountUnit.BILLION_WON
         else:
-            values1["values"] = [total_asset_amount_all] * ASSET_SAVE_TREND_YEAR
-            values2["values"] = [
-                total_asset_amount_all * ((1 - INFLATION_RATE * 0.01) ** i) for i in range(ASSET_SAVE_TREND_YEAR)
-            ]
+            values1 = {"values": [total_asset_amount_all] * ASSET_SAVE_TREND_YEAR, "name": ASSETNAME.ESTIMATE_ASSET}
+            values2 = {
+                "values": [
+                    (total_asset_amount_all * ((1 - INFLATION_RATE * 0.01) ** i)) for i in range(ASSET_SAVE_TREND_YEAR)
+                ],
+                "name": ASSETNAME.REAL_ASSET,
+            }
             unit = AmountUnit.MILLION_WON
 
         return AssetSaveTrendResponse(

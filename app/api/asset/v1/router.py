@@ -5,6 +5,8 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.common.auth.security import verify_jwt_token
 from app.common.schema.common_schema import DeleteResponse, PostResponse, PutResponse
 from app.module.asset.enum import AccountType, AssetType, InvestmentBankType
+from app.module.asset.facades.asset_facade import AssetFacade
+from app.module.asset.facades.dividend_facade import DividendFacade
 from app.module.asset.model import Asset, AssetField, Stock
 from app.module.asset.repository.asset_field_repository import AssetFieldRepository
 from app.module.asset.repository.asset_repository import AssetRepository
@@ -22,16 +24,10 @@ from app.module.asset.schema import (
 from app.module.asset.services.asset_field_service import AssetFieldService
 from app.module.asset.services.asset_service import AssetService
 from app.module.asset.services.asset_stock_service import AssetStockService
-from app.module.asset.services.dividend_service import DividendService
-from app.module.asset.services.exchange_rate_service import ExchangeRateService
-from app.module.asset.services.stock_daily_service import StockDailyService
-from app.module.asset.services.stock_service import StockService
 from app.module.auth.constant import DUMMY_USER_ID
 from app.module.auth.model import User  # noqa: F401 > relationship 설정시 필요합니다.
 from app.module.auth.schema import AccessToken
 from database.dependency import get_mysql_session_router, get_redis_pool
-from app.module.asset.facades.asset_facade import AssetFacade
-from app.module.asset.facades.dividend_facade import DividendFacade
 
 asset_stock_router = APIRouter(prefix="/v1")
 
@@ -85,10 +81,10 @@ async def get_sample_asset_stock(
         return validation_response
 
     asset_fields = await AssetFieldService.get_asset_field(session, DUMMY_USER_ID)
-    stock_assets:list[dict] = await AssetFacade.get_stock_assets(session, redis_client, assets, asset_fields)
-    
+    stock_assets: list[dict] = await AssetFacade.get_stock_assets(session, redis_client, assets, asset_fields)
+
     total_asset_amount = await AssetFacade.get_total_asset_amount(session, redis_client, assets)
-    total_invest_amount = await AssetFacade.get_total_investment_amount(session, redis_client, assets)   
+    total_invest_amount = await AssetFacade.get_total_investment_amount(session, redis_client, assets)
     total_dividend_amount = await DividendFacade.get_total_dividend(session, redis_client, assets)
 
     return AssetStockResponse.parse(
@@ -102,16 +98,16 @@ async def get_asset_stock(
     redis_client: Redis = Depends(get_redis_pool),
     session: AsyncSession = Depends(get_mysql_session_router),
 ) -> AssetStockResponse:
-    assets: list[Asset] = await AssetRepository.get_eager(session, token.get('user'), AssetType.STOCK)
+    assets: list[Asset] = await AssetRepository.get_eager(session, token.get("user"), AssetType.STOCK)
     validation_response = AssetStockResponse.validate_assets(assets)
     if validation_response:
         return validation_response
 
-    asset_fields = await AssetFieldService.get_asset_field(session, token.get('user'))
-    stock_assets:list[dict] = await AssetFacade.get_stock_assets(session, redis_client, assets, asset_fields)
-    
+    asset_fields = await AssetFieldService.get_asset_field(session, token.get("user"))
+    stock_assets: list[dict] = await AssetFacade.get_stock_assets(session, redis_client, assets, asset_fields)
+
     total_asset_amount = await AssetFacade.get_total_asset_amount(session, redis_client, assets)
-    total_invest_amount = await AssetFacade.get_total_investment_amount(session, redis_client, assets)   
+    total_invest_amount = await AssetFacade.get_total_investment_amount(session, redis_client, assets)
     total_dividend_amount = await DividendFacade.get_total_dividend(session, redis_client, assets)
 
     return AssetStockResponse.parse(

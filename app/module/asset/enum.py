@@ -1,8 +1,10 @@
 from enum import StrEnum
 
+
 class ASSETNAME(StrEnum):
     ESTIMATE_ASSET = "예상자산"
     REAL_ASSET = "실질자산"
+
 
 class AmountUnit(StrEnum):
     BILLION_WON = "억원"

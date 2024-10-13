@@ -9,7 +9,6 @@ from app.module.asset.enum import (
     PurchaseCurrencyType,
 )
 
-
 ASSET_SAVE_TREND_YEAR = 15
 INFLATION_RATE = 3.0
 

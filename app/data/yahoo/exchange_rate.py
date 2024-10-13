@@ -54,3 +54,4 @@ def main():
     if not _task_started:
         _task_started = True
         asyncio.run(execute_async_task())
+

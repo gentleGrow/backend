@@ -19,12 +19,12 @@ class TestAssetStockService:
     @pytest.mark.parametrize(
         "total_asset_amount, total_invest_amount, expected_profit_rate",
         [
-            (1200000.0, 1000000.0, 20.0),  
-            (800000.0, 1000000.0, -20.0),  
-            (1000000.0, 1000000.0, 0.0),   
-            (0.0, 1000000.0, -100.0),      
-            (1000000.0, 0.0, 0.0)          
-        ]
+            (1200000.0, 1000000.0, 20.0),
+            (800000.0, 1000000.0, -20.0),
+            (1000000.0, 1000000.0, 0.0),
+            (0.0, 1000000.0, -100.0),
+            (1000000.0, 0.0, 0.0),
+        ],
     )
     def test_get_total_profit_rate(
         self,
@@ -34,23 +34,21 @@ class TestAssetStockService:
     ):
         # When
         actual_profit_rate = AssetStockService.get_total_profit_rate(
-            total_asset_amount=total_asset_amount,
-            total_invest_amount=total_invest_amount
+            total_asset_amount=total_asset_amount, total_invest_amount=total_invest_amount
         )
 
         # Then
         assert actual_profit_rate == pytest.approx(expected_profit_rate, rel=1e-2)
-    
-    
+
     @pytest.mark.parametrize(
         "total_asset_amount, total_invest_amount, real_value_rate, expected_real_profit_rate",
         [
-            (1200000.0, 1000000.0, 3.0, 17.0),  
-            (800000.0, 1000000.0, 3.0, -23.0),  
-            (1000000.0, 1000000.0, 3.0, -3.0), 
-            (0.0, 1000000.0, 3.0, -103.0),     
-            (1000000.0, 0.0, 3.0, 0.0)         
-        ]
+            (1200000.0, 1000000.0, 3.0, 17.0),
+            (800000.0, 1000000.0, 3.0, -23.0),
+            (1000000.0, 1000000.0, 3.0, -3.0),
+            (0.0, 1000000.0, 3.0, -103.0),
+            (1000000.0, 0.0, 3.0, 0.0),
+        ],
     )
     def test_get_total_profit_rate_real(
         self,
@@ -63,13 +61,12 @@ class TestAssetStockService:
         actual_real_profit_rate = AssetStockService.get_total_profit_rate_real(
             total_asset_amount=total_asset_amount,
             total_invest_amount=total_invest_amount,
-            real_value_rate=real_value_rate
+            real_value_rate=real_value_rate,
         )
 
         # Then
         assert actual_real_profit_rate == pytest.approx(expected_real_profit_rate, rel=1e-2)
-    
-    
+
     async def test_save_asset_stock_by_post(self, session: AsyncSession, setup_stock, setup_stock_daily, setup_user):
         # Given
         stock_id = 1
