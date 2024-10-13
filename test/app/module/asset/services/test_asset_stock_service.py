@@ -4,13 +4,11 @@ import pytest
 from redis.asyncio import Redis
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.module.asset.enum import AccountType, AssetType, InvestmentBankType, PurchaseCurrencyType, StockAsset
+from app.module.asset.enum import AccountType, AssetType, InvestmentBankType, PurchaseCurrencyType
 from app.module.asset.model import Asset
 from app.module.asset.repository.asset_repository import AssetRepository
 from app.module.asset.schema import AssetStockPostRequest
-from app.module.asset.services.asset_field_service import AssetFieldService
 from app.module.asset.services.asset_stock_service import AssetStockService
-from app.module.asset.services.dividend_service import DividendService
 from app.module.asset.services.exchange_rate_service import ExchangeRateService
 from app.module.asset.services.stock_daily_service import StockDailyService
 from app.module.asset.services.stock_service import StockService
@@ -18,6 +16,60 @@ from app.module.auth.constant import DUMMY_USER_ID
 
 
 class TestAssetStockService:
+    @pytest.mark.parametrize(
+        "total_asset_amount, total_invest_amount, expected_profit_rate",
+        [
+            (1200000.0, 1000000.0, 20.0),  
+            (800000.0, 1000000.0, -20.0),  
+            (1000000.0, 1000000.0, 0.0),   
+            (0.0, 1000000.0, -100.0),      
+            (1000000.0, 0.0, 0.0)          
+        ]
+    )
+    def test_get_total_profit_rate(
+        self,
+        total_asset_amount,
+        total_invest_amount,
+        expected_profit_rate,
+    ):
+        # When
+        actual_profit_rate = AssetStockService.get_total_profit_rate(
+            total_asset_amount=total_asset_amount,
+            total_invest_amount=total_invest_amount
+        )
+
+        # Then
+        assert actual_profit_rate == pytest.approx(expected_profit_rate, rel=1e-2)
+    
+    
+    @pytest.mark.parametrize(
+        "total_asset_amount, total_invest_amount, real_value_rate, expected_real_profit_rate",
+        [
+            (1200000.0, 1000000.0, 3.0, 17.0),  
+            (800000.0, 1000000.0, 3.0, -23.0),  
+            (1000000.0, 1000000.0, 3.0, -3.0), 
+            (0.0, 1000000.0, 3.0, -103.0),     
+            (1000000.0, 0.0, 3.0, 0.0)         
+        ]
+    )
+    def test_get_total_profit_rate_real(
+        self,
+        total_asset_amount,
+        total_invest_amount,
+        real_value_rate,
+        expected_real_profit_rate,
+    ):
+        # When
+        actual_real_profit_rate = AssetStockService.get_total_profit_rate_real(
+            total_asset_amount=total_asset_amount,
+            total_invest_amount=total_invest_amount,
+            real_value_rate=real_value_rate
+        )
+
+        # Then
+        assert actual_real_profit_rate == pytest.approx(expected_real_profit_rate, rel=1e-2)
+    
+    
     async def test_save_asset_stock_by_post(self, session: AsyncSession, setup_stock, setup_stock_daily, setup_user):
         # Given
         stock_id = 1
@@ -55,7 +107,6 @@ class TestAssetStockService:
             exchange_rate_map=exchange_rate_map,
         )
 
-        # Then
         expected_total_investment_amount = 0.0
         for asset in assets:
             stock_daily = stock_daily_map.get((asset.asset_stock.stock.code, asset.asset_stock.purchase_date), None)
@@ -79,6 +130,7 @@ class TestAssetStockService:
 
             expected_total_investment_amount += invest_price * asset.asset_stock.quantity
 
+        # Then
         assert total_investment_amount == pytest.approx(expected_total_investment_amount)
 
     async def test_get_total_asset_amount(
@@ -112,76 +164,3 @@ class TestAssetStockService:
             expected_total_asset_amount += current_price * asset.asset_stock.quantity * exchange_rate
 
         assert total_asset_amount == pytest.approx(expected_total_asset_amount)
-
-    async def test_get_stock_assets(
-        self,
-        session: AsyncSession,
-        redis_client: Redis,
-        setup_asset,
-        setup_dividend,
-        setup_exchange_rate,
-        setup_realtime_stock_price,
-        setup_stock,
-        setup_stock_daily,
-        setup_user,
-        setup_asset_stock_field,
-    ):
-        # Given
-        assets: list[Asset] = await AssetRepository.get_eager(session, DUMMY_USER_ID, AssetType.STOCK)
-        stock_daily_map = await StockDailyService.get_map_range(session, assets)
-        lastest_stock_daily_map = await StockDailyService.get_latest_map(session, assets)
-        dividend_map = await DividendService.get_recent_map(session, assets)
-        exchange_rate_map = await ExchangeRateService.get_exchange_rate_map(redis_client)
-        current_stock_price_map = await StockService.get_current_stock_price(
-            redis_client, lastest_stock_daily_map, assets
-        )
-        asset_fields = await AssetFieldService.get_asset_field(session, DUMMY_USER_ID)
-
-        # When
-        stock_assets: list[dict] = AssetStockService.get_stock_assets(
-            assets=assets,
-            stock_daily_map=stock_daily_map,
-            current_stock_price_map=current_stock_price_map,
-            dividend_map=dividend_map,
-            exchange_rate_map=exchange_rate_map,
-            asset_fields=asset_fields,
-        )
-
-        # Then
-        expected_exchange_rate_aapl: float = (
-            ExchangeRateService.get_dollar_exchange_rate(assets[0], exchange_rate_map)
-            if assets[0].asset_stock.purchase_currency_type == PurchaseCurrencyType.USA.value
-            else ExchangeRateService.get_won_exchange_rate(assets[0], exchange_rate_map)
-        )
-
-        stock_asset_aapl = next(
-            asset for asset in stock_assets if asset[StockAsset.STOCK_NAME.value]["value"] == "Apple Inc."
-        )
-        assert stock_asset_aapl[StockAsset.CURRENT_PRICE.value]["value"] == 220.0 * expected_exchange_rate_aapl
-        assert (
-            stock_asset_aapl[StockAsset.DIVIDEND.value]["value"]
-            == 1.6 * stock_asset_aapl[StockAsset.QUANTITY.value]["value"] * expected_exchange_rate_aapl
-        )
-        assert stock_asset_aapl[StockAsset.PROFIT_RATE.value]["value"] == pytest.approx(
-            ((220.0 * expected_exchange_rate_aapl - 500.0) / 500.0) * 100
-        )
-
-        stock_asset_tsla = next(
-            asset for asset in stock_assets if asset[StockAsset.STOCK_NAME.value]["value"] == "Tesla Inc."
-        )
-        expected_exchange_rate_tsla: float = (
-            ExchangeRateService.get_dollar_exchange_rate(assets[1], exchange_rate_map)
-            if assets[1].asset_stock.purchase_currency_type == PurchaseCurrencyType.USA
-            else ExchangeRateService.get_won_exchange_rate(assets[1], exchange_rate_map)
-        )
-        assert stock_asset_tsla[StockAsset.CURRENT_PRICE.value]["value"] == 230.0 * expected_exchange_rate_tsla
-        assert (
-            stock_asset_tsla[StockAsset.DIVIDEND.value]["value"]
-            == 0.9 * stock_asset_tsla[StockAsset.QUANTITY.value]["value"] * expected_exchange_rate_tsla
-        )
-
-        stock_asset_samsung = next(
-            asset for asset in stock_assets if asset[StockAsset.STOCK_NAME.value]["value"] == "삼성전자"
-        )
-        assert stock_asset_samsung[StockAsset.CURRENT_PRICE.value]["value"] == 70000.0
-        assert stock_asset_samsung[StockAsset.DIVIDEND.value]["value"] == 105.0

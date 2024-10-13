@@ -30,6 +30,8 @@ from app.module.auth.constant import DUMMY_USER_ID
 from app.module.auth.model import User  # noqa: F401 > relationship 설정시 필요합니다.
 from app.module.auth.schema import AccessToken
 from database.dependency import get_mysql_session_router, get_redis_pool
+from app.module.asset.facades.asset_facade import AssetFacade
+from app.module.asset.facades.dividend_facade import DividendFacade
 
 asset_stock_router = APIRouter(prefix="/v1")
 
@@ -82,27 +84,12 @@ async def get_sample_asset_stock(
     if validation_response:
         return validation_response
 
-    stock_daily_map = await StockDailyService.get_map_range(session, assets)
-    lastest_stock_daily_map = await StockDailyService.get_latest_map(session, assets)
-    dividend_map: dict[str, float] = await DividendService.get_recent_map(session, assets)
-    exchange_rate_map = await ExchangeRateService.get_exchange_rate_map(redis_client)
-    current_stock_price_map = await StockService.get_current_stock_price(redis_client, lastest_stock_daily_map, assets)
-
-    not_found_stock_codes: list[str] = StockService.check_not_found_stock(
-        stock_daily_map, current_stock_price_map, assets
-    )
-    if not_found_stock_codes:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND, detail={"다음의 주식 코드를 찾지 못 했습니다.": not_found_stock_codes}
-        )
-
     asset_fields = await AssetFieldService.get_asset_field(session, DUMMY_USER_ID)
-    stock_assets: list[dict] = AssetStockService.get_stock_assets(
-        assets, stock_daily_map, current_stock_price_map, dividend_map, exchange_rate_map, asset_fields
-    )
-    total_asset_amount = AssetStockService.get_total_asset_amount(assets, current_stock_price_map, exchange_rate_map)
-    total_invest_amount = AssetStockService.get_total_investment_amount(assets, stock_daily_map, exchange_rate_map)
-    total_dividend_amount = DividendService.get_total_dividend(assets, dividend_map, exchange_rate_map)
+    stock_assets:list[dict] = await AssetFacade.get_stock_assets(session, redis_client, assets, asset_fields)
+    
+    total_asset_amount = await AssetFacade.get_total_asset_amount(session, redis_client, assets)
+    total_invest_amount = await AssetFacade.get_total_investment_amount(session, redis_client, assets)   
+    total_dividend_amount = await DividendFacade.get_total_dividend(session, redis_client, assets)
 
     return AssetStockResponse.parse(
         stock_assets, asset_fields, total_asset_amount, total_invest_amount, total_dividend_amount
@@ -115,33 +102,17 @@ async def get_asset_stock(
     redis_client: Redis = Depends(get_redis_pool),
     session: AsyncSession = Depends(get_mysql_session_router),
 ) -> AssetStockResponse:
-    assets: list[Asset] = await AssetRepository.get_eager(session, token.get("user"), AssetType.STOCK)
-
+    assets: list[Asset] = await AssetRepository.get_eager(session, token.get('user'), AssetType.STOCK)
     validation_response = AssetStockResponse.validate_assets(assets)
     if validation_response:
         return validation_response
 
-    stock_daily_map = await StockDailyService.get_map_range(session, assets)
-    lastest_stock_daily_map = await StockDailyService.get_latest_map(session, assets)
-    dividend_map = await DividendService.get_recent_map(session, assets)
-    exchange_rate_map = await ExchangeRateService.get_exchange_rate_map(redis_client)
-    current_stock_price_map = await StockService.get_current_stock_price(redis_client, lastest_stock_daily_map, assets)
-
-    not_found_stock_codes: list[str] = StockService.check_not_found_stock(
-        stock_daily_map, current_stock_price_map, assets
-    )
-    if not_found_stock_codes:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND, detail={"다음의 주식 코드를 찾지 못 했습니다.": not_found_stock_codes}
-        )
-
-    asset_fields = await AssetFieldService.get_asset_field(session, DUMMY_USER_ID)
-    stock_assets: list[dict] = AssetStockService.get_stock_assets(
-        assets, stock_daily_map, current_stock_price_map, dividend_map, exchange_rate_map, asset_fields
-    )
-    total_asset_amount = AssetStockService.get_total_asset_amount(assets, current_stock_price_map, exchange_rate_map)
-    total_invest_amount = AssetStockService.get_total_investment_amount(assets, stock_daily_map, exchange_rate_map)
-    total_dividend_amount = DividendService.get_total_dividend(assets, dividend_map, exchange_rate_map)
+    asset_fields = await AssetFieldService.get_asset_field(session, token.get('user'))
+    stock_assets:list[dict] = await AssetFacade.get_stock_assets(session, redis_client, assets, asset_fields)
+    
+    total_asset_amount = await AssetFacade.get_total_asset_amount(session, redis_client, assets)
+    total_invest_amount = await AssetFacade.get_total_investment_amount(session, redis_client, assets)   
+    total_dividend_amount = await DividendFacade.get_total_dividend(session, redis_client, assets)
 
     return AssetStockResponse.parse(
         stock_assets, asset_fields, total_asset_amount, total_invest_amount, total_dividend_amount

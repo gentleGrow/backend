@@ -172,12 +172,11 @@ class TestDividendService:
             dividend_map=dividend_map,
             exchange_rate_map=exchange_rate_map,
         )
-
-        # Then
         expected_total_dividend = 0.0
         for asset in assets:
             dividend_per_stock = dividend_map.get(asset.asset_stock.stock.code, 0.0)
             exchange_rate = ExchangeRateService.get_won_exchange_rate(asset, exchange_rate_map)
             expected_total_dividend += dividend_per_stock * asset.asset_stock.quantity * exchange_rate
 
+        # Then
         assert total_dividend == approx(expected_total_dividend)

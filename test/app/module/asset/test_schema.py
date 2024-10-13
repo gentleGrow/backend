@@ -14,6 +14,8 @@ from app.module.asset.services.exchange_rate_service import ExchangeRateService
 from app.module.asset.services.stock_daily_service import StockDailyService
 from app.module.asset.services.stock_service import StockService
 from app.module.auth.constant import DUMMY_USER_ID
+from app.module.asset.facades.asset_facade import AssetFacade
+from app.module.asset.facades.dividend_facade import DividendFacade
 
 
 class TestUpdateAssetFieldRequest:
@@ -99,23 +101,17 @@ class TestAssetStockResponse:
     async def test_parse(self, session: AsyncSession, redis_client: Redis, setup_all):
         # Given
         assets: list[Asset] = await AssetRepository.get_eager(session, DUMMY_USER_ID, AssetType.STOCK)
-        stock_daily_map = await StockDailyService.get_map_range(session, assets)
-        lastest_stock_daily_map = await StockDailyService.get_latest_map(session, assets)
-        dividend_map = await DividendService.get_recent_map(session, assets)
-        exchange_rate_map = await ExchangeRateService.get_exchange_rate_map(redis_client)
-        current_stock_price_map = await StockService.get_current_stock_price(
-            redis_client, lastest_stock_daily_map, assets
-        )
-
         asset_fields = await AssetFieldService.get_asset_field(session, DUMMY_USER_ID)
-        stock_assets = AssetStockService.get_stock_assets(
-            assets, stock_daily_map, current_stock_price_map, dividend_map, exchange_rate_map, asset_fields
-        )
-        total_asset_amount = AssetStockService.get_total_asset_amount(
-            assets, current_stock_price_map, exchange_rate_map
-        )
-        total_invest_amount = AssetStockService.get_total_investment_amount(assets, stock_daily_map, exchange_rate_map)
-        total_dividend_amount = DividendService.get_total_dividend(assets, dividend_map, exchange_rate_map)
+        stock_assets: list[dict] = await AssetFacade.get_stock_assets(
+                session=session,
+                redis_client=redis_client,
+                assets=assets,
+                asset_fields=asset_fields
+            )
+        
+        total_asset_amount = await AssetFacade.get_total_asset_amount(session, redis_client, assets)
+        total_invest_amount = await AssetFacade.get_total_investment_amount(session, redis_client, assets)   
+        total_dividend_amount = await DividendFacade.get_total_dividend(session, redis_client, assets)
 
         # When
         stock_asset_response = AssetStockResponse.parse(
