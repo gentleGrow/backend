@@ -4,7 +4,7 @@ from dotenv import load_dotenv
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from starlette.middleware.sessions import SessionMiddleware
-
+from prometheus_fastapi_instrumentator import Instrumentator
 from app.api.asset.v1.router import asset_stock_router
 from app.api.auth.v1.router import auth_router
 from app.api.chart.v1.router import chart_router
@@ -35,3 +35,5 @@ app.add_middleware(TimeoutMiddleware)
 app.include_router(auth_router, prefix="/api/auth", tags=["auth"])
 app.include_router(chart_router, prefix="/api/chart", tags=["chart"])
 app.include_router(asset_stock_router, prefix="/api", tags=["asset"])
+
+Instrumentator().instrument(app).expose(app, include_in_schema=False, endpoint="/metrics")
