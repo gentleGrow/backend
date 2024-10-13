@@ -15,6 +15,7 @@ from selenium.webdriver.support.ui import WebDriverWait
 from sqlalchemy.ext.asyncio import AsyncSession
 from webdriver_manager.chrome import ChromeDriverManager
 
+from app.data.celery_app.base import celery_task
 from app.data.investing.sources.enum import RicePeople
 from app.module.asset.enum import AssetType, PurchaseCurrencyType
 from app.module.asset.model import Asset, AssetStock
@@ -119,12 +120,13 @@ async def fetch_rich_porfolio(redis_client: Redis, session: AsyncSession, person
     driver.quit()
 
 
-async def main():
+async def execute_async_task():
     redis_client = get_redis_pool()
     async with get_mysql_session() as session:
         for person in RicePeople:
             await fetch_rich_porfolio(redis_client, session, person.value)
 
 
-if __name__ == "__main__":
-    asyncio.run(main())
+@celery_task.task
+def main():
+    asyncio.run(execute_async_task())

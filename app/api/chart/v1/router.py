@@ -1,4 +1,4 @@
-from datetime import date, datetime
+from datetime import date, datetime, timedelta
 from statistics import mean
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
@@ -6,7 +6,16 @@ from redis.asyncio import Redis
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.common.auth.security import verify_jwt_token
-from app.module.asset.constant import MARKET_INDEX_KR_MAPPING, MONTHS
+from app.common.util.time import get_now_date, get_now_datetime
+from app.module.asset.constant import (
+    ASSET_SAVE_TREND_YEAR,
+    INFLATION_RATE,
+    MARKET_INDEX_KR_MAPPING,
+    MONTHS,
+    THREE_MONTH,
+    THREE_MONTH_DAY
+)
+from app.module.asset.facades.asset_facade import AssetFacade
 from app.module.asset.enum import AssetType, CurrencyType
 from app.module.asset.model import Asset, StockDaily
 from app.module.asset.repository.asset_repository import AssetRepository
@@ -28,6 +37,7 @@ from app.module.chart.facade.summary_facade import SummaryFacade
 from app.module.chart.redis_repository import RedisTipRepository
 from app.module.chart.repository import TipRepository
 from app.module.chart.schema import (
+    AssetSaveTrendResponse,
     ChartTipResponse,
     CompositionResponse,
     CompositionResponseValue,
@@ -50,8 +60,101 @@ from app.module.chart.schema import (
 from app.module.chart.service.index_service import IndexService
 from app.module.chart.service.rich_portfolio_service import RichPortfolioService
 from database.dependency import get_mysql_session_router, get_redis_pool
+from app.module.asset.facades.dividend_facade import DividendFacade
+from app.module.asset.services.asset_service import AssetService
+from app.module.chart.service.save_trend_service import SaveTrendService
+
 
 chart_router = APIRouter(prefix="/v1")
+
+
+@chart_router.get("/sample/asset-save-trend", summary="자산적립 추이", response_model=AssetSaveTrendResponse)
+async def get_sameple_asset_save_trend(
+    session: AsyncSession = Depends(get_mysql_session_router), redis_client: Redis = Depends(get_redis_pool)
+) -> AssetSaveTrendResponse:
+    asset_all: list = await AssetRepository.get_eager(session, DUMMY_USER_ID, AssetType.STOCK)
+    if len(asset_all) == 0:
+        return AssetSaveTrendResponse(xAxises=[], dates=[], values1={}, values2={}, unit="")
+    total_asset_amount_all = await AssetFacade.get_total_asset_amount(session, redis_client, asset_all)
+
+    asset_3month: list = await AssetRepository.get_eager_by_range(
+        session, DUMMY_USER_ID, AssetType.STOCK, (get_now_date() - timedelta(days=THREE_MONTH_DAY), get_now_date())
+    )
+    if len(asset_3month) == 0:
+        return AssetSaveTrendResponse.no_near_invest_response(total_asset_amount_all)
+
+    total_asset_amount:float = await AssetFacade.get_total_asset_amount(session, redis_client, asset_3month)
+    total_invest_amount:float = await AssetFacade.get_total_investment_amount(session, redis_client, asset_3month)    
+    total_dividend_amount:float = await DividendFacade.get_total_dividend(session, redis_client, asset_3month)
+
+    total_profit_rate = AssetStockService.get_total_profit_rate(total_asset_amount, total_invest_amount)
+    total_profit_rate_real = AssetStockService.get_total_profit_rate_real(
+        total_asset_amount, total_invest_amount, INFLATION_RATE
+    )
+
+    increase_invest_year = AssetService.get_average_investment_with_dividend_year(total_invest_amount, total_dividend_amount, THREE_MONTH)
+
+    values1, values2, unit = AssetService.calculate_trend_values(
+            total_asset_amount,
+            increase_invest_year,
+            total_profit_rate,
+            total_profit_rate_real,
+            ASSET_SAVE_TREND_YEAR
+        )
+
+    return AssetSaveTrendResponse(
+        xAxises=SaveTrendService.get_x_axises(ASSET_SAVE_TREND_YEAR),
+        dates=SaveTrendService.get_dates(ASSET_SAVE_TREND_YEAR),
+        values1=values1,
+        values2=values2,
+        unit=unit,
+    )
+
+
+@chart_router.get("/asset-save-trend", summary="자산적립 추이", response_model=AssetSaveTrendResponse)
+async def get_asset_save_trend(
+    token: AccessToken = Depends(verify_jwt_token),
+    session: AsyncSession = Depends(get_mysql_session_router),
+    redis_client: Redis = Depends(get_redis_pool),
+) -> AssetSaveTrendResponse:
+    asset_all: list = await AssetRepository.get_eager(session, token.get('user'), AssetType.STOCK)
+    if len(asset_all) == 0:
+        return AssetSaveTrendResponse(xAxises=[], dates=[], values1={}, values2={}, unit="")
+    total_asset_amount_all = await AssetFacade.get_total_asset_amount(session, redis_client, asset_all)
+
+    asset_3month: list = await AssetRepository.get_eager_by_range(
+        session, token.get('user'), AssetType.STOCK, (get_now_date() - timedelta(days=THREE_MONTH_DAY), get_now_date())
+    )
+    if len(asset_3month) == 0:
+        return AssetSaveTrendResponse.no_near_invest_response(total_asset_amount_all)
+
+    total_asset_amount:float = await AssetFacade.get_total_asset_amount(session, redis_client, asset_3month)
+    total_invest_amount:float = await AssetFacade.get_total_investment_amount(session, redis_client, asset_3month)    
+    total_dividend_amount:float = await DividendFacade.get_total_dividend(session, redis_client, asset_3month)
+
+    total_profit_rate = AssetStockService.get_total_profit_rate(total_asset_amount, total_invest_amount)
+    total_profit_rate_real = AssetStockService.get_total_profit_rate_real(
+        total_asset_amount, total_invest_amount, INFLATION_RATE
+    )
+
+    increase_invest_year = AssetService.get_average_investment_with_dividend_year(total_invest_amount, total_dividend_amount, THREE_MONTH)
+
+    values1, values2, unit = AssetService.calculate_trend_values(
+            total_asset_amount,
+            increase_invest_year,
+            total_profit_rate,
+            total_profit_rate_real,
+            ASSET_SAVE_TREND_YEAR
+        )
+
+    return AssetSaveTrendResponse(
+        xAxises=SaveTrendService.get_x_axises(ASSET_SAVE_TREND_YEAR),
+        dates=SaveTrendService.get_dates(ASSET_SAVE_TREND_YEAR),
+        values1=values1,
+        values2=values2,
+        unit=unit,
+    )
+
 
 
 @chart_router.get("/rich-portfolio", summary="부자들의 포트폴리오", response_model=RichPortfolioResponse)
@@ -246,70 +349,75 @@ async def get_performance_analysis(
     session: AsyncSession = Depends(get_mysql_session_router),
     redis_client: Redis = Depends(get_redis_pool),
 ) -> PerformanceAnalysisResponse:
-    if interval is IntervalType.ONEMONTH:
-        start_date, end_date = interval.get_start_end_time()
-        market_analysis_result: dict[date, float] = await PerformanceAnalysisFacade.get_market_analysis(
-            session, redis_client, start_date, end_date
-        )
-        user_analysis_result: dict[date, float] = await PerformanceAnalysisFacade.get_user_analysis(
-            session, redis_client, start_date, end_date, token.get("user"), market_analysis_result
-        )
-        sorted_dates = sorted(market_analysis_result.keys())
+    try:
+        if interval is IntervalType.ONEMONTH:
+            start_date, end_date = interval.get_start_end_time()
+            market_analysis_result: dict[date, float] = await PerformanceAnalysisFacade.get_market_analysis(
+                session, redis_client, start_date, end_date
+            )
+            user_analysis_result: dict[date, float] = await PerformanceAnalysisFacade.get_user_analysis(
+                session, redis_client, start_date, end_date, token.get("user"), market_analysis_result
+            )
+            sorted_dates = sorted(market_analysis_result.keys())
 
-        return PerformanceAnalysisResponse(
-            xAxises=[date.strftime("%m.%d") for date in sorted_dates],
-            dates=[date.strftime("%Y.%m.%d") for date in sorted_dates],
-            values1={"values": [user_analysis_result[date] for date in sorted_dates], "name": "내 수익률"},
-            values2={"values": [market_analysis_result[date] for date in sorted_dates], "name": "코스피"},
-            unit="%",
-            myReturnRate=mean([user_analysis_result[date] for date in sorted_dates]),
-            contrastMarketReturns=mean([market_analysis_result[date] for date in sorted_dates]),
-        )
-    elif interval in IntervalType.FIVEDAY:
-        start_datetime, end_datetime = interval.get_start_end_time()
+            return PerformanceAnalysisResponse(
+                xAxises=[date.strftime("%m.%d") for date in sorted_dates],
+                dates=[date.strftime("%Y.%m.%d") for date in sorted_dates],
+                values1={"values": [user_analysis_result[date] for date in sorted_dates], "name": "내 수익률"},
+                values2={"values": [market_analysis_result[date] for date in sorted_dates], "name": "코스피"},
+                unit="%",
+                myReturnRate=mean([user_analysis_result[date] for date in sorted_dates]),
+                contrastMarketReturns=mean([market_analysis_result[date] for date in sorted_dates]),
+            )
+        elif interval in IntervalType.FIVEDAY:
+            start_datetime, end_datetime = interval.get_start_end_time()
 
-        market_analysis_result_short: dict[datetime, float] = await PerformanceAnalysisFacade.get_market_analysis_short(
-            session, redis_client, start_datetime, end_datetime, interval
-        )
-        user_analysis_result_short: dict[datetime, float] = await PerformanceAnalysisFacade.get_user_analysis_short(
-            session,
-            redis_client,
-            start_datetime,
-            end_datetime,
-            token.get("user"),
-            interval,
-            market_analysis_result_short,
-        )
+            market_analysis_result_short: dict[
+                datetime, float
+            ] = await PerformanceAnalysisFacade.get_market_analysis_short(
+                session, redis_client, start_datetime, end_datetime, interval
+            )
+            user_analysis_result_short: dict[datetime, float] = await PerformanceAnalysisFacade.get_user_analysis_short(
+                session,
+                redis_client,
+                start_datetime,
+                end_datetime,
+                token.get("user"),
+                interval,
+                market_analysis_result_short,
+            )
 
-        sorted_datetimes = sorted(market_analysis_result_short.keys())
+            sorted_datetimes = sorted(market_analysis_result_short.keys())
 
-        return PerformanceAnalysisResponse(
-            xAxises=[datetime.strftime("%m.%d") for datetime in sorted_datetimes],
-            dates=[datetime.strftime("%Y.%m.%d %H:%M") for datetime in sorted_datetimes],
-            values1={
-                "values": [user_analysis_result_short[datetime] for datetime in sorted_datetimes],
-                "name": "내 수익률",
-            },
-            values2={
-                "values": [market_analysis_result_short[datetime] for datetime in sorted_datetimes],
-                "name": "코스피",
-            },
-            unit="%",
-            myReturnRate=mean([user_analysis_result_short[datetime] for datetime in sorted_datetimes]),
-            contrastMarketReturns=mean([market_analysis_result_short[datetime] for datetime in sorted_datetimes]),
-        )
-    else:
-        start_date, end_date = interval.get_start_end_time()
-        market_analysis_result_month: dict[date, float] = await PerformanceAnalysisFacade.get_market_analysis(
-            session, redis_client, start_date, end_date
-        )
-        user_analysis_result_month: dict[date, float] = await PerformanceAnalysisFacade.get_user_analysis(
-            session, redis_client, start_date, end_date, token.get("user"), market_analysis_result_month
-        )
+            return PerformanceAnalysisResponse(
+                xAxises=[datetime.strftime("%m.%d") for datetime in sorted_datetimes],
+                dates=[datetime.strftime("%Y.%m.%d %H:%M") for datetime in sorted_datetimes],
+                values1={
+                    "values": [user_analysis_result_short[datetime] for datetime in sorted_datetimes],
+                    "name": "내 수익률",
+                },
+                values2={
+                    "values": [market_analysis_result_short[datetime] for datetime in sorted_datetimes],
+                    "name": "코스피",
+                },
+                unit="%",
+                myReturnRate=mean([user_analysis_result_short[datetime] for datetime in sorted_datetimes]),
+                contrastMarketReturns=mean([market_analysis_result_short[datetime] for datetime in sorted_datetimes]),
+            )
+        else:
+            start_date, end_date = interval.get_start_end_time()
+            market_analysis_result_month: dict[date, float] = await PerformanceAnalysisFacade.get_market_analysis(
+                session, redis_client, start_date, end_date
+            )
+            user_analysis_result_month: dict[date, float] = await PerformanceAnalysisFacade.get_user_analysis(
+                session, redis_client, start_date, end_date, token.get("user"), market_analysis_result_month
+            )
 
-        return PerformanceAnalysisResponse.get_performance_analysis_response(
-            market_analysis_result_month, user_analysis_result_month, interval
-        )
+            return PerformanceAnalysisResponse.get_performance_analysis_response(
+                market_analysis_result_month, user_analysis_result_month, interval
+            )
+    except Exception:
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Internal Server Error")
 
 
 @chart_router.get("/sample/composition", summary="종목 구성", response_model=CompositionResponse)
@@ -417,18 +525,18 @@ async def get_sample_my_stock(
         redis_client, lastest_stock_daily_map, [asset.asset_stock.stock.code for asset in assets]
     )
     exchange_rate_map: dict[str, float] = await ExchangeRateService.get_exchange_rate_map(redis_client)
-    stock_assets: list[dict] = await AssetStockService.get_stock_assets(
-        session, DUMMY_USER_ID, assets, stock_daily_map, current_stock_price_map, dividend_map, exchange_rate_map
+    stock_assets: list[dict] = AssetStockService.get_stock_assets_all_fields(
+        assets, stock_daily_map, current_stock_price_map, dividend_map, exchange_rate_map
     )
 
     return MyStockResponse(
         [
             MyStockResponseValue(
-                name=stock_asset["stock_name"],
-                current_price=stock_asset["current_price"],
-                profit_rate=stock_asset["profit_rate"],
-                profit_amount=stock_asset["profit_amount"],
-                quantity=stock_asset["quantity"],
+                name=stock_asset["종목명"],
+                current_price=stock_asset["현재가"],
+                profit_rate=stock_asset["수익률"],
+                profit_amount=stock_asset["수익금"],
+                quantity=stock_asset["수량"],
             )
             for stock_asset in stock_assets
         ]
@@ -454,18 +562,18 @@ async def get_my_stock(
         redis_client, lastest_stock_daily_map, [asset.asset_stock.stock.code for asset in assets]
     )
     exchange_rate_map = await ExchangeRateService.get_exchange_rate_map(redis_client)
-    stock_assets: list[dict] = await AssetStockService.get_stock_assets(
-        session, token.get("user"), assets, stock_daily_map, current_stock_price_map, dividend_map, exchange_rate_map
+    stock_assets: list[dict] = AssetStockService.get_stock_assets_all_fields(
+        assets, stock_daily_map, current_stock_price_map, dividend_map, exchange_rate_map
     )
 
     return MyStockResponse(
         [
             MyStockResponseValue(
-                name=stock_asset["stock_name"],
-                current_price=stock_asset["current_price"],
-                profit_rate=stock_asset["profit_rate"],
-                profit_amount=stock_asset["profit_amount"],
-                quantity=stock_asset["quantity"],
+                name=stock_asset["종목명"],
+                current_price=stock_asset["현재가"],
+                profit_rate=stock_asset["수익률"],
+                profit_amount=stock_asset["수익금"],
+                quantity=stock_asset["수량"],
             )
             for stock_asset in stock_assets
         ]
@@ -502,12 +610,8 @@ async def get_summary(
             status_code=status.HTTP_404_NOT_FOUND, detail={"다음의 주식 코드를 찾지 못 했습니다.": not_found_stock_codes}
         )
 
-    total_asset_amount: float = AssetStockService.get_total_asset_amount(
-        assets, current_stock_price_map, exchange_rate_map
-    )
-    total_investment_amount: float = AssetStockService.get_total_investment_amount(
-        assets, stock_daily_map, exchange_rate_map
-    )
+    total_asset_amount = await AssetFacade.get_total_asset_amount(session, redis_client, assets)
+    total_investment_amount = await AssetFacade.get_total_investment_amount(session, redis_client, assets) 
     today_review_rate: float = SummaryFacade.get_today_review_rate(
         assets, total_asset_amount, current_stock_price_map, exchange_rate_map
     )
@@ -551,12 +655,8 @@ async def get_sample_summary(
             status_code=status.HTTP_404_NOT_FOUND, detail={"다음의 주식 코드를 찾지 못 했습니다.": not_found_stock_codes}
         )
 
-    total_asset_amount: float = AssetStockService.get_total_asset_amount(
-        assets, current_stock_price_map, exchange_rate_map
-    )
-    total_investment_amount: float = AssetStockService.get_total_investment_amount(
-        assets, stock_daily_map, exchange_rate_map
-    )
+    total_asset_amount = await AssetFacade.get_total_asset_amount(session, redis_client, assets)
+    total_investment_amount = await AssetFacade.get_total_investment_amount(session, redis_client, assets) 
     today_review_rate: float = SummaryFacade.get_today_review_rate(
         assets, total_asset_amount, current_stock_price_map, exchange_rate_map
     )

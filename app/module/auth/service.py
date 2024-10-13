@@ -6,6 +6,8 @@ from fastapi import status
 from google.auth.transport import requests
 from google.oauth2 import id_token
 
+from app.common.util.logging import logging
+
 load_dotenv()
 
 GOOGLE_CLIENT_ID = getenv("GOOGLE_CLIENT_ID", None)
@@ -20,7 +22,8 @@ class Naver:
         async with httpx.AsyncClient() as client:
             response = await client.get(NAVER_USER_INFO_URL, headers=headers)
 
-            if response.status_code is not status.HTTP_200_OK:
+            if response.status_code != status.HTTP_200_OK:
+                logging.error(f"Token verification failed: {response.status_code} {response.text}")
                 raise ValueError(f"Token verification failed: {response.status_code} {response.text}")
             return response.json()
 

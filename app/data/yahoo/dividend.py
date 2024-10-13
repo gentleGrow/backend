@@ -5,6 +5,7 @@ import yfinance
 from icecream import ic
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.data.celery_app.base import celery_task
 from app.data.common.service import get_all_stock_code_list
 from app.data.yahoo.source.constant import BATCH_SIZE
 from app.data.yahoo.source.service import format_stock_code
@@ -53,7 +54,7 @@ async def insert_dividend_data(session: AsyncSession, stock_list: list[StockInfo
         await DividendRepository.bulk_upsert(session=session, dividends=dividend_list)
 
 
-async def main():
+async def execute_async_task():
     print("배당금 수집을 시작합니다.")
     stock_list: list[StockInfo] = get_all_stock_code_list()
 
@@ -63,5 +64,6 @@ async def main():
     print("배당금 수집을 완료합니다.")
 
 
-if __name__ == "__main__":
-    asyncio.run(main())
+@celery_task.task
+def main():
+    asyncio.run(execute_async_task())

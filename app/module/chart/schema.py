@@ -1,12 +1,52 @@
 from collections import defaultdict
 from datetime import date, datetime
 from statistics import mean
+from typing import Union
 
 from pydantic import BaseModel, Field, RootModel
 
-from app.module.asset.constant import MARKET_INDEX_KR_MAPPING
-from app.module.asset.enum import MarketIndex
+from app.common.util.time import get_now_datetime
+from app.module.asset.constant import ASSET_SAVE_TREND_YEAR, INFLATION_RATE, MARKET_INDEX_KR_MAPPING
+from app.module.asset.enum import AmountUnit, MarketIndex
 from app.module.chart.enum import IntervalType
+
+
+class AssetSaveTrendResponse(BaseModel):
+    xAxises: list[str]
+    dates: list[str]
+    values1: dict[str, Union[list[float], str]]
+    values2: dict[str, Union[list[float], str]]
+    unit: str
+
+    @staticmethod
+    def no_near_invest_response(total_asset_amount_all: float) -> "AssetSaveTrendResponse":
+        values1 = {"values": [], "name": "예상자산"}
+        values2 = {
+            "values": [],
+            "name": "실질자산",
+        }
+
+        if total_asset_amount_all >= 100000000:
+            values1["values"] = [total_asset_amount_all / 100000000] * ASSET_SAVE_TREND_YEAR
+            values2["values"] = [
+                (total_asset_amount_all * ((1 - INFLATION_RATE * 0.01) ** i)) / 100000000
+                for i in range(ASSET_SAVE_TREND_YEAR)
+            ]
+            unit = AmountUnit.BILLION_WON
+        else:
+            values1["values"] = [total_asset_amount_all] * ASSET_SAVE_TREND_YEAR
+            values2["values"] = [
+                total_asset_amount_all * ((1 - INFLATION_RATE * 0.01) ** i) for i in range(ASSET_SAVE_TREND_YEAR)
+            ]
+            unit = AmountUnit.MILLION_WON
+
+        return AssetSaveTrendResponse(
+            xAxises=[f"{i + int(str(get_now_datetime().year)[-2:]) + 1}" for i in range(ASSET_SAVE_TREND_YEAR)],
+            dates=[f"{i + 1}년후" for i in range(ASSET_SAVE_TREND_YEAR)],
+            values1=values1,
+            values2=values2,
+            unit=unit,
+        )
 
 
 class ChartTipResponse(RootModel[str]):

@@ -2,15 +2,34 @@ from datetime import date, datetime
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.module.asset.constant import REQUIRED_ASSET_FIELD
 from app.module.asset.enum import AssetType, CurrencyType, PurchaseCurrencyType, StockAsset
 from app.module.asset.model import Asset, AssetStock, StockDaily
-from app.module.asset.repository.asset_field_repository import AssetFieldRepository
 from app.module.asset.repository.asset_repository import AssetRepository
 from app.module.asset.schema import AssetStockPostRequest
 from app.module.asset.services.exchange_rate_service import ExchangeRateService
 
 
 class AssetStockService:
+    @staticmethod
+    def get_total_profit_rate(
+        total_asset_amount: float,
+        total_invest_amount: float,
+    ) -> float:
+        return (
+            ((total_asset_amount - total_invest_amount) / total_invest_amount) * 100 if total_invest_amount > 0 else 0.0
+        )
+
+    @staticmethod
+    def get_total_profit_rate_real(
+        total_asset_amount: float, total_invest_amount: float, real_value_rate: float
+    ) -> float:
+        return (
+            (((total_asset_amount - total_invest_amount) / total_invest_amount) * 100) - real_value_rate
+            if total_invest_amount > 0
+            else 0.0
+        )
+
     @staticmethod
     def get_total_asset_amount(
         assets: list[Asset],
@@ -74,17 +93,41 @@ class AssetStockService:
             result += current_price * asset.asset_stock.quantity
         return result
 
+
     @staticmethod
-    async def get_stock_assets(
-        session: AsyncSession,
-        user_id: int,
+    def get_total_investment_amount(
+        assets: list[Asset],
+        stock_daily_map: dict[tuple[str, date], StockDaily],
+        exchange_rate_map: dict[str, float],
+    ) -> float:
+        total_invest_amount = 0.0
+
+        for asset in assets:
+            stock_daily = stock_daily_map.get((asset.asset_stock.stock.code, asset.asset_stock.purchase_date), None)
+            if stock_daily is None:
+                continue
+
+            invest_price = (
+                asset.asset_stock.purchase_price * ExchangeRateService.get_won_exchange_rate(asset, exchange_rate_map)
+                if asset.asset_stock.purchase_currency_type == PurchaseCurrencyType.USA
+                and asset.asset_stock.purchase_price
+                else asset.asset_stock.purchase_price
+                if asset.asset_stock.purchase_price
+                else stock_daily.adj_close_price * ExchangeRateService.get_won_exchange_rate(asset, exchange_rate_map)
+            )
+
+            total_invest_amount += invest_price * asset.asset_stock.quantity
+
+        return total_invest_amount
+
+    @staticmethod
+    def get_stock_assets_all_fields(
         assets: list[Asset],
         stock_daily_map: dict[tuple[str, date], StockDaily],
         current_stock_price_map: dict[str, float],
         dividend_map: dict[str, float],
         exchange_rate_map: dict[str, float],
     ) -> list[dict]:
-        asset_field = await AssetFieldRepository.get(session, user_id)
         stock_assets = []
 
         for asset in assets:
@@ -153,42 +196,6 @@ class AssetStockService:
                 StockAsset.STOCK_NAME.value: asset.asset_stock.stock.name,
                 StockAsset.STOCK_VOLUME.value: stock_daily.trade_volume if stock_daily.trade_volume else None,
             }
-
-            stock_asset_data_filter = {
-                field: value for field, value in stock_asset_data.items() if field in asset_field.field_preference
-            }
-            stock_asset_data_filter[StockAsset.ID.value] = stock_asset_data[StockAsset.ID.value]
-            stock_asset_data_filter[StockAsset.STOCK_CODE.value] = stock_asset_data[StockAsset.STOCK_CODE.value]
-            stock_asset_data_filter[StockAsset.PURCHASE_CURRENCY_TYPE.value] = stock_asset_data[
-                StockAsset.PURCHASE_CURRENCY_TYPE.value
-            ]
-
-            stock_assets.append(stock_asset_data_filter)
+            stock_assets.append(stock_asset_data)
 
         return stock_assets
-
-    @staticmethod
-    def get_total_investment_amount(
-        assets: list[Asset],
-        stock_daily_map: dict[tuple[str, date], StockDaily],
-        exchange_rate_map: dict[str, float],
-    ) -> float:
-        total_invest_amount = 0.0
-
-        for asset in assets:
-            stock_daily = stock_daily_map.get((asset.asset_stock.stock.code, asset.asset_stock.purchase_date), None)
-            if stock_daily is None:
-                continue
-
-            invest_price = (
-                asset.asset_stock.purchase_price * ExchangeRateService.get_won_exchange_rate(asset, exchange_rate_map)
-                if asset.asset_stock.purchase_currency_type == PurchaseCurrencyType.USA
-                and asset.asset_stock.purchase_price
-                else asset.asset_stock.purchase_price
-                if asset.asset_stock.purchase_price
-                else stock_daily.adj_close_price * ExchangeRateService.get_won_exchange_rate(asset, exchange_rate_map)
-            )
-
-            total_invest_amount += invest_price * asset.asset_stock.quantity
-
-        return total_invest_amount

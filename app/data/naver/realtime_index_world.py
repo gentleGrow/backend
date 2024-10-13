@@ -14,6 +14,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from webdriver_manager.chrome import ChromeDriverManager
 
 from app.common.util.time import get_now_datetime
+from app.data.celery_app.base import celery_task
 from app.data.common.constant import MARKET_INDEX_CACHE_SECOND
 from app.module.asset.constant import COUNTRY_TRANSLATIONS, INDEX_NAME_TRANSLATIONS
 from app.module.asset.model import (  # noqa: F401 > relationship 설정시 필요합니다.
@@ -32,6 +33,8 @@ from database.enum import EnvironmentType
 
 load_dotenv()
 ENVIRONMENT = getenv("ENVIRONMENT", None)
+
+_task_started = False
 
 
 async def fetch_market_data(redis_client: Redis, session: AsyncSession):
@@ -114,7 +117,7 @@ async def fetch_market_data(redis_client: Redis, session: AsyncSession):
         driver.quit()
 
 
-async def main():
+async def execute_async_task():
     redis_client = await get_redis_pool()
     async with get_mysql_session() as session:
         while True:
@@ -126,5 +129,9 @@ async def main():
                 await asyncio.sleep(10)
 
 
-if __name__ == "__main__":
-    asyncio.run(main())
+@celery_task.task
+def main():
+    global _task_started
+    if not _task_started:
+        _task_started = True
+        asyncio.run(execute_async_task())

@@ -7,18 +7,21 @@ from app.module.asset.enum import AssetType
 from app.module.asset.model import Asset
 from app.module.asset.repository.asset_repository import AssetRepository
 from app.module.asset.schema import AssetStockResponse, UpdateAssetFieldRequest
+from app.module.asset.services.asset_field_service import AssetFieldService
 from app.module.asset.services.asset_stock_service import AssetStockService
 from app.module.asset.services.dividend_service import DividendService
 from app.module.asset.services.exchange_rate_service import ExchangeRateService
 from app.module.asset.services.stock_daily_service import StockDailyService
 from app.module.asset.services.stock_service import StockService
 from app.module.auth.constant import DUMMY_USER_ID
+from app.module.asset.facades.asset_facade import AssetFacade
+from app.module.asset.facades.dividend_facade import DividendFacade
 
 
 class TestUpdateAssetFieldRequest:
     def test_validate_request_data_missing_required_fields(self):
         # Given
-        request_data = UpdateAssetFieldRequest(root=["stock_name", "quantity"])
+        request_data = UpdateAssetFieldRequest(root=["종목명", "수량"])
 
         # When
         try:
@@ -31,11 +34,11 @@ class TestUpdateAssetFieldRequest:
         # Then
         assert validation_passed is False
         assert "필수 필드가 누락되었습니다" in error_detail
-        assert "['buy_date']" in error_detail
+        assert "['구매일자']" in error_detail
 
     def test_validate_request_data_success(self):
         # Given
-        valid_request_data = UpdateAssetFieldRequest(root=["buy_date", "quantity", "stock_name"])
+        valid_request_data = UpdateAssetFieldRequest(root=["구매일자", "수량", "종목명"])
 
         # When
         try:
@@ -49,7 +52,7 @@ class TestUpdateAssetFieldRequest:
 
     def test_validate_request_data_fail(self):
         # Given
-        invalid_request_data = UpdateAssetFieldRequest(root=["invalid_field", "quantity"])
+        invalid_request_data = UpdateAssetFieldRequest(root=["invalid_field", "수량"])
 
         # When
         try:
@@ -75,6 +78,7 @@ class TestAssetStockResponse:
         # Then
         expected_response = AssetStockResponse(
             stock_assets=[],
+            asset_fields=[],
             total_asset_amount=0.0,
             total_invest_amount=0.0,
             total_profit_rate=0.0,
@@ -94,38 +98,25 @@ class TestAssetStockResponse:
         # Then
         assert response is None
 
-    async def test_parse(
-        self,
-        session: AsyncSession,
-        redis_client: Redis,
-        setup_asset,
-        setup_dividend,
-        setup_exchange_rate,
-        setup_realtime_stock_price,
-        setup_stock_daily,
-        setup_asset_field,
-    ):
+    async def test_parse(self, session: AsyncSession, redis_client: Redis, setup_all):
         # Given
         assets: list[Asset] = await AssetRepository.get_eager(session, DUMMY_USER_ID, AssetType.STOCK)
-        stock_daily_map = await StockDailyService.get_map_range(session, assets)
-        lastest_stock_daily_map = await StockDailyService.get_latest_map(session, assets)
-        dividend_map = await DividendService.get_recent_map(session, assets)
-        exchange_rate_map = await ExchangeRateService.get_exchange_rate_map(redis_client)
-        current_stock_price_map = await StockService.get_current_stock_price(
-            redis_client, lastest_stock_daily_map, assets
-        )
-        stock_assets = await AssetStockService.get_stock_assets(
-            session, DUMMY_USER_ID, assets, stock_daily_map, current_stock_price_map, dividend_map, exchange_rate_map
-        )
-        total_asset_amount = AssetStockService.get_total_asset_amount(
-            assets, current_stock_price_map, exchange_rate_map
-        )
-        total_invest_amount = AssetStockService.get_total_investment_amount(assets, stock_daily_map, exchange_rate_map)
-        total_dividend_amount = DividendService.get_total_dividend(assets, dividend_map, exchange_rate_map)
+        asset_fields = await AssetFieldService.get_asset_field(session, DUMMY_USER_ID)
+        stock_assets: list[dict] = await AssetFacade.get_stock_assets(
+                session=session,
+                redis_client=redis_client,
+                assets=assets,
+                asset_fields=asset_fields
+            )
+        
+        total_asset_amount = await AssetFacade.get_total_asset_amount(session, redis_client, assets)
+        total_invest_amount = await AssetFacade.get_total_investment_amount(session, redis_client, assets)   
+        total_dividend_amount = await DividendFacade.get_total_dividend(session, redis_client, assets)
 
         # When
         stock_asset_response = AssetStockResponse.parse(
             stock_assets=stock_assets,
+            asset_fields=asset_fields,
             total_asset_amount=total_asset_amount,
             total_invest_amount=total_invest_amount,
             total_dividend_amount=total_dividend_amount,
