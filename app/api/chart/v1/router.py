@@ -4,7 +4,7 @@ from statistics import mean
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from redis.asyncio import Redis
 from sqlalchemy.ext.asyncio import AsyncSession
-from icecream import ic
+
 from app.common.auth.security import verify_jwt_token
 from app.common.util.time import get_now_date
 from app.module.asset.constant import (
@@ -93,7 +93,7 @@ async def get_sameple_asset_save_trend(
     increase_invest_year = AssetService.get_average_investment_with_dividend_year(
         total_invest_amount, total_dividend_amount, THREE_MONTH
     )
-    
+
     values1, values2, unit = AssetService.calculate_trend_values(
         total_asset_amount_all, increase_invest_year, total_profit_rate, total_profit_rate_real, ASSET_SAVE_TREND_YEAR
     )

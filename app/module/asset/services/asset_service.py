@@ -37,11 +37,11 @@ class AssetService:
 
         for _ in range(years):
             current_value1 += increase_invest_year
-            current_value1 *= (1 + total_profit_rate / 100)
+            current_value1 *= 1 + total_profit_rate / 100
             values1["values"].append(current_value1)
 
             current_value2 += increase_invest_year
-            current_value2 *= (1 + total_profit_rate_real / 100)
+            current_value2 *= 1 + total_profit_rate_real / 100
             values2["values"].append(current_value2)
 
         if total_asset_amount >= 100000000:
