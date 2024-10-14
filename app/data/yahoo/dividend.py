@@ -2,10 +2,10 @@ import asyncio
 
 import pandas as pd
 import yfinance
+from celery import shared_task
 from icecream import ic
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from celery import shared_task
 from app.data.common.service import get_all_stock_code_list
 from app.data.yahoo.source.constant import BATCH_SIZE
 from app.data.yahoo.source.service import format_stock_code

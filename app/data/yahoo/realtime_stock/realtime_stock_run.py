@@ -3,10 +3,10 @@ import json
 import os
 from os import getenv
 
+from celery import shared_task
 from dotenv import load_dotenv
 from more_itertools import chunked
 
-from celery import shared_task
 from app.data.common.service import StockCodeFileReader
 from app.data.yahoo.source.constant import REALTIME_STOCK_LIST
 from database.enum import EnvironmentType

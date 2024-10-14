@@ -1,6 +1,7 @@
 import asyncio
 from os import getenv
 
+from celery import shared_task
 from dotenv import load_dotenv
 from icecream import ic
 from redis.asyncio import Redis
@@ -14,7 +15,6 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from webdriver_manager.chrome import ChromeDriverManager
 
 from app.common.util.time import get_now_datetime
-from celery import shared_task
 from app.data.common.constant import MARKET_INDEX_CACHE_SECOND
 from app.module.asset.constant import COUNTRY_TRANSLATIONS, INDEX_NAME_TRANSLATIONS
 from app.module.asset.model import (  # noqa: F401 > relationship 설정시 필요합니다.

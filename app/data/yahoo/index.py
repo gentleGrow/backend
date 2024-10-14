@@ -1,9 +1,9 @@
 import asyncio
 
 import yfinance
+from celery import shared_task
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from celery import shared_task
 from app.data.common.enum import MarketIndexEnum
 from app.data.yahoo.source.constant import MARKET_INDEX_TIME_INTERVALS
 from app.data.yahoo.source.service import get_last_week_period_bounds

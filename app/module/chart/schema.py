@@ -189,6 +189,10 @@ class RichPickResponse(RootModel[list[RichPickValue]]):
     pass
 
 
+class PortfolioStockData(BaseModel):
+    name: str
+    percent_ratio: float
+
 class RichPortfolioValue(BaseModel):
     name: str
     stock: dict[str, str]
@@ -200,7 +204,7 @@ class RichPortfolioResponse(RootModel[list[RichPortfolioValue]]):
 
 class PeoplePortfolioValue(BaseModel):
     name: str
-    stock: dict[str, str]
+    data: list[PortfolioStockData]
 
 
 class PeoplePortfolioResponse(RootModel[list[PeoplePortfolioValue]]):

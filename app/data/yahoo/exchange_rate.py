@@ -1,9 +1,9 @@
 import asyncio
 
 import yfinance
+from celery import shared_task
 from icecream import ic
 
-from celery import shared_task
 from app.data.common.constant import STOCK_CACHE_SECOND
 from app.module.asset.constant import CURRENCY_PAIRS
 from app.module.asset.redis_repository import RedisExchangeRateRepository

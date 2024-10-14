@@ -1,9 +1,11 @@
 from os import getenv
+
 from celery import Celery
 from celery.schedules import crontab
 from dotenv import load_dotenv
+
+import app.data.tip.run  # noqa: F401 > task 위치를 찾는데 필요합니다.
 from database.enum import EnvironmentType
-import app.data.tip.run
 
 load_dotenv()
 
@@ -16,12 +18,10 @@ else:
 REDIS_PORT = getenv("REDIS_PORT", None)
 
 celery_task = Celery(
-    "celery_schedule",
-    broker=f"redis://{REDIS_HOST}:{REDIS_PORT}",
-    backend=f"redis://{REDIS_HOST}:{REDIS_PORT}"
+    "celery_schedule", broker=f"redis://{REDIS_HOST}:{REDIS_PORT}", backend=f"redis://{REDIS_HOST}:{REDIS_PORT}"
 )
 
-celery_task.conf.timezone = 'Asia/Seoul'
+celery_task.conf.timezone = "Asia/Seoul"
 celery_task.conf.enable_utc = False
 
 

@@ -1,9 +1,9 @@
 import asyncio
 
+from celery import shared_task
 from redis.asyncio import Redis
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from celery import shared_task
 from app.module.auth.model import User  # noqa: F401 > relationship 설정시 필요합니다.
 from app.module.chart.constant import TIP_EXPIRE_SECOND, TIP_TODAY_ID_REDIS_KEY
 from app.module.chart.redis_repository import RedisTipRepository

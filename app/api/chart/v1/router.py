@@ -50,6 +50,8 @@ from app.module.chart.schema import (
     MarketIndiceResponseValue,
     MyStockResponse,
     MyStockResponseValue,
+    PeoplePortfolioResponse,
+    PeoplePortfolioValue,
     PerformanceAnalysisResponse,
     ProfitDetail,
     RichPickResponse,
@@ -57,8 +59,7 @@ from app.module.chart.schema import (
     RichPortfolioResponse,
     RichPortfolioValue,
     SummaryResponse,
-    PeoplePortfolioResponse,
-    PeoplePortfolioValue
+    PortfolioStockData
 )
 from app.module.chart.service.index_service import IndexService
 from app.module.chart.service.rich_portfolio_service import RichPortfolioService
@@ -67,93 +68,109 @@ from database.dependency import get_mysql_session_router, get_redis_pool
 
 chart_router = APIRouter(prefix="/v1")
 
+@chart_router.get("/rich-portfolio", summary="부자들의 포트폴리오", response_model=PeoplePortfolioResponse)
+async def get_rich_portfolio(redis_client: Redis = Depends(get_redis_pool)) -> PeoplePortfolioResponse:
+    rich_portfolio_map: dict = await RichPortfolioService.get_rich_porfolio_map(redis_client)
+
+    return PeoplePortfolioResponse(
+        [
+            PeoplePortfolioValue(
+                name=person,
+                data=[PortfolioStockData(name=stock, percent_ratio=float(percent.strip('%')))
+                      for stock, percent in portfolio.items()]
+            )
+            for person, portfolio in rich_portfolio_map.items()
+        ]
+    )
+
+
 
 # 임시 dummy api 생성, 추후 개발하겠습니다.
 @chart_router.get("/people-portfolio", summary="포트폴리오 구경하기", response_model=PeoplePortfolioResponse)
 async def get_people_portfolio():
-    return PeoplePortfolioResponse([
-        PeoplePortfolioValue(
-            name="배당주 포트폴리오",
-            stock={
-                "KO": "10.5%",
-                "PEP": "8.4%",
-                "JNJ": "7.2%",
-                "PG": "6.3%",
-                "MCD": "5.7%",
-                "PFE": "4.9%",
-                "MRK": "4.3%",
-                "T": "3.8%",
-                "VZ": "3.2%",
-                "IBM": "2.9%"
-            }
-        ),
-        PeoplePortfolioValue(
-            name="성장주 포트폴리오",
-            stock={
-                "AAPL": "20.1%",
-                "AMZN": "18.3%",
-                "GOOG": "17.2%",
-                "MSFT": "15.5%",
-                "NVDA": "12.3%",
-                "TSLA": "8.9%",
-                "META": "5.0%",
-                "NFLX": "2.7%"
-            }
-        ),
-        PeoplePortfolioValue(
-            name="국내 포트폴리오",
-            stock={
-                "005930": "25.6%",  
-                "000660": "19.8%",  
-                "051910": "12.4%",  
-                "035420": "9.3%",   
-                "035720": "8.7%",   
-                "068270": "7.4%",   
-                "005380": "6.2%",   
-                "207940": "5.1%"    
-            }
-        ),
-        PeoplePortfolioValue(
-            name="안전자산 포트폴리오",
-            stock={
-                "GLD": "35.0%",   
-                "BND": "25.0%",   
-                "VNQ": "15.0%",   
-                "TIP": "10.0%",   
-                "AGG": "8.0%",    
-                "IEF": "7.0%"     
-            }
-        ),
-        PeoplePortfolioValue(
-            name="소형주 포트폴리오",
-            stock={
-                "RGEN": "14.7%",
-                "BLD": "13.4%",
-                "CDXS": "11.9%",
-                "KTOS": "10.5%",
-                "NMIH": "9.1%",
-                "TMDX": "8.8%",
-                "VRM": "8.4%",
-                "CSIQ": "7.6%",
-                "IMMU": "6.5%",
-                "RPD": "5.1%"
-            }
-        ),
-        PeoplePortfolioValue(
-            name="테크주 포트폴리오",
-            stock={
-                "AAPL": "22.0%",
-                "MSFT": "18.3%",
-                "GOOG": "16.1%",
-                "AMZN": "15.5%",
-                "NVDA": "12.2%",
-                "TSLA": "9.8%",
-                "META": "6.1%"
-            }
-        ),
-    ])
-
-
+    return PeoplePortfolioResponse(
+        [
+            PeoplePortfolioValue(
+                name="배당주 포트폴리오",
+                data=[
+                    PortfolioStockData(name="KO", percent_ratio=10.5),
+                    PortfolioStockData(name="PEP", percent_ratio=8.4),
+                    PortfolioStockData(name="JNJ", percent_ratio=7.2),
+                    PortfolioStockData(name="PG", percent_ratio=6.3),
+                    PortfolioStockData(name="MCD", percent_ratio=5.7),
+                    PortfolioStockData(name="PFE", percent_ratio=4.9),
+                    PortfolioStockData(name="MRK", percent_ratio=4.3),
+                    PortfolioStockData(name="T", percent_ratio=3.8),
+                    PortfolioStockData(name="VZ", percent_ratio=3.2),
+                    PortfolioStockData(name="IBM", percent_ratio=2.9),
+                ],
+            ),
+            PeoplePortfolioValue(
+                name="성장주 포트폴리오",
+                data=[
+                    PortfolioStockData(name="AAPL", percent_ratio=20.1),
+                    PortfolioStockData(name="AMZN", percent_ratio=18.3),
+                    PortfolioStockData(name="GOOG", percent_ratio=17.2),
+                    PortfolioStockData(name="MSFT", percent_ratio=15.5),
+                    PortfolioStockData(name="NVDA", percent_ratio=12.3),
+                    PortfolioStockData(name="TSLA", percent_ratio=8.9),
+                    PortfolioStockData(name="META", percent_ratio=5.0),
+                    PortfolioStockData(name="NFLX", percent_ratio=2.7),
+                ],
+            ),
+            PeoplePortfolioValue(
+                name="국내 포트폴리오",
+                data=[
+                    PortfolioStockData(name="005930", percent_ratio=25.6),
+                    PortfolioStockData(name="000660", percent_ratio=19.8),
+                    PortfolioStockData(name="051910", percent_ratio=12.4),
+                    PortfolioStockData(name="035420", percent_ratio=9.3),
+                    PortfolioStockData(name="035720", percent_ratio=8.7),
+                    PortfolioStockData(name="068270", percent_ratio=7.4),
+                    PortfolioStockData(name="005380", percent_ratio=6.2),
+                    PortfolioStockData(name="207940", percent_ratio=5.1),
+                ],
+            ),
+            PeoplePortfolioValue(
+                name="안전자산 포트폴리오",
+                data=[
+                    PortfolioStockData(name="GLD", percent_ratio=35.0),
+                    PortfolioStockData(name="BND", percent_ratio=25.0),
+                    PortfolioStockData(name="VNQ", percent_ratio=15.0),
+                    PortfolioStockData(name="TIP", percent_ratio=10.0),
+                    PortfolioStockData(name="AGG", percent_ratio=8.0),
+                    PortfolioStockData(name="IEF", percent_ratio=7.0),
+                ],
+            ),
+            PeoplePortfolioValue(
+                name="소형주 포트폴리오",
+                data=[
+                    PortfolioStockData(name="RGEN", percent_ratio=14.7),
+                    PortfolioStockData(name="BLD", percent_ratio=13.4),
+                    PortfolioStockData(name="CDXS", percent_ratio=11.9),
+                    PortfolioStockData(name="KTOS", percent_ratio=10.5),
+                    PortfolioStockData(name="NMIH", percent_ratio=9.1),
+                    PortfolioStockData(name="TMDX", percent_ratio=8.8),
+                    PortfolioStockData(name="VRM", percent_ratio=8.4),
+                    PortfolioStockData(name="CSIQ", percent_ratio=7.6),
+                    PortfolioStockData(name="IMMU", percent_ratio=6.5),
+                    PortfolioStockData(name="RPD", percent_ratio=5.1),
+                ],
+            ),
+            PeoplePortfolioValue(
+                name="테크주 포트폴리오",
+                data=[
+                    PortfolioStockData(name="AAPL", percent_ratio=22.0),
+                    PortfolioStockData(name="MSFT", percent_ratio=18.3),
+                    PortfolioStockData(name="GOOG", percent_ratio=16.1),
+                    PortfolioStockData(name="AMZN", percent_ratio=15.5),
+                    PortfolioStockData(name="NVDA", percent_ratio=12.2),
+                    PortfolioStockData(name="TSLA", percent_ratio=9.8),
+                    PortfolioStockData(name="META", percent_ratio=6.1),
+                ],
+            ),
+        ]
+    )
 
 
 @chart_router.get("/sample/asset-save-trend", summary="자산적립 추이", response_model=AssetSaveTrendResponse)
@@ -237,15 +254,6 @@ async def get_asset_save_trend(
         values1=values1,
         values2=values2,
         unit=unit,
-    )
-
-
-@chart_router.get("/rich-portfolio", summary="부자들의 포트폴리오", response_model=RichPortfolioResponse)
-async def get_rich_portfolio(redis_client: Redis = Depends(get_redis_pool)) -> RichPortfolioResponse:
-    rich_portfolio_map: dict = await RichPortfolioService.get_rich_porfolio_map(redis_client)
-
-    return RichPortfolioResponse(
-        [RichPortfolioValue(name=person, stock=portfolio) for person, portfolio in rich_portfolio_map.items()]
     )
 
 
