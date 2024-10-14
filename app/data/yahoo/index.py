@@ -3,7 +3,7 @@ import asyncio
 import yfinance
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.data.celery_app.base import celery_task
+from celery import shared_task
 from app.data.common.enum import MarketIndexEnum
 from app.data.yahoo.source.constant import MARKET_INDEX_TIME_INTERVALS
 from app.data.yahoo.source.service import get_last_week_period_bounds
@@ -64,6 +64,6 @@ async def execute_async_task():
             await fetch_and_save_all_intervals(session, index_symbol, start_period, end_period)
 
 
-@celery_task.task
+@shared_task
 def main():
     asyncio.run(execute_async_task())

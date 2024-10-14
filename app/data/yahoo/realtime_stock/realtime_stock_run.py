@@ -6,7 +6,7 @@ from os import getenv
 from dotenv import load_dotenv
 from more_itertools import chunked
 
-from app.data.celery_app.base import celery_task
+from celery import shared_task
 from app.data.common.service import StockCodeFileReader
 from app.data.yahoo.source.constant import REALTIME_STOCK_LIST
 from database.enum import EnvironmentType
@@ -69,7 +69,7 @@ async def execute_async_task():
         await asyncio.sleep(3600)
 
 
-@celery_task.task
+@shared_task
 def main():
     global _task_started
     if not _task_started:

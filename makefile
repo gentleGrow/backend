@@ -52,10 +52,12 @@ build: build_images
 run: run_containers
 
 restart:
-	docker-compose down
+	sudo docker-compose down
 	docker-compose build --no-cache
-	docker-compose up -d
+	sudo docker-compose up -d
 
-clean-containers:
-	docker stop $(docker ps -aq) || true
-	docker rm $(docker ps -aq) || true
+restart-monitor:
+	sudo docker-compose -f docker-compose.monitor.yml down
+	sudo docker-compose -f docker-compose.monitor.yml up -d
+
+

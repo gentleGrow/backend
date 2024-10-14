@@ -15,7 +15,7 @@ from selenium.webdriver.support.ui import WebDriverWait
 from sqlalchemy.ext.asyncio import AsyncSession
 from webdriver_manager.chrome import ChromeDriverManager
 
-from app.data.celery_app.base import celery_task
+from celery import shared_task
 from app.data.investing.sources.enum import RicePeople
 from app.module.asset.enum import AssetType, PurchaseCurrencyType
 from app.module.asset.model import Asset, AssetStock
@@ -127,6 +127,6 @@ async def execute_async_task():
             await fetch_rich_porfolio(redis_client, session, person.value)
 
 
-@celery_task.task
+@shared_task
 def main():
     asyncio.run(execute_async_task())

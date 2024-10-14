@@ -196,3 +196,12 @@ class RichPortfolioValue(BaseModel):
 
 class RichPortfolioResponse(RootModel[list[RichPortfolioValue]]):
     pass
+
+
+class PeoplePortfolioValue(BaseModel):
+    name: str
+    stock: dict[str, str]
+
+
+class PeoplePortfolioResponse(RootModel[list[PeoplePortfolioValue]]):
+    pass

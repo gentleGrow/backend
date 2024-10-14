@@ -5,7 +5,7 @@ from icecream import ic
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.data.celery_app.base import celery_task
+from celery import shared_task
 from app.data.common.service import get_all_stock_code_list
 from app.data.yahoo.source.constant import TIME_INTERVAL_MODEL_REPO_MAP, TIME_INTERVAL_REPOSITORY_MAP
 from app.data.yahoo.source.schema import StockDataFrame
@@ -86,9 +86,7 @@ async def execute_async_task():
         await process_stock_data(session, stock_list, start_period, end_period)
 
 
-@celery_task.task
+@shared_task
 def main():
     asyncio.run(execute_async_task())
 
-
-asyncio.run(execute_async_task())

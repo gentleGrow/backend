@@ -5,7 +5,7 @@ import yfinance
 from icecream import ic
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.data.celery_app.base import celery_task
+from celery import shared_task
 from app.data.common.service import get_all_stock_code_list
 from app.data.yahoo.source.constant import BATCH_SIZE
 from app.data.yahoo.source.service import format_stock_code
@@ -64,6 +64,6 @@ async def execute_async_task():
     print("배당금 수집을 완료합니다.")
 
 
-@celery_task.task
+@shared_task
 def main():
     asyncio.run(execute_async_task())

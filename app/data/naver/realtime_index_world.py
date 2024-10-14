@@ -14,7 +14,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from webdriver_manager.chrome import ChromeDriverManager
 
 from app.common.util.time import get_now_datetime
-from app.data.celery_app.base import celery_task
+from celery import shared_task
 from app.data.common.constant import MARKET_INDEX_CACHE_SECOND
 from app.module.asset.constant import COUNTRY_TRANSLATIONS, INDEX_NAME_TRANSLATIONS
 from app.module.asset.model import (  # noqa: F401 > relationship 설정시 필요합니다.
@@ -129,7 +129,7 @@ async def execute_async_task():
                 await asyncio.sleep(10)
 
 
-@celery_task.task
+@shared_task
 def main():
     global _task_started
     if not _task_started:
