@@ -50,3 +50,12 @@ stop: stop_containers
 remove: remove_containers remove_images
 build: build_images
 run: run_containers
+
+restart:
+	docker-compose down
+	docker-compose build --no-cache
+	docker-compose up -d
+
+clean-containers:
+	docker stop $(docker ps -aq) || true
+	docker rm $(docker ps -aq) || true

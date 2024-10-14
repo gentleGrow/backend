@@ -3,8 +3,9 @@ from os import getenv
 from dotenv import load_dotenv
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from starlette.middleware.sessions import SessionMiddleware
 from prometheus_fastapi_instrumentator import Instrumentator
+from starlette.middleware.sessions import SessionMiddleware
+
 from app.api.asset.v1.router import asset_stock_router
 from app.api.auth.v1.router import auth_router
 from app.api.chart.v1.router import chart_router
