@@ -193,6 +193,7 @@ class PortfolioStockData(BaseModel):
     name: str
     percent_ratio: float
 
+
 class RichPortfolioValue(BaseModel):
     name: str
     stock: dict[str, str]

@@ -6,6 +6,7 @@ services:
       - "9090:9090"
     volumes:
       - ./prometheus.yml:/etc/prometheus/prometheus.yml
+      - prometheus-data:/prometheus 
     command:
       - '--config.file=/etc/prometheus/prometheus.yml'
 
@@ -27,3 +28,4 @@ services:
 
 volumes:
   grafana-data:
+  prometheus-data:

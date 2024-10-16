@@ -22,8 +22,6 @@ from app.module.asset.schema import MarketIndexData
 from app.module.auth.model import User  # noqa: F401 > relationship 설정시 필요합니다.
 from database.dependency import get_mysql_session, get_redis_pool
 
-_task_started = False
-
 
 async def fetch_market_data(redis_client: Redis, session: AsyncSession):
     url = "https://finance.naver.com/"
@@ -101,7 +99,4 @@ async def execute_async_task():
 
 @shared_task
 def main():
-    global _task_started
-    if not _task_started:
-        _task_started = True
-        asyncio.run(execute_async_task())
+    asyncio.run(execute_async_task())

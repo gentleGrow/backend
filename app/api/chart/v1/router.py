@@ -68,21 +68,22 @@ from database.dependency import get_mysql_session_router, get_redis_pool
 
 chart_router = APIRouter(prefix="/v1")
 
-@chart_router.get("/rich-portfolio", summary="부자들의 포트폴리오", response_model=PeoplePortfolioResponse)
-async def get_rich_portfolio(redis_client: Redis = Depends(get_redis_pool)) -> PeoplePortfolioResponse:
+@chart_router.get("/rich-portfolio", summary="부자들의 포트폴리오", response_model=RichPortfolioResponse)
+async def get_rich_portfolio(redis_client: Redis = Depends(get_redis_pool)) -> RichPortfolioResponse:
     rich_portfolio_map: dict = await RichPortfolioService.get_rich_porfolio_map(redis_client)
 
-    return PeoplePortfolioResponse(
+    return RichPortfolioResponse(
         [
-            PeoplePortfolioValue(
+            RichPortfolioValue(
                 name=person,
-                data=[PortfolioStockData(name=stock, percent_ratio=float(percent.strip('%')))
-                      for stock, percent in portfolio.items()]
+                data=[
+                    PortfolioStockData(name=stock, percent_ratio=float(percent.strip("%")))
+                    for stock, percent in portfolio.items()
+                ],
             )
             for person, portfolio in rich_portfolio_map.items()
         ]
     )
-
 
 
 # 임시 dummy api 생성, 추후 개발하겠습니다.
