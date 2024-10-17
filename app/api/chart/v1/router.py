@@ -53,13 +53,13 @@ from app.module.chart.schema import (
     PeoplePortfolioResponse,
     PeoplePortfolioValue,
     PerformanceAnalysisResponse,
+    PortfolioStockData,
     ProfitDetail,
     RichPickResponse,
     RichPickValue,
     RichPortfolioResponse,
     RichPortfolioValue,
     SummaryResponse,
-    PortfolioStockData
 )
 from app.module.chart.service.index_service import IndexService
 from app.module.chart.service.rich_portfolio_service import RichPortfolioService
@@ -67,6 +67,7 @@ from app.module.chart.service.save_trend_service import SaveTrendService
 from database.dependency import get_mysql_session_router, get_redis_pool
 
 chart_router = APIRouter(prefix="/v1")
+
 
 @chart_router.get("/rich-portfolio", summary="부자들의 포트폴리오", response_model=RichPortfolioResponse)
 async def get_rich_portfolio(redis_client: Redis = Depends(get_redis_pool)) -> RichPortfolioResponse:
