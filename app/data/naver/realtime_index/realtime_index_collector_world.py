@@ -1,6 +1,9 @@
 import asyncio
-from icecream import ic
+import os
+
 import ray
+from dotenv import load_dotenv
+from icecream import ic
 from selenium import webdriver
 from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.chrome.service import Service
@@ -18,14 +21,11 @@ from app.module.asset.redis_repository import RedisRealTimeMarketIndexRepository
 from app.module.asset.repository.market_index_minutely_repository import MarketIndexMinutelyRepository
 from app.module.asset.schema import MarketIndexData
 from database.dependency import get_mysql_session, get_redis_pool
-import os
-from dotenv import load_dotenv
 from database.enum import EnvironmentType
 
 load_dotenv()
 
 ENVIRONMENT = os.getenv("ENVIRONMENT", None)
-
 
 
 @ray.remote
@@ -72,7 +72,8 @@ class RealtimeIndexWorldCollector:
 
             await self._save_market_data(db_bulk_data, redis_bulk_data)
         except Exception as e:
-            ic(e)
+            # ic(e)
+            pass
         finally:
             driver.quit()
 
@@ -86,7 +87,6 @@ class RealtimeIndexWorldCollector:
             return webdriver.Chrome(service=Service(ChromeDriverManager().install()), options=chrome_options)
         else:
             return webdriver.Chrome(service=Service("/usr/bin/chromedriver"), options=chrome_options)
-
 
     def _parse_tr_row(self, tr_row):
         tds = tr_row.find_elements(By.TAG_NAME, "td")

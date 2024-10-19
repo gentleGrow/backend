@@ -20,6 +20,6 @@ class RealtimeIndexMonitor:
             for collector in self.collectors:
                 is_running = await collector.is_running.remote()
                 if not is_running:
-                    ic("collector 작업이 멈추어서 재시작합니다")
+                    # ic("collector 작업이 멈추어서 재시작합니다")
                     collector.collect.remote()
             await asyncio.sleep(REALTIME_INDEX_MONITOR_WAIT_SECOND)

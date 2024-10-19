@@ -3,7 +3,7 @@ import asyncio
 import ray
 import requests
 from bs4 import BeautifulSoup
-from icecream import ic
+# from icecream import ic
 
 from app.common.util.time import get_now_datetime
 from app.data.common.constant import MARKET_INDEX_CACHE_SECOND
@@ -78,7 +78,8 @@ class RealtimeIndexKoreaCollector:
 
             return {"db": market_index_db, "redis": market_index_data}
         except Exception as e:
-            ic(e)
+            # ic(e)
+            return
 
     def _parse_kosdaq(self, soup: BeautifulSoup, now):
         section_stock_market = soup.find("div", {"class": "section_stock_market"})

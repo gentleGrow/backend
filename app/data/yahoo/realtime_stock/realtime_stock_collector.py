@@ -2,7 +2,7 @@ import asyncio
 
 import ray
 import yfinance
-from icecream import ic
+# from icecream import ic
 
 from app.common.util.time import get_now_datetime
 from app.data.common.constant import STOCK_CACHE_SECOND
@@ -90,5 +90,5 @@ class RealtimeStockCollector:
             current_price = current_price_currentPrice if current_price_currentPrice is not None else current_price_bid
             return code, current_price if current_price is not None else 0.0
         except Exception as e:
-            ic(e)
+            # ic(e)
             return code, 0.0

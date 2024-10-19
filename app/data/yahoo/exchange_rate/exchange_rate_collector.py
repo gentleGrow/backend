@@ -2,7 +2,7 @@ import asyncio
 
 import ray
 import yfinance
-from icecream import ic
+# from icecream import ic
 
 from app.data.common.constant import STOCK_CACHE_SECOND
 from app.data.yahoo.source.constant import EXCHANGE_RATE_COLLECTOR_WAIT_SECOND
@@ -18,7 +18,7 @@ class ExchangeRateCollector:
         self._is_running = False
 
     async def collect(self) -> None:
-        ic("환율 데이터 수집을 시작합니다.")
+        # ic("환율 데이터 수집을 시작합니다.")
         self._is_running = True
 
         while True:

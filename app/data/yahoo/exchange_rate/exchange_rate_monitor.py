@@ -15,6 +15,6 @@ class ExchangeRateMonitor:
         while True:
             is_running = await self.collector.is_running.remote()
             if not is_running:
-                ic("collector 작업이 멈추어서 재시작합니다")
+                # ic("collector 작업이 멈추어서 재시작합니다")
                 self.collector.collect.remote()
             await asyncio.sleep(EXCHANGE_RATE_MONITOR_SECOND)
