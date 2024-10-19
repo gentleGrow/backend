@@ -15,7 +15,7 @@ class RealtimeStockMonitor:
     async def check(self):
         while True:
             for collector in self.collectors:
-                is_running = await collector.is_running.remote()
+                is_running = collector.is_running.remote()
                 if not is_running:
                     ic("collector 작업이 멈추어서 재시작합니다")
                     collector.collect.remote()

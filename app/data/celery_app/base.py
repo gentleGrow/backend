@@ -36,11 +36,11 @@ celery_task.conf.enable_utc = False
 celery_task.conf.beat_schedule = {
     "tip": {
         "task": "app.data.tip.run.main",
-        "schedule": crontab(hour=3, minute=0),
+        "schedule": crontab(hour=2, minute=0),
     },
     "dividend": {
         "task": "app.data.yahoo.dividend.main",
-        "schedule": crontab(hour=3, minute=0),
+        "schedule": crontab(hour=2, minute=30),
     },
     "index": {
         "task": "app.data.yahoo.index.main",
@@ -48,25 +48,10 @@ celery_task.conf.beat_schedule = {
     },
     "stock": {
         "task": "app.data.yahoo.stock.main",
-        "schedule": crontab(hour=3, minute=0),
+        "schedule": crontab(hour=3, minute=30),
     },
     "rich_portfolio": {
         "task": "app.data.investing.rich_portfolio.main",
-        "schedule": crontab(hour=3, minute=0),
-    },
-    "exchange_rate": {
-        "task": "app.data.yahoo.exchange_rate.main",
-        "schedule": crontab(hour=3, minute=0),
-        "options": {"run_once": True},
-    },
-    "realtime_index_korea_everyday": {
-        "task": "app.data.naver.realtime_index_korea.main",
-        "schedule": crontab(hour=3, minute=0),
-        "options": {"run_once": True},
-    },
-    "realtime_index_world_everyday": {
-        "task": "app.data.naver.realtime_index_world.main",
-        "schedule": crontab(hour=3, minute=0),
-        "options": {"run_once": True},
+        "schedule": crontab(hour=4, minute=0),
     },
 }

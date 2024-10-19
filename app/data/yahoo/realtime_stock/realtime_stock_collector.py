@@ -29,7 +29,6 @@ class RealtimeStockCollector:
             self.session = session
 
     async def collect(self):
-        ic(f"{self.stock_code_list[0].code}의 데이터 수집을 시작합니다.")
         while True:
             await self._collect_data()
 
@@ -90,5 +89,6 @@ class RealtimeStockCollector:
             current_price_currentPrice = stock.info.get("currentPrice")
             current_price = current_price_currentPrice if current_price_currentPrice is not None else current_price_bid
             return code, current_price if current_price is not None else 0.0
-        except Exception:
+        except Exception as e:
+            ic(e)
             return code, 0.0

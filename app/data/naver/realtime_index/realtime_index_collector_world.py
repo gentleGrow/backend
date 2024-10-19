@@ -1,7 +1,6 @@
-import ray
 import asyncio
-from app.data.yahoo.source.constant import REALTIME_INDEX_COLLECTOR_WAIT_SECOND
-from icecream import ic
+
+import ray
 from selenium import webdriver
 from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.chrome.service import Service
@@ -12,6 +11,7 @@ from webdriver_manager.chrome import ChromeDriverManager
 
 from app.common.util.time import get_now_datetime
 from app.data.common.constant import MARKET_INDEX_CACHE_SECOND
+from app.data.yahoo.source.constant import REALTIME_INDEX_COLLECTOR_WAIT_SECOND
 from app.module.asset.constant import COUNTRY_TRANSLATIONS, INDEX_NAME_TRANSLATIONS
 from app.module.asset.model import MarketIndexMinutely
 from app.module.asset.redis_repository import RedisRealTimeMarketIndexRepository
@@ -39,11 +39,11 @@ class RealtimeIndexWorldCollector:
             while True:
                 self._is_running = True
                 await self._fetch_market_data()
-                await asyncio.sleep(REALTIME_INDEX_COLLECTOR_WAIT_SECOND) 
+                await asyncio.sleep(REALTIME_INDEX_COLLECTOR_WAIT_SECOND)
                 self._is_running = False
-        except:
+        except Exception:
             self._is_running = False
-    
+
     async def _fetch_market_data(self):
         driver = await self._init_webdriver()
 
@@ -59,8 +59,8 @@ class RealtimeIndexWorldCollector:
             for tr_row in tr_rows:
                 market_data = self._parse_tr_row(tr_row)
                 if market_data:
-                    redis_bulk_data.append(market_data['redis'])
-                    db_bulk_data.append(market_data['db'])
+                    redis_bulk_data.append(market_data["redis"])
+                    db_bulk_data.append(market_data["db"])
 
             await self._save_market_data(db_bulk_data, redis_bulk_data)
         finally:
@@ -118,7 +118,7 @@ class RealtimeIndexWorldCollector:
             current_index = MarketIndexMinutely(name=name_en, datetime=get_now_datetime(), current_price=current_value)
 
             return {"redis": (name_en, market_index.model_dump_json()), "db": current_index}
-        
+
         return None
 
     async def _save_market_data(self, db_bulk_data, redis_bulk_data):

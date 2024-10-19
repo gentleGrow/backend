@@ -1,11 +1,13 @@
 import asyncio
+
 import ray
 import requests
-from icecream import ic
 from bs4 import BeautifulSoup
-from app.data.yahoo.source.constant import REALTIME_INDEX_COLLECTOR_WAIT_SECOND
+from icecream import ic
+
 from app.common.util.time import get_now_datetime
 from app.data.common.constant import MARKET_INDEX_CACHE_SECOND
+from app.data.yahoo.source.constant import REALTIME_INDEX_COLLECTOR_WAIT_SECOND
 from app.module.asset.enum import Country, MarketIndex
 from app.module.asset.model import MarketIndexMinutely
 from app.module.asset.redis_repository import RedisRealTimeMarketIndexRepository
@@ -34,11 +36,11 @@ class RealtimeIndexKoreaCollector:
                 self._is_running = True
                 kospi_data, kosdaq_data = await self._fetch_market_data()
                 await self._save_market_data([kospi_data, kosdaq_data])
-                await asyncio.sleep(REALTIME_INDEX_COLLECTOR_WAIT_SECOND) 
+                await asyncio.sleep(REALTIME_INDEX_COLLECTOR_WAIT_SECOND)
                 self._is_running = False
-        except:
+        except Exception:
             self._is_running = False
-            
+
     async def _fetch_market_data(self):
         url = "https://finance.naver.com/"
         now = get_now_datetime()
@@ -46,7 +48,7 @@ class RealtimeIndexKoreaCollector:
         response.raise_for_status()
 
         soup = BeautifulSoup(response.content, "html.parser")
-        
+
         kospi_data = self._parse_kospi(soup, now)
         kosdaq_data = self._parse_kosdaq(soup, now)
         return kospi_data, kosdaq_data
@@ -67,15 +69,16 @@ class RealtimeIndexKoreaCollector:
                 current_value=kospi_current_value,
                 change_value=kospi_change_value,
                 change_percent=percent_change,
-                update_time='',
+                update_time="",
             )
-        
-            market_index_db = MarketIndexMinutely(name=MarketIndex.KOSPI, datetime=now, current_price=kospi_current_value)
+
+            market_index_db = MarketIndexMinutely(
+                name=MarketIndex.KOSPI, datetime=now, current_price=kospi_current_value
+            )
 
             return {"db": market_index_db, "redis": market_index_data}
         except Exception as e:
             ic(e)
-
 
     def _parse_kosdaq(self, soup: BeautifulSoup, now):
         section_stock_market = soup.find("div", {"class": "section_stock_market"})
@@ -91,7 +94,7 @@ class RealtimeIndexKoreaCollector:
             current_value=kosdaq_current_value,
             change_value=kosdaq_change_value,
             change_percent=percent_change,
-            update_time='',
+            update_time="",
         )
 
         market_index_db = MarketIndexMinutely(name=MarketIndex.KOSDAQ, datetime=now, current_price=kosdaq_current_value)
@@ -104,9 +107,7 @@ class RealtimeIndexKoreaCollector:
 
         for market_data in market_data_list:
             db_bulk_data.append(market_data["db"])
-            redis_bulk_data.append(
-                (market_data["redis"].name, market_data["redis"].model_dump_json())
-            )
+            redis_bulk_data.append((market_data["redis"].name, market_data["redis"].model_dump_json()))
 
         await MarketIndexMinutelyRepository.bulk_upsert(self.session, db_bulk_data)
         await RedisRealTimeMarketIndexRepository.bulk_save(
@@ -115,5 +116,3 @@ class RealtimeIndexKoreaCollector:
 
     def is_running(self) -> bool:
         return self._is_running
-    
-    
