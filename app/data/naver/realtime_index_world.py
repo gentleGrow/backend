@@ -1,8 +1,6 @@
 import asyncio
-from os import getenv
 
 from celery import shared_task
-from dotenv import load_dotenv
 from icecream import ic
 from redis.asyncio import Redis
 from selenium import webdriver
@@ -29,10 +27,7 @@ from app.module.asset.repository.market_index_minutely_repository import MarketI
 from app.module.asset.schema import MarketIndexData
 from app.module.auth.model import User  # noqa: F401 > relationship 설정시 필요합니다.
 from database.dependency import get_mysql_session, get_redis_pool
-from database.enum import EnvironmentType
 
-load_dotenv()
-ENVIRONMENT = getenv("ENVIRONMENT", None)
 
 _task_started = False
 
@@ -45,10 +40,7 @@ async def fetch_market_data(redis_client: Redis, session: AsyncSession):
     chrome_options.add_argument("--no-sandbox")
     chrome_options.add_argument("--disable-dev-shm-usage")
 
-    if ENVIRONMENT == EnvironmentType.DEV:
-        driver = webdriver.Chrome(service=Service(ChromeDriverManager().install()), options=chrome_options)
-    else:
-        driver = webdriver.Chrome(service=Service("/usr/bin/chromedriver"), options=chrome_options)
+    driver = webdriver.Chrome(service=Service(ChromeDriverManager().install()), options=chrome_options)
 
     try:
         driver.get("https://finance.naver.com/world/")
@@ -56,7 +48,6 @@ async def fetch_market_data(redis_client: Redis, session: AsyncSession):
         db_bulk_data = []
 
         america_index_table = WebDriverWait(driver, 10).until(EC.presence_of_element_located((By.ID, "americaIndex")))
-
         tr_rows = america_index_table.find_elements(By.XPATH, ".//thead/tr")
 
         for tr_row in tr_rows:
@@ -135,3 +126,4 @@ def main():
     if not _task_started:
         _task_started = True
         asyncio.run(execute_async_task())
+

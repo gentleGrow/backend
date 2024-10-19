@@ -11,8 +11,8 @@ import app.data.tip.run  # noqa: F401 > task 위치를 찾는데 필요합니다
 import app.data.yahoo.dividend  # noqa: F401 > task 위치를 찾는데 필요합니다.
 import app.data.yahoo.exchange_rate  # noqa: F401 > task 위치를 찾는데 필요합니다.
 import app.data.yahoo.index  # noqa: F401 > task 위치를 찾는데 필요합니다.
+import app.data.yahoo.realtime_stock.realtime_stock_app  # noqa: F401 > task 위치를 찾는데 필요합니다.
 import app.data.yahoo.stock  # noqa: F401 > task 위치를 찾는데 필요합니다.
-import app.data.yahoo.realtime_stock.realtime_stock_app # noqa: F401 > task 위치를 찾는데 필요합니다.
 from database.enum import EnvironmentType
 
 load_dotenv()
@@ -34,45 +34,39 @@ celery_task.conf.enable_utc = False
 
 
 celery_task.conf.beat_schedule = {
-    # "tip": {
-    #     "task": "app.data.tip.run.main",
-    #     "schedule": crontab(hour=3, minute=0),
-    # },
-    # "dividend": {
-    #     "task": "app.data.yahoo.dividend.main",
-    #     "schedule": crontab(hour=3, minute=0),
-    # },
-    # "index": {
-    #     "task": "app.data.yahoo.index.main",
-    #     "schedule": crontab(hour=3, minute=0),
-    # },
-    # "stock": {
-    #     "task": "app.data.yahoo.stock.main",
-    #     "schedule": crontab(hour=3, minute=0),
-    # },
-    # "rich_portfolio": {
-    #     "task": "app.data.investing.rich_portfolio.main",
-    #     "schedule": crontab(hour=3, minute=0),
-    # },
-    # "exchange_rate": {
-    #     "task": "app.data.yahoo.exchange_rate.main",
-    #     "schedule": crontab(hour=3, minute=0),
-    #     "options": {"run_once": True},
-    # },
-    # "realtime_index_korea_everyday": {
-    #     "task": "app.data.naver.realtime_index_korea.main",
-    #     "schedule": crontab(hour=3, minute=0),
-    #     "options": {"run_once": True},
-    # },
-    # "realtime_index_world_everyday": {
-    #     "task": "app.data.naver.realtime_index_world.main",
-    #     "schedule": crontab(hour=3, minute=0),
-    #     "options": {"run_once": True},
-    # },
-    "realtime_stock_run_everyday": {
-        "task": "app.data.yahoo.realtime_stock.realtime_stock_app.main",
-        "schedule": crontab(hour=22, minute=15),
+    "tip": {
+        "task": "app.data.tip.run.main",
+        "schedule": crontab(hour=3, minute=0),
+    },
+    "dividend": {
+        "task": "app.data.yahoo.dividend.main",
+        "schedule": crontab(hour=3, minute=0),
+    },
+    "index": {
+        "task": "app.data.yahoo.index.main",
+        "schedule": crontab(hour=3, minute=0),
+    },
+    "stock": {
+        "task": "app.data.yahoo.stock.main",
+        "schedule": crontab(hour=3, minute=0),
+    },
+    "rich_portfolio": {
+        "task": "app.data.investing.rich_portfolio.main",
+        "schedule": crontab(hour=3, minute=0),
+    },
+    "exchange_rate": {
+        "task": "app.data.yahoo.exchange_rate.main",
+        "schedule": crontab(hour=3, minute=0),
         "options": {"run_once": True},
     },
+    "realtime_index_korea_everyday": {
+        "task": "app.data.naver.realtime_index_korea.main",
+        "schedule": crontab(hour=3, minute=0),
+        "options": {"run_once": True},
+    },
+    "realtime_index_world_everyday": {
+        "task": "app.data.naver.realtime_index_world.main",
+        "schedule": crontab(hour=3, minute=0),
+        "options": {"run_once": True},
+    }
 }
-

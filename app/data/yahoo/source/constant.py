@@ -39,3 +39,6 @@ MARKET_INDEX_TIME_INTERVALS = [
     (TimeInterval.WEEK, MarketIndexWeekly, MarketIndexWeeklyRepository),
     (TimeInterval.MONTH, MarketIndexMonthly, MarketIndexMonthlyRepository),
 ]
+
+EXCHANGE_RATE_MONITOR_SECOND = 60
+EXCHANGE_RATE_COLLECTOR_WAIT_SECOND = 60

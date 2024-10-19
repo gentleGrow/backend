@@ -1,16 +1,19 @@
-import ray
-from database.dependency import get_mysql_session, get_redis_pool
-from icecream import ic
-import yfinance
-from app.common.util.time import get_now_datetime
 import asyncio
-from app.module.asset.schema import StockInfo
-from app.module.asset.enum import Country
-from app.data.yahoo.source.service import format_stock_code
-from app.module.asset.model import StockMinutely
+
+import ray
+import yfinance
+from icecream import ic
+
+from app.common.util.time import get_now_datetime
 from app.data.common.constant import STOCK_CACHE_SECOND
+from app.data.yahoo.source.service import format_stock_code
+from app.module.asset.enum import Country
+from app.module.asset.model import StockMinutely
 from app.module.asset.redis_repository import RedisRealTimeStockRepository
 from app.module.asset.repository.stock_minutely_repository import StockMinutelyRepository
+from app.module.asset.schema import StockInfo
+from database.dependency import get_mysql_session, get_redis_pool
+
 
 @ray.remote
 class RealtimeStockCollector:
@@ -19,20 +22,20 @@ class RealtimeStockCollector:
         self.redis_client = None
         self.session = None
         self._is_running = False
-    
+
     async def _setup(self):
         self.redis_client = get_redis_pool()
         async with get_mysql_session() as session:
             self.session = session
 
     async def collect(self):
-        ic(f'{self.stock_code_list[0].code}의 데이터 수집을 시작합니다.')
+        ic(f"{self.stock_code_list[0].code}의 데이터 수집을 시작합니다.")
         while True:
-            await self._collect_data() 
+            await self._collect_data()
 
     async def _collect_data(self) -> None:
         if self.redis_client is None or self.session is None:
-            await self._setup() 
+            await self._setup()
 
         self._is_running = True
         try:
@@ -58,28 +61,25 @@ class RealtimeStockCollector:
                     continue
 
             task_results = await asyncio.gather(*fetch_tasks, return_exceptions=True)
-            
-            code_price_pairs = [
-                result for result in task_results if not isinstance(result, Exception)
-            ]
-            
+
+            code_price_pairs = [result for result in task_results if not isinstance(result, Exception)]
+
             redis_bulk_data = [(code, price) for code, price in code_price_pairs if price]
 
             for code, price in redis_bulk_data:
-                if(code == "AAPL"):
-                    ic(f"{code=}, {price=}")
                 current_stock_data = StockMinutely(code=code, datetime=now, current_price=price)
                 db_bulk_data.append(current_stock_data)
 
             if redis_bulk_data:
-                await RedisRealTimeStockRepository.bulk_save(self.redis_client, redis_bulk_data, expire_time=STOCK_CACHE_SECOND)
+                await RedisRealTimeStockRepository.bulk_save(
+                    self.redis_client, redis_bulk_data, expire_time=STOCK_CACHE_SECOND
+                )
 
             if db_bulk_data:
                 await StockMinutelyRepository.bulk_upsert(self.session, db_bulk_data)
         finally:
             self._is_running = False
 
-            
     def is_running(self) -> bool:
         return self._is_running
 
