@@ -12,6 +12,8 @@ restart-monitor:
 
 restart-realtime:
 	sudo pkill -f realtime_stock_app.py || true
+	sudo pkill -f realtime_stock_collector_world.py || true
+	sudo pkill -f realtime_stock_collector_korea.py || true
 	sudo pkill -f exchange_rate_app.py || true
 	sudo pkill -f realtime_index_app.py || true
 

@@ -1,5 +1,5 @@
 import asyncio
-
+from icecream import ic
 import ray
 from selenium import webdriver
 from selenium.webdriver.chrome.options import Options
@@ -18,6 +18,14 @@ from app.module.asset.redis_repository import RedisRealTimeMarketIndexRepository
 from app.module.asset.repository.market_index_minutely_repository import MarketIndexMinutelyRepository
 from app.module.asset.schema import MarketIndexData
 from database.dependency import get_mysql_session, get_redis_pool
+import os
+from dotenv import load_dotenv
+from database.enum import EnvironmentType
+
+load_dotenv()
+
+ENVIRONMENT = os.getenv("ENVIRONMENT", None)
+
 
 
 @ray.remote
@@ -45,9 +53,9 @@ class RealtimeIndexWorldCollector:
             self._is_running = False
 
     async def _fetch_market_data(self):
-        driver = await self._init_webdriver()
-
         try:
+            driver = await self._init_webdriver()
+
             driver.get("https://finance.naver.com/world/")
             redis_bulk_data, db_bulk_data = [], []
 
@@ -63,6 +71,8 @@ class RealtimeIndexWorldCollector:
                     db_bulk_data.append(market_data["db"])
 
             await self._save_market_data(db_bulk_data, redis_bulk_data)
+        except Exception as e:
+            ic(e)
         finally:
             driver.quit()
 
@@ -72,7 +82,11 @@ class RealtimeIndexWorldCollector:
         chrome_options.add_argument("--no-sandbox")
         chrome_options.add_argument("--disable-dev-shm-usage")
 
-        return webdriver.Chrome(service=Service(ChromeDriverManager().install()), options=chrome_options)
+        if ENVIRONMENT == EnvironmentType.DEV:
+            return webdriver.Chrome(service=Service(ChromeDriverManager().install()), options=chrome_options)
+        else:
+            return webdriver.Chrome(service=Service("/usr/bin/chromedriver"), options=chrome_options)
+
 
     def _parse_tr_row(self, tr_row):
         tds = tr_row.find_elements(By.TAG_NAME, "td")
