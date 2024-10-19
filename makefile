@@ -1,7 +1,9 @@
-restart:
-	sudo docker-compose down
-	docker-compose build --no-cache
-	sudo docker-compose up -d
+start:
+	poetry run python -m app.data.yahoo.realtime_stock.realtime_stock_app &
+	poetry run python -m app.data.yahoo.exchange_rate.exchange_rate_app &
+	poetry run python -m app.data.naver.realtime_index.realtime_index_app &
+	poetry run python -m app.data.celery_app.base &
+
 
 restart-monitor:
 	sudo docker-compose -f docker-compose.monitor.yml down
@@ -17,4 +19,3 @@ restart-realtime:
 	poetry run python -m app.data.yahoo.exchange_rate.exchange_rate_app &
 	poetry run python -m app.data.naver.realtime_index.realtime_index_app &
 	poetry run python -m app.data.celery_app.base &
-
