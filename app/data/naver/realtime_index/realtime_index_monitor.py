@@ -1,11 +1,12 @@
 import asyncio
-
 import ray
+from app.module.auth.model import User  # noqa: F401 > relationship 설정시 필요합니다.
 from icecream import ic
+from app.data.yahoo.source.constant import REALTIME_INDEX_MONITOR_WAIT_SECOND
 
 
 @ray.remote
-class RealtimeStockMonitor:
+class RealtimeIndexMonitor:
     def __init__(self):
         self.collectors = []
 
@@ -19,4 +20,4 @@ class RealtimeStockMonitor:
                 if not is_running:
                     ic("collector 작업이 멈추어서 재시작합니다")
                     collector.collect.remote()
-            await asyncio.sleep(10)
+            await asyncio.sleep(REALTIME_INDEX_MONITOR_WAIT_SECOND)

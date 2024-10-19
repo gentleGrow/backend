@@ -7,7 +7,6 @@ from app.data.yahoo.realtime_stock.realtime_stock_collector import RealtimeStock
 from app.data.yahoo.realtime_stock.realtime_stock_monitor import RealtimeStockMonitor
 from app.data.yahoo.source.constant import REALTIME_STOCK_LIST
 
-
 async def execute_async_task():
     monitor = RealtimeStockMonitor.remote()
     stock_code_list = StockCodeFileReader.get_all_stock_code_list()
@@ -21,6 +20,7 @@ async def execute_async_task():
         *[monitor.register_collector.remote(collector) for collector in actor_pool],
         *[collector.collect.remote() for collector in actor_pool],
     )
+    
     await monitor.check.remote()
 
 

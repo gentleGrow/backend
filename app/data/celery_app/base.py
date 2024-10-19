@@ -68,5 +68,5 @@ celery_task.conf.beat_schedule = {
         "task": "app.data.naver.realtime_index_world.main",
         "schedule": crontab(hour=3, minute=0),
         "options": {"run_once": True},
-    }
+    },
 }

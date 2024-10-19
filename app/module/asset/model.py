@@ -17,6 +17,7 @@ from sqlalchemy.orm import relationship
 from app.common.mixin.timestamp import TimestampMixin
 from app.module.asset.enum import AccountType, AssetType, InvestmentBankType, PurchaseCurrencyType
 from database.config import MySQLBase
+from app.module.auth.model import User  # noqa: F401 > relationship 설정시 필요합니다.
 
 
 class AssetField(TimestampMixin, MySQLBase):
