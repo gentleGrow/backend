@@ -16,3 +16,5 @@ restart-realtime:
 	poetry run python -m app.data.yahoo.realtime_stock.realtime_stock_app &
 	poetry run python -m app.data.yahoo.exchange_rate.exchange_rate_app &
 	poetry run python -m app.data.naver.realtime_index.realtime_index_app &
+	poetry run python -m app.data.celery_app.base &
+
