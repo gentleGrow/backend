@@ -35,6 +35,7 @@ AWS_SECRET_ACCESS_KEY = os.getenv("AWS_SECRET_ACCESS_KEY")
 
 s3_client = boto3.client("s3")
 
+
 class StockCodeFileReader:
     @staticmethod
     def get_stock_code_list_bundle() -> list[list[StockInfo]]:
@@ -186,7 +187,7 @@ class StockCodeFileReader:
             )
             df.columns = ["Symbol", "Company_Name", "Country", "Code"]
             df["Country"] = df["Country"].str.strip()
-            
+
         except Exception as e:
             ic(f"Unexpected error: {e}")
             raise
@@ -229,4 +230,3 @@ class StockCodeFileReader:
 
         StockCodeFileReader._download_file_from_s3(S3_BUCKET_STOCK_FILES, s3_key, local_path)  # type: ignore
         return local_path
-

@@ -1,7 +1,6 @@
 import asyncio
 
 import ray
-
 from more_itertools import chunked
 
 from app.data.common.service import StockCodeFileReader
