@@ -15,7 +15,6 @@ from app.module.asset.schema import StockInfo
 from database.dependency import get_mysql_session, get_redis_pool
 
 
-
 @ray.remote
 class RealtimeStockCollector:
     def __init__(self, stock_code_list: list[StockInfo]):
@@ -93,4 +92,3 @@ class RealtimeStockCollector:
         except Exception as e:
             ic(e)
             return code, 0.0
-

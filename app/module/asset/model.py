@@ -4,7 +4,6 @@ from sqlalchemy import (
     Column,
     Date,
     DateTime,
-    Enum,
     Float,
     ForeignKey,
     Index,
@@ -15,7 +14,6 @@ from sqlalchemy import (
 from sqlalchemy.orm import relationship
 
 from app.common.mixin.timestamp import TimestampMixin
-from app.module.asset.enum import AccountType, AssetType, InvestmentBankType, PurchaseCurrencyType
 from app.module.auth.model import User  # noqa: F401 > relationship 설정시 필요합니다.
 from database.config import MySQLBase
 
@@ -44,9 +42,9 @@ class AssetStock(TimestampMixin, MySQLBase):
     __tablename__ = "asset_stock"
 
     id = Column(BigInteger, primary_key=True, autoincrement=True)
-    account_type = Column(Enum(AccountType), nullable=True, info={"description": "계좌 종류"})
-    investment_bank = Column(Enum(InvestmentBankType), nullable=True, info={"description": "증권사"})
-    purchase_currency_type = Column(Enum(PurchaseCurrencyType), nullable=True, info={"description": "구매 통화"})
+    account_type = Column(String(255), nullable=True, info={"description": "계좌 종류"})
+    investment_bank = Column(String(255), nullable=True, info={"description": "증권사"})
+    purchase_currency_type = Column(String(255), nullable=True, info={"description": "구매 통화"})
     purchase_date = Column(Date, nullable=False, info={"description": "구매일자"})
     purchase_price = Column(Float, nullable=True, info={"description": "매입가"})
     quantity = Column(Integer, nullable=False, info={"description": "구매수량"})
@@ -61,7 +59,7 @@ class Asset(TimestampMixin, MySQLBase):
     __tablename__ = "asset"
 
     id = Column(BigInteger, primary_key=True, autoincrement=True)
-    asset_type = Column(Enum(AssetType), nullable=False, info={"description": "자산 종류"})
+    asset_type = Column(String(255), nullable=False, info={"description": "자산 종류"})
 
     user_id = Column(BigInteger, ForeignKey("user.id"), nullable=False)
     user = relationship("User", back_populates="asset")
