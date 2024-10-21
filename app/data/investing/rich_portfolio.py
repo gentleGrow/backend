@@ -2,7 +2,7 @@ import asyncio
 import json
 from datetime import date
 from os import getenv
-
+from icecream import ic
 from celery import shared_task
 from dotenv import load_dotenv
 from icecream import ic
@@ -76,6 +76,7 @@ async def fetch_rich_porfolio(redis_client: Redis, session: AsyncSession, person
     await RedisRichPortfolioRepository.save(redis_client, person, json.dumps(percentages), TIP_EXPIRE_SECOND)
 
     user = await UserRepository.get_by_name(session, person)
+    ic(user)
     if user is None:
         person_user = User(social_id=f"{person}_id", provider=ProviderEnum.GOOGLE, nickname=person)
         user = await UserRepository.create(session, person_user)
@@ -105,7 +106,7 @@ async def fetch_rich_porfolio(redis_client: Redis, session: AsyncSession, person
         AssetStock(
             purchase_price=None,
             purchase_date=date(2024, 9, 13),
-            purchase_currency_type=PurchaseCurrencyType.USA,
+            purchase_currency_type=PurchaseCurrencyType.USA.value,
             quantity=1,
             investment_bank=None,
             account_type=None,
@@ -115,7 +116,7 @@ async def fetch_rich_porfolio(redis_client: Redis, session: AsyncSession, person
         bulk_assets.append(asset)
 
     await AssetRepository.save_assets(session, bulk_assets)
-    print(f"{person}의 assets을 성공적으로 생성 했습니다.")
+    ic(f"{person}의 assets을 성공적으로 생성 했습니다.")
 
     driver.quit()
 
