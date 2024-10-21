@@ -24,9 +24,10 @@ class RichFacade:
             stock_count: defaultdict = defaultdict(int)
             new_stock_name_map: dict[str, str] = {}
             for person in RicePeople:
-                user = await UserRepository.get_by_name(session, person)
+                user = await UserRepository.get_by_name(session, person.value)
                 if user is None:
                     continue
+                
                 assets = await AssetRepository.get_eager(session, user.id, AssetType.STOCK)
                 for asset in assets:
                     stock_code = asset.asset_stock.stock.code
