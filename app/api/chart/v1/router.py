@@ -72,7 +72,8 @@ chart_router = APIRouter(prefix="/v1")
 @chart_router.get("/rich-portfolio", summary="부자들의 포트폴리오", response_model=RichPortfolioResponse)
 async def get_rich_portfolio(redis_client: Redis = Depends(get_redis_pool)) -> RichPortfolioResponse:
     rich_portfolio_map: dict = await RichPortfolioService.get_rich_porfolio_map(redis_client)
-
+    
+    
     return RichPortfolioResponse(
         [
             RichPortfolioValue(

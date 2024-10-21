@@ -196,7 +196,7 @@ class PortfolioStockData(BaseModel):
 
 class RichPortfolioValue(BaseModel):
     name: str
-    stock: dict[str, str]
+    data: dict[str, str]
 
 
 class RichPortfolioResponse(RootModel[list[RichPortfolioValue]]):
