@@ -3,7 +3,7 @@ from os import getenv
 from dotenv import load_dotenv
 from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine
 from sqlalchemy.orm import declarative_base, sessionmaker
-from icecream import ic
+
 from database.constant import CONNECTION_TIMEOUT_SECOND, MAX_OVERFLOW, POOL_SIZE, POOL_TIMEOUT_SECOND
 from database.enum import EnvironmentType
 

@@ -2,7 +2,7 @@ import asyncio
 import json
 from datetime import date
 from os import getenv
-from icecream import ic
+
 from celery import shared_task
 from dotenv import load_dotenv
 from icecream import ic

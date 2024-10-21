@@ -1,8 +1,9 @@
 from datetime import date
+from app.common.util.time import get_now_date
 
 from redis.asyncio import Redis
 from sqlalchemy.ext.asyncio import AsyncSession
-
+from app.module.asset.repository.stock_daily_repository import StockDailyRepository
 from app.module.asset.model import Asset, Stock, StockDaily
 from app.module.asset.redis_repository import RedisRealTimeStockRepository
 from app.module.asset.repository.stock_repository import StockRepository
@@ -13,6 +14,22 @@ class StockService:
     async def get_stock_map(session: AsyncSession, stock_code: str) -> dict[str, Stock] | None:
         stock = await StockRepository.get_by_code(session, stock_code)
         return {stock.code: stock} if stock else None
+
+    @staticmethod
+    async def check_stock_exist(
+        session: AsyncSession,
+        stock_code:str,
+        buy_date:date
+    ) -> bool:
+        today = get_now_date()
+        if buy_date == today:
+            return True
+        
+        stock = await StockDailyRepository.get_stock_daily(session, stock_code, buy_date)
+        if stock is None:
+            return False
+        else:
+            return True
 
     @staticmethod
     def check_not_found_stock(
