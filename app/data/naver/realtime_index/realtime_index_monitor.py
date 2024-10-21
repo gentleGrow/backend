@@ -1,7 +1,6 @@
 import asyncio
 
 import ray
-from icecream import ic
 
 from app.data.yahoo.source.constant import REALTIME_INDEX_MONITOR_WAIT_SECOND
 from app.module.auth.model import User  # noqa: F401 > relationship 설정시 필요합니다.

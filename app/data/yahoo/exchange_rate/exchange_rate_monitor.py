@@ -1,7 +1,6 @@
 import asyncio
 
 import ray
-from icecream import ic
 
 from app.data.yahoo.source.constant import EXCHANGE_RATE_MONITOR_SECOND
 

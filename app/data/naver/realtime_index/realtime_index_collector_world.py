@@ -3,7 +3,6 @@ import os
 
 import ray
 from dotenv import load_dotenv
-from icecream import ic
 from selenium import webdriver
 from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.chrome.service import Service
@@ -71,7 +70,7 @@ class RealtimeIndexWorldCollector:
                     db_bulk_data.append(market_data["db"])
 
             await self._save_market_data(db_bulk_data, redis_bulk_data)
-        except Exception as e:
+        except Exception:
             # ic(e)
             pass
         finally:

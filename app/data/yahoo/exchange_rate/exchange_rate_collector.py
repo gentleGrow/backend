@@ -2,13 +2,14 @@ import asyncio
 
 import ray
 import yfinance
-# from icecream import ic
 
 from app.data.common.constant import STOCK_CACHE_SECOND
 from app.data.yahoo.source.constant import EXCHANGE_RATE_COLLECTOR_WAIT_SECOND
 from app.module.asset.constant import CURRENCY_PAIRS
 from app.module.asset.redis_repository import RedisExchangeRateRepository
 from database.dependency import get_redis_pool
+
+# from icecream import ic
 
 
 @ray.remote

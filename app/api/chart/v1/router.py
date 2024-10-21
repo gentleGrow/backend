@@ -730,7 +730,10 @@ async def get_sample_summary(
     assets: list[Asset] = await AssetRepository.get_eager(session, DUMMY_USER_ID, AssetType.STOCK)
     if len(assets) == 0:
         return SummaryResponse(
-            today_review_rate=0.0, total_asset_amount=0, total_investment_amount=0, profit_amount=0, profit_rate=0.0
+            today_review_rate=0.0,
+            total_asset_amount=0,
+            total_investment_amount=0,
+            profit=ProfitDetail(profit_amount=0.0, profit_rate=0.0),
         )
 
     stock_daily_map: dict[tuple[str, date], StockDaily] = await StockDailyService.get_map_range(session, assets)
