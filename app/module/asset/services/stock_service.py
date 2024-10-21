@@ -1,11 +1,12 @@
 from datetime import date
-from app.common.util.time import get_now_date
 
 from redis.asyncio import Redis
 from sqlalchemy.ext.asyncio import AsyncSession
-from app.module.asset.repository.stock_daily_repository import StockDailyRepository
+
+from app.common.util.time import get_now_date
 from app.module.asset.model import Asset, Stock, StockDaily
 from app.module.asset.redis_repository import RedisRealTimeStockRepository
+from app.module.asset.repository.stock_daily_repository import StockDailyRepository
 from app.module.asset.repository.stock_repository import StockRepository
 
 
@@ -16,15 +17,11 @@ class StockService:
         return {stock.code: stock} if stock else None
 
     @staticmethod
-    async def check_stock_exist(
-        session: AsyncSession,
-        stock_code:str,
-        buy_date:date
-    ) -> bool:
+    async def check_stock_exist(session: AsyncSession, stock_code: str, buy_date: date) -> bool:
         today = get_now_date()
         if buy_date == today:
             return True
-        
+
         stock = await StockDailyRepository.get_stock_daily(session, stock_code, buy_date)
         if stock is None:
             return False

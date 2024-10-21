@@ -46,14 +46,8 @@ class AssetStockService:
         return result
 
     @staticmethod
-    async def check_asset_stock_exist(
-        session:AsyncSession,
-        buy_date:date,
-        stock_id:int
-    ):
+    async def check_asset_stock_exist(session: AsyncSession, buy_date: date, stock_id: int):
         pass
-    
-    
 
     @staticmethod
     async def save_asset_stock_by_post(

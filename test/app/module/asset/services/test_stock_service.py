@@ -1,6 +1,8 @@
+from datetime import date
+
 from redis.asyncio import Redis
 from sqlalchemy.ext.asyncio import AsyncSession
-from datetime import date
+
 from app.common.util.time import get_now_date
 from app.module.asset.enum import AssetType
 from app.module.asset.model import Asset
@@ -9,29 +11,29 @@ from app.module.asset.repository.stock_repository import StockRepository
 from app.module.asset.services.stock_daily_service import StockDailyService
 from app.module.asset.services.stock_service import StockService
 from app.module.auth.constant import DUMMY_USER_ID
-from icecream import ic
+
 
 class TestStockService:
     async def test_check_stock_exist(self, session: AsyncSession, setup_all):
         # Given
-        stock_code = "AAPL"  
-        buy_date = date(2024, 8, 13)  
+        stock_code = "AAPL"
+        buy_date = date(2024, 8, 13)
         nonexistent_date = date(2025, 1, 1)
 
         # When
         result_existing_stock = await StockService.check_stock_exist(session, stock_code, buy_date)
 
         result_nonexistent_stock = await StockService.check_stock_exist(session, stock_code, nonexistent_date)
-  
+
         today_date = get_now_date()
-        
+
         result_today_stock = await StockService.check_stock_exist(session, stock_code, today_date)
-    
+
         # Then
         assert result_today_stock is True
         assert result_existing_stock is True
         assert result_nonexistent_stock is False
-    
+
     async def test_get_stock_map(self, session: AsyncSession, setup_asset, setup_stock, setup_user):
         # Given
         stock_code = "AAPL"

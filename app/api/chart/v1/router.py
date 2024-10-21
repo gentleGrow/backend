@@ -4,7 +4,6 @@ from statistics import mean
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from redis.asyncio import Redis
 from sqlalchemy.ext.asyncio import AsyncSession
-
 from app.common.auth.security import verify_jwt_token
 from app.common.util.time import get_now_date
 from app.module.asset.constant import (
@@ -756,7 +755,7 @@ async def get_sample_summary(
     today_review_rate: float = SummaryFacade.get_today_review_rate(
         assets, total_asset_amount, current_stock_price_map, exchange_rate_map
     )
-
+    
     return SummaryResponse(
         today_review_rate=today_review_rate,
         total_asset_amount=total_asset_amount,

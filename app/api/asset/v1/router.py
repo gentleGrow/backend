@@ -1,15 +1,13 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from redis.asyncio import Redis
 from sqlalchemy.ext.asyncio import AsyncSession
-from datetime import date
+
 from app.common.auth.security import verify_jwt_token
 from app.common.schema.common_schema import DeleteResponse, PostResponse, PutResponse
 from app.module.asset.enum import AccountType, AssetType, InvestmentBankType
 from app.module.asset.facades.asset_facade import AssetFacade
 from app.module.asset.facades.dividend_facade import DividendFacade
-from app.module.asset.services.stock_daily_service import StockDailyService
-from app.module.asset.services.stock_service import StockService
-from app.module.asset.model import Asset, AssetField, Stock, StockDaily
+from app.module.asset.model import Asset, AssetField, Stock
 from app.module.asset.repository.asset_field_repository import AssetFieldRepository
 from app.module.asset.repository.asset_repository import AssetRepository
 from app.module.asset.repository.stock_repository import StockRepository
@@ -26,6 +24,7 @@ from app.module.asset.schema import (
 from app.module.asset.services.asset_field_service import AssetFieldService
 from app.module.asset.services.asset_service import AssetService
 from app.module.asset.services.asset_stock_service import AssetStockService
+from app.module.asset.services.stock_service import StockService
 from app.module.auth.constant import DUMMY_USER_ID
 from app.module.auth.model import User  # noqa: F401 > relationship 설정시 필요합니다.
 from app.module.auth.schema import AccessToken
@@ -129,8 +128,11 @@ async def create_asset_stock(
 
     stock_exist = await StockService.check_stock_exist(session, request_data.stock_code, request_data.buy_date)
     if stock_exist is False:
-        return PostResponse(status_code=status.HTTP_404_NOT_FOUND, content=f"{request_data.stock_code} 코드의 {request_data.buy_date} 날짜가 존재하지 않습니다.")
-    
+        return PostResponse(
+            status_code=status.HTTP_404_NOT_FOUND,
+            content=f"{request_data.stock_code} 코드의 {request_data.buy_date} 날짜가 존재하지 않습니다.",
+        )
+
     await AssetStockService.save_asset_stock_by_post(session, request_data, stock.id, token.get("user"))
     return PostResponse(status_code=status.HTTP_201_CREATED, content="주식 자산 성공적으로 등록 했습니다.")
 

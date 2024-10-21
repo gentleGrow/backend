@@ -4,6 +4,7 @@ from fastapi import HTTPException, Security, status
 from fastapi.security import OAuth2PasswordBearer
 
 from app.module.auth.jwt import JWTBuilder
+from icecream import ic
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token")
 
