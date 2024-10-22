@@ -2,7 +2,6 @@ import asyncio
 
 import ray
 import yfinance
-from icecream import ic
 
 from app.common.util.time import get_now_datetime
 from app.data.common.constant import STOCK_CACHE_SECOND
@@ -13,7 +12,6 @@ from app.module.asset.redis_repository import RedisRealTimeStockRepository
 from app.module.asset.repository.stock_minutely_repository import StockMinutelyRepository
 from app.module.asset.schema import StockInfo
 from database.dependency import get_mysql_session, get_redis_pool
-
 
 
 @ray.remote
@@ -86,12 +84,12 @@ class RealtimeStockCollector:
     def _fetch_stock_price(self, stock_code: str, code: str) -> tuple[str, float]:
         try:
             stock = yfinance.Ticker(stock_code)
-            
+
             info_currentPrice = stock.info.get("currentPrice")
             info_bid = stock.info.get("bid")
             info_ask = stock.info.get("ask")
             current_price = info_currentPrice or info_bid or info_ask
-                
+
             return code, current_price if current_price is not None else 0.0
         except Exception:
             return code, 0.0

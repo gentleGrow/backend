@@ -33,22 +33,22 @@ celery_task.conf.enable_utc = False
 celery_task.conf.beat_schedule = {
     "tip": {
         "task": "app.data.tip.run.main",
-        "schedule": crontab(hour=2, minute=0),
+        "schedule": crontab(hour=12, minute=0),
     },
     "dividend": {
         "task": "app.data.yahoo.dividend.main",
-        "schedule": crontab(hour=2, minute=30),
+        "schedule": crontab(hour=12, minute=30),
     },
     "index": {
         "task": "app.data.yahoo.index.main",
-        "schedule": crontab(hour=3, minute=0),
+        "schedule": crontab(hour=1, minute=0),
     },
     "stock": {
         "task": "app.data.yahoo.stock.main",
-        "schedule": crontab(hour=3, minute=30),
+        "schedule": crontab(hour=1, minute=30),
     },
     "rich_portfolio": {
         "task": "app.data.investing.rich_portfolio.main",
-        "schedule": crontab(hour=4, minute=0),
+        "schedule": crontab(hour=2, minute=0),
     },
 }

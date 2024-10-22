@@ -1,8 +1,9 @@
 import asyncio
 import os
-from icecream import ic
+
 import ray
 from dotenv import load_dotenv
+from icecream import ic
 from selenium import webdriver
 from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.chrome.service import Service

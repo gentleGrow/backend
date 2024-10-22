@@ -84,12 +84,14 @@ async def naver_login(
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="access token에 유저 정보가 없습니다.")
 
     user = await UserRepository.get_by_social_id(session, social_id, ProviderEnum.NAVER)
+    isNewUser = False
     if user is None:
         user = User(
             social_id=social_id,
             provider=ProviderEnum.NAVER.value,
         )
         user = await UserRepository.create(session, user)
+        isNewUser= True
 
     access_token = JWTBuilder.generate_access_token(user.id, social_id)
     refresh_token = JWTBuilder.generate_refresh_token(user.id, social_id)
@@ -98,7 +100,7 @@ async def naver_login(
         redis_client, f"{social_id}_{SESSION_SPECIAL_KEY}", refresh_token, REDIS_JWT_REFRESH_EXPIRE_TIME_SECOND
     )
 
-    return TokenResponse(access_token=access_token, refresh_token=refresh_token, isJoined=True)
+    return TokenResponse(access_token=access_token, refresh_token=refresh_token, isJoined=isNewUser)
 
 
 @auth_router.post(
@@ -129,12 +131,14 @@ async def kakao_login(
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="id token에 유저 정보가 없습니다.")
 
     user = await UserRepository.get_by_social_id(session, social_id, ProviderEnum.KAKAO)
+    isNewUser = False
     if user is None:
         user = User(
             social_id=social_id,
             provider=ProviderEnum.KAKAO.value,
         )
         user = await UserRepository.create(session, user)
+        isNewUser=True
 
     access_token = JWTBuilder.generate_access_token(user.id, social_id)
     refresh_token = JWTBuilder.generate_refresh_token(user.id, social_id)
@@ -143,7 +147,7 @@ async def kakao_login(
         redis_client, f"{social_id}_{SESSION_SPECIAL_KEY}", refresh_token, REDIS_JWT_REFRESH_EXPIRE_TIME_SECOND
     )
 
-    return TokenResponse(access_token=access_token, refresh_token=refresh_token, isJoined=True)
+    return TokenResponse(access_token=access_token, refresh_token=refresh_token, isJoined=isNewUser)
 
 
 @auth_router.post(
@@ -165,18 +169,19 @@ async def google_login(
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
 
     social_id = id_info.get("sub")
-    ic(social_id)
 
     if social_id is None:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="id token에 유저 정보가 없습니다.")
 
     user = await UserRepository.get_by_social_id(session, social_id, ProviderEnum.GOOGLE)
+    isNewUser = False
     if user is None:
         user = User(
             social_id=social_id,
             provider=ProviderEnum.GOOGLE.value,
         )
         user = await UserRepository.create(session, user)
+        isNewUser = True
 
     access_token = JWTBuilder.generate_access_token(user.id, social_id)
     refresh_token = JWTBuilder.generate_refresh_token(user.id, social_id)
@@ -185,7 +190,7 @@ async def google_login(
         redis_client, f"{social_id}_{SESSION_SPECIAL_KEY}", refresh_token, REDIS_JWT_REFRESH_EXPIRE_TIME_SECOND
     )
 
-    return TokenResponse(access_token=access_token, refresh_token=refresh_token, isJoined=True)
+    return TokenResponse(access_token=access_token, refresh_token=refresh_token, isJoined=isNewUser)
 
 
 @auth_router.post(
