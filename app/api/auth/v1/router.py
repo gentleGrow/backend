@@ -1,5 +1,4 @@
 from fastapi import APIRouter, Depends, HTTPException, status
-from icecream import ic
 from redis.asyncio import Redis
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -91,7 +90,7 @@ async def naver_login(
             provider=ProviderEnum.NAVER.value,
         )
         user = await UserRepository.create(session, user)
-        isNewUser= True
+        isNewUser = True
 
     access_token = JWTBuilder.generate_access_token(user.id, social_id)
     refresh_token = JWTBuilder.generate_refresh_token(user.id, social_id)
@@ -138,7 +137,7 @@ async def kakao_login(
             provider=ProviderEnum.KAKAO.value,
         )
         user = await UserRepository.create(session, user)
-        isNewUser=True
+        isNewUser = True
 
     access_token = JWTBuilder.generate_access_token(user.id, social_id)
     refresh_token = JWTBuilder.generate_refresh_token(user.id, social_id)

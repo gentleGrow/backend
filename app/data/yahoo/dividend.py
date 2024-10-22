@@ -13,7 +13,6 @@ from app.module.asset.enum import Country
 from app.module.asset.model import Dividend
 from app.module.asset.repository.dividend_repository import DividendRepository
 from app.module.asset.schema import StockInfo
-from app.module.auth.model import User  # noqa: F401 > relationship 설정시 필요합니다.
 from database.dependency import get_mysql_session
 
 
@@ -55,17 +54,14 @@ async def insert_dividend_data(session: AsyncSession, stock_list: list[StockInfo
 
 
 async def execute_async_task():
-    print("배당금 수집을 시작합니다.")
     stock_list: list[StockInfo] = StockCodeFileReader.get_all_stock_code_list()
 
     try:
         async with get_mysql_session() as session:
             await insert_dividend_data(session, stock_list, BATCH_SIZE)
     except asyncio.CancelledError:
-        print("배당금 수집 작업이 취소되었습니다.")
         raise
 
-    print("배당금 수집을 완료합니다.")
 
 
 @shared_task

@@ -93,7 +93,11 @@ class StockMinutely(MySQLBase):
     datetime = Column(DateTime, nullable=False)
     current_price = Column(Float, nullable=False)
 
-    __table_args__ = (UniqueConstraint("code", "datetime", name="uq_code_name_datetime"),)
+    __table_args__ = (
+        UniqueConstraint("code", "datetime", name="uq_code_name_datetime"),
+        Index("idx_code", "code"),
+        Index("idx_code_datetime", "code", "datetime"),
+    )
 
 
 class StockDaily(MySQLBase):
@@ -152,7 +156,12 @@ class MarketIndexMinutely(MySQLBase):
     datetime = Column(DateTime, nullable=False)
     current_price = Column(Float, nullable=False)
 
-    __table_args__ = (UniqueConstraint("name", "datetime", name="uq_name_datetime"),)
+    __table_args__ = (
+        UniqueConstraint("name", "datetime", name="uq_name_datetime"),
+        Index("idx_name", "name"),
+        Index("idx_name_datetime", "name", "datetime"),
+    )
+
 
 
 class MarketIndexDaily(MySQLBase):

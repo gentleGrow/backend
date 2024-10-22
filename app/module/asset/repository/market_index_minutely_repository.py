@@ -1,11 +1,21 @@
-from sqlalchemy import extract, select
+from sqlalchemy import extract, select, delete
 from sqlalchemy.dialects.mysql import insert
 from sqlalchemy.ext.asyncio import AsyncSession
-
+from datetime import datetime
 from app.module.asset.model import MarketIndexMinutely
 
 
 class MarketIndexMinutelyRepository:
+    @staticmethod
+    async def remove_old_data(session: AsyncSession, remove_time: datetime) -> None:
+        stmt = delete(MarketIndexMinutely).where(
+            MarketIndexMinutely.datetime < remove_time
+        )
+        await session.execute(stmt)
+        await session.commit()
+
+    
+    
     @staticmethod
     async def get_by_range(session: AsyncSession, date_range: tuple, name: str) -> list[MarketIndexMinutely]:
         start_date, end_date = date_range

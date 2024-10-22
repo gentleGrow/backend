@@ -1,11 +1,20 @@
-from sqlalchemy import extract, select
+from sqlalchemy import extract, select, delete
 from sqlalchemy.dialects.mysql import insert
 from sqlalchemy.ext.asyncio import AsyncSession
-
+from datetime import datetime
 from app.module.asset.model import StockMinutely
 
 
 class StockMinutelyRepository:
+    @staticmethod
+    async def remove_old_data(session: AsyncSession, remove_time: datetime) -> None:
+        stmt = delete(StockMinutely).where(
+            StockMinutely.datetime < remove_time
+        )
+        await session.execute(stmt)
+        await session.commit()
+    
+    
     @staticmethod
     async def get_by_range_interval_minute(
         session: AsyncSession,

@@ -10,6 +10,8 @@ import app.data.yahoo.dividend  # noqa: F401 > task 위치를 찾는데 필요�
 import app.data.yahoo.index  # noqa: F401 > task 위치를 찾는데 필요합니다.
 import app.data.yahoo.realtime_stock.realtime_stock_app  # noqa: F401 > task 위치를 찾는데 필요합니다.
 import app.data.yahoo.stock  # noqa: F401 > task 위치를 찾는데 필요합니다.
+import app.data.custom.remove_realtime_data # noqa: F401 > task 위치를 찾는데 필요합니다.
+
 from database.enum import EnvironmentType
 
 load_dotenv()
@@ -51,4 +53,8 @@ celery_task.conf.beat_schedule = {
         "task": "app.data.investing.rich_portfolio.main",
         "schedule": crontab(hour=2, minute=0),
     },
+    "remove_minute_data": {
+        "task": "app.data.custom.remove_realtime_data.main",
+        "schedule": crontab(hour=2, minute=30),
+    }
 }
