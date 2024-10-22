@@ -163,7 +163,6 @@ class MarketIndexMinutely(MySQLBase):
     )
 
 
-
 class MarketIndexDaily(MySQLBase):
     __tablename__ = "market_index_daily"
 

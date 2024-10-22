@@ -9,7 +9,6 @@ from app.module.asset.constant import CURRENCY_PAIRS
 from app.module.asset.redis_repository import RedisExchangeRateRepository
 from database.dependency import get_redis_pool
 
-# from icecream import ic
 
 
 @ray.remote
@@ -19,7 +18,6 @@ class ExchangeRateCollector:
         self._is_running = False
 
     async def collect(self) -> None:
-        # ic("환율 데이터 수집을 시작합니다.")
         self._is_running = True
 
         while True:
@@ -49,3 +47,13 @@ class ExchangeRateCollector:
 
     def is_running(self) -> bool:
         return self._is_running
+
+
+# local 테스트 용, 추후 삭제 예정입니다.
+# async def main():
+#     collector = ExchangeRateCollector()
+#     await collector.collect()
+
+
+# if __name__ == "__main__":
+#     asyncio.run(main())

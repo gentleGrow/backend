@@ -63,7 +63,6 @@ async def execute_async_task():
         raise
 
 
-
 @shared_task
 def main():
     asyncio.run(execute_async_task())
