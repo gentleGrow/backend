@@ -1,6 +1,6 @@
 import asyncio
 import os
-
+from icecream import ic
 import ray
 from dotenv import load_dotenv
 from selenium import webdriver
@@ -70,8 +70,8 @@ class RealtimeIndexWorldCollector:
                     db_bulk_data.append(market_data["db"])
 
             await self._save_market_data(db_bulk_data, redis_bulk_data)
-        except Exception:
-            # ic(e)
+        except Exception as e:
+            ic(f"마켓 데이터 fetch 중 에러 : {e}")
             pass
         finally:
             driver.quit()
@@ -81,6 +81,7 @@ class RealtimeIndexWorldCollector:
         chrome_options.add_argument("--headless")
         chrome_options.add_argument("--no-sandbox")
         chrome_options.add_argument("--disable-dev-shm-usage")
+        chrome_options.add_argument("--disable-javascript")
 
         if ENVIRONMENT == EnvironmentType.DEV:
             return webdriver.Chrome(service=Service(ChromeDriverManager().install()), options=chrome_options)
@@ -106,6 +107,7 @@ class RealtimeIndexWorldCollector:
                     tr_row_data.append(td.text)
 
         if tr_row_data:
+            ic(tr_row_data)
             country_kr = tr_row_data[0]
             if country_kr in COUNTRY_TRANSLATIONS:
                 country_en = COUNTRY_TRANSLATIONS[country_kr]

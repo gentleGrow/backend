@@ -77,7 +77,6 @@ class RealtimeIndexKoreaCollector:
 
             return {"db": market_index_db, "redis": market_index_data}
         except Exception:
-            # ic(e)
             return
 
     def _parse_kosdaq(self, soup: BeautifulSoup, now):

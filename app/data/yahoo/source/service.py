@@ -36,39 +36,39 @@ def get_period_bounds(stock_history_timerange: int) -> tuple[int, int]:
 
 def format_stock_code(code: str, country: Country, market_index: str) -> str:
     if country == Country.USA:
-        return code
+        return code.replace(".", "-")
     elif country == Country.KOREA:
         if market_index == KOSPI:
-            return f"{code}.{CountryMarketCode.KOREA_KOSPI}"
+            return f"{code.replace(".", "-")}.{CountryMarketCode.KOREA_KOSPI}"
         else:
-            return f"{code}.{CountryMarketCode.KOREA_KOSDAQ}"
+            return f"{code.replace(".", "-")}.{CountryMarketCode.KOREA_KOSDAQ}"
     elif country == Country.JAPAN:
-        return f"{code}.{CountryMarketCode.JAPAN}"
+        return f"{code.replace(".", "-")}.{CountryMarketCode.JAPAN}"
     elif country == Country.AUSTRALIA:
-        return f"{code}.{CountryMarketCode.AUSTRALIA}"
+        return f"{code.replace(".", "-")}.{CountryMarketCode.AUSTRALIA}"
     elif country == Country.BRAZIL:
-        return f"{code}.{CountryMarketCode.BRAZIL}"
+        return f"{code.replace(".", "-")}.{CountryMarketCode.BRAZIL}"
     elif country == Country.CANADA:
-        return f"{code}.{CountryMarketCode.CANADA}"
+        return f"{code.replace(".", "-")}.{CountryMarketCode.CANADA}"
     elif country == Country.CHINA:
-        return f"{code}.{CountryMarketCode.CHINA}"
+        return f"{code.replace(".", "-")}.{CountryMarketCode.CHINA}"
     elif country == Country.FRANCE:
-        return f"{code}.{CountryMarketCode.FRANCE}"
+        return f"{code.replace(".", "-")}.{CountryMarketCode.FRANCE}"
     elif country == Country.GERMANY:
-        return f"{code}.{CountryMarketCode.GERMANY}"
+        return f"{code.replace(".", "-")}.{CountryMarketCode.GERMANY}"
     elif country == Country.HONGKONG:
-        return f"{code}.{CountryMarketCode.HONGKONG}"
+        return f"{code.replace(".", "-")}.{CountryMarketCode.HONGKONG}"
     elif country == Country.INDIA:
-        return f"{code}.{CountryMarketCode.INDIA}"
+        return f"{code.replace(".", "-")}.{CountryMarketCode.INDIA}"
     elif country == Country.ITALY:
-        return f"{code}.{CountryMarketCode.ITALY}"
+        return f"{code.replace(".", "-")}.{CountryMarketCode.ITALY}"
     elif country == Country.NETHERLAND:
-        return f"{code}.{CountryMarketCode.NETHERLAND}"
+        return f"{code.replace(".", "-")}.{CountryMarketCode.NETHERLAND}"
     elif country == Country.SPAIN:
-        return f"{code}.{CountryMarketCode.SPAIN}"
+        return f"{code.replace(".", "-")}.{CountryMarketCode.SPAIN}"
     elif country == Country.SWITZERLAND:
-        return f"{code}.{CountryMarketCode.SWITZERLAND}"
+        return f"{code.replace(".", "-")}.{CountryMarketCode.SWITZERLAND}"
     elif country == Country.UK:
-        return f"{code}.{CountryMarketCode.UK}"
+        return f"{code.replace(".", "-")}.{CountryMarketCode.UK}"
     else:
-        return code
+        return code.replace(".", "-")

@@ -67,3 +67,7 @@ async def execute_async_task():
 @shared_task
 def main():
     asyncio.run(execute_async_task())
+
+
+if __name__ == "__main__":
+    asyncio.run(execute_async_task())

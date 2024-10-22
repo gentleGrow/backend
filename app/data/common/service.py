@@ -178,6 +178,7 @@ class StockCodeFileReader:
             + korea_stock_code_list
             + usa_stock_code_list
         )
+        
 
     @staticmethod
     def _read_stock_codes_from_excel(filepath: str) -> list[StockInfo]:

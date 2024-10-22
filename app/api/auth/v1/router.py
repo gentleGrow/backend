@@ -1,7 +1,9 @@
-from re import A
 from fastapi import APIRouter, Depends, HTTPException, status
+from icecream import ic
 from redis.asyncio import Redis
 from sqlalchemy.ext.asyncio import AsyncSession
+
+from app.common.auth.security import verify_jwt_token
 from app.common.schema.common_schema import PostResponse
 from app.common.util.logging import logging
 from app.module.auth.constant import REDIS_JWT_REFRESH_EXPIRE_TIME_SECOND, SESSION_SPECIAL_KEY
@@ -10,55 +12,45 @@ from app.module.auth.jwt import JWTBuilder
 from app.module.auth.model import User
 from app.module.auth.redis_repository import RedisSessionRepository
 from app.module.auth.repository import UserRepository
-from app.module.auth.schema import AccessToken
-from app.common.auth.security import verify_jwt_token
 from app.module.auth.schema import (
+    AccessToken,
     AccessTokenResponse,
     NaverTokenRequest,
+    NicknameRequest,
+    NicknameResponse,
     TokenRefreshRequest,
     TokenRequest,
     TokenResponse,
-    NicknameRequest,
-    NicknameResponse
 )
 from app.module.auth.service import Google, Kakao, Naver
 from database.dependency import get_redis_pool, get_router_sql_session
-from icecream import ic
-
 
 auth_router = APIRouter(prefix="/v1")
 
 
-@auth_router.get(
-    "/nickname",
-    summary="해당 닉네임 존재 여부를 확인합니다.",
-    response_model=NicknameResponse
-)
-async def check_nickname(
-    nickname: str,
-    session: AsyncSession = Depends(get_router_sql_session)
-) -> NicknameResponse:
+@auth_router.get("/nickname", summary="해당 닉네임 존재 여부를 확인합니다.", response_model=NicknameResponse)
+async def check_nickname(nickname: str, session: AsyncSession = Depends(get_router_sql_session)) -> NicknameResponse:
     user_nickname = await UserRepository.get_by_name(session, nickname)
-    
-    return NicknameResponse(isValidatedNickname=False) if user_nickname is None else NicknameResponse(isValidatedNickname=True)
+
+    return (
+        NicknameResponse(isValidatedNickname=False)
+        if user_nickname is None
+        else NicknameResponse(isValidatedNickname=True)
+    )
 
 
-@auth_router.put(
-    "/nickname",
-    summary="유저 닉네임을 수정합니다.",
-    response_model=PostResponse
-)
+@auth_router.put("/nickname", summary="유저 닉네임을 수정합니다.", response_model=PostResponse)
 async def update_nickname(
-    request:NicknameRequest,
+    request: NicknameRequest,
     token: AccessToken = Depends(verify_jwt_token),
-    session: AsyncSession = Depends(get_router_sql_session)
+    session: AsyncSession = Depends(get_router_sql_session),
 ) -> PostResponse:
     user_nickname = await UserRepository.get_by_name(session, request.nickname)
-    
+
     if user_nickname is not None:
         return PostResponse(status_code=status.HTTP_400_BAD_REQUEST, content="이미 존재하는 닉네임입니다.")
-    
-    await UserRepository.update_nickname(session, token.get('user'), request.nickname)
+
+    await UserRepository.update_nickname(session, token.get("user"), request.nickname)
     return PostResponse(status_code=status.HTTP_200_OK, content="성공적으로 닉네임을 저장하였습니다.")
 
 
@@ -188,7 +180,7 @@ async def google_login(
 
     access_token = JWTBuilder.generate_access_token(user.id, social_id)
     refresh_token = JWTBuilder.generate_refresh_token(user.id, social_id)
-    
+
     await RedisSessionRepository.save(
         redis_client, f"{social_id}_{SESSION_SPECIAL_KEY}", refresh_token, REDIS_JWT_REFRESH_EXPIRE_TIME_SECOND
     )

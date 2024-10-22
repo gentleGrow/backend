@@ -23,13 +23,14 @@ class AccessToken(BaseModel):
 
 class TokenRequest(BaseModel):
     id_token: str
-    
-    
+
+
 class NicknameResponse(BaseModel):
-    isValidatedNickname:bool
+    isValidatedNickname: bool
+
 
 class NicknameRequest(BaseModel):
-    nickname:str
+    nickname: str
 
 
 class NaverTokenRequest(BaseModel):
