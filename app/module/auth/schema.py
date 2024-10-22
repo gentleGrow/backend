@@ -23,6 +23,13 @@ class AccessToken(BaseModel):
 
 class TokenRequest(BaseModel):
     id_token: str
+    
+    
+class NicknameResponse(BaseModel):
+    isValidatedNickname:bool
+
+class NicknameRequest(BaseModel):
+    nickname:str
 
 
 class NaverTokenRequest(BaseModel):
@@ -36,6 +43,7 @@ class TokenRefreshRequest(BaseModel):
 class TokenResponse(BaseModel):
     access_token: str
     refresh_token: str
+    isJoined: bool
 
 
 class AccessTokenResponse(BaseModel):

@@ -1,27 +1,27 @@
-from app.module.asset.model import Asset
-from sqlalchemy.ext.asyncio import AsyncSession
 from redis.asyncio import Redis
+from sqlalchemy.ext.asyncio import AsyncSession
+
+from app.module.asset.constant import REQUIRED_ASSET_FIELD
+from app.module.asset.enum import PurchaseCurrencyType, StockAsset
+from app.module.asset.model import Asset
+from app.module.asset.services.dividend_service import DividendService
+from app.module.asset.services.exchange_rate_service import ExchangeRateService
 from app.module.asset.services.stock_daily_service import StockDailyService
 from app.module.asset.services.stock_service import StockService
-from app.module.asset.services.exchange_rate_service import ExchangeRateService
-from app.module.asset.enum import PurchaseCurrencyType, StockAsset
-from app.module.asset.services.dividend_service import DividendService
-from app.module.asset.constant import REQUIRED_ASSET_FIELD
 
 
 class AssetFacade:
     @staticmethod
     async def get_stock_assets(
-        session: AsyncSession,
-        redis_client: Redis,
-        assets: list[Asset],
-        asset_fields: list
+        session: AsyncSession, redis_client: Redis, assets: list[Asset], asset_fields: list
     ) -> list[dict]:
         stock_daily_map = await StockDailyService.get_map_range(session, assets)
         lastest_stock_daily_map = await StockDailyService.get_latest_map(session, assets)
         dividend_map: dict[str, float] = await DividendService.get_recent_map(session, assets)
         exchange_rate_map = await ExchangeRateService.get_exchange_rate_map(redis_client)
-        current_stock_price_map = await StockService.get_current_stock_price(redis_client, lastest_stock_daily_map, assets)
+        current_stock_price_map = await StockService.get_current_stock_price(
+            redis_client, lastest_stock_daily_map, assets
+        )
 
         stock_assets = []
 
@@ -104,17 +104,12 @@ class AssetFacade:
             stock_assets.append(stock_asset_data_filter)
 
         return stock_assets
-    
-    
+
     @staticmethod
-    async def get_total_investment_amount(
-        session: AsyncSession,
-        redis_client: Redis,
-        assets: list[Asset]
-    ) -> float:
+    async def get_total_investment_amount(session: AsyncSession, redis_client: Redis, assets: list[Asset]) -> float:
         stock_daily_map = await StockDailyService.get_map_range(session, assets)
         exchange_rate_map = await ExchangeRateService.get_exchange_rate_map(redis_client)
-      
+
         result = 0.0
 
         for asset in assets:
@@ -134,14 +129,9 @@ class AssetFacade:
             result += invest_price * asset.asset_stock.quantity
 
         return result
-        
-    
+
     @staticmethod
-    async def get_total_asset_amount(
-        session: AsyncSession,
-        redis_client: Redis,
-        assets: list[Asset]
-    ) -> float:
+    async def get_total_asset_amount(session: AsyncSession, redis_client: Redis, assets: list[Asset]) -> float:
         lastest_stock_daily_map = await StockDailyService.get_latest_map(session, assets)
         current_stock_price_map = await StockService.get_current_stock_price(
             redis_client, lastest_stock_daily_map, assets
@@ -157,6 +147,3 @@ class AssetFacade:
                 * ExchangeRateService.get_won_exchange_rate(asset, exchange_rate_map)
             )
         return result
-
-    
-    

@@ -4,22 +4,23 @@ from statistics import mean
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from redis.asyncio import Redis
 from sqlalchemy.ext.asyncio import AsyncSession
-
 from app.common.auth.security import verify_jwt_token
-from app.common.util.time import get_now_date, get_now_datetime
+from app.common.util.time import get_now_date
 from app.module.asset.constant import (
     ASSET_SAVE_TREND_YEAR,
     INFLATION_RATE,
     MARKET_INDEX_KR_MAPPING,
     MONTHS,
     THREE_MONTH,
-    THREE_MONTH_DAY
+    THREE_MONTH_DAY,
 )
-from app.module.asset.facades.asset_facade import AssetFacade
 from app.module.asset.enum import AssetType, CurrencyType
+from app.module.asset.facades.asset_facade import AssetFacade
+from app.module.asset.facades.dividend_facade import DividendFacade
 from app.module.asset.model import Asset, StockDaily
 from app.module.asset.repository.asset_repository import AssetRepository
 from app.module.asset.schema import MarketIndexData
+from app.module.asset.services.asset_service import AssetService
 from app.module.asset.services.asset_stock_service import AssetStockService
 from app.module.asset.services.dividend_service import DividendService
 from app.module.asset.services.exchange_rate_service import ExchangeRateService
@@ -30,7 +31,6 @@ from app.module.auth.schema import AccessToken
 from app.module.chart.constant import DEFAULT_TIP, TIP_TODAY_ID_REDIS_KEY
 from app.module.chart.enum import CompositionType, EstimateDividendType, IntervalType
 from app.module.chart.facade.composition_facade import CompositionFacade
-from app.module.chart.facade.dividend_facade import DividendFacade
 from app.module.chart.facade.performance_analysis_facade import PerformanceAnalysisFacade
 from app.module.chart.facade.rich_facade import RichFacade
 from app.module.chart.facade.summary_facade import SummaryFacade
@@ -49,7 +49,10 @@ from app.module.chart.schema import (
     MarketIndiceResponseValue,
     MyStockResponse,
     MyStockResponseValue,
+    PeoplePortfolioResponse,
+    PeoplePortfolioValue,
     PerformanceAnalysisResponse,
+    PortfolioStockData,
     ProfitDetail,
     RichPickResponse,
     RichPickValue,
@@ -59,17 +62,120 @@ from app.module.chart.schema import (
 )
 from app.module.chart.service.index_service import IndexService
 from app.module.chart.service.rich_portfolio_service import RichPortfolioService
-from database.dependency import get_mysql_session_router, get_redis_pool
-from app.module.asset.facades.dividend_facade import DividendFacade
-from app.module.asset.services.asset_service import AssetService
 from app.module.chart.service.save_trend_service import SaveTrendService
-
+from database.dependency import get_mysql_session_router, get_redis_pool
 
 chart_router = APIRouter(prefix="/v1")
 
 
+@chart_router.get("/rich-portfolio", summary="부자들의 포트폴리오", response_model=RichPortfolioResponse)
+async def get_rich_portfolio(redis_client: Redis = Depends(get_redis_pool)) -> RichPortfolioResponse:
+    rich_portfolio_map: dict = await RichPortfolioService.get_rich_porfolio_map(redis_client)
+
+    return RichPortfolioResponse(
+        [
+            RichPortfolioValue(
+                name=person,
+                data=[
+                    PortfolioStockData(name=stock, percent_ratio=float(percent.strip("%")))
+                    for stock, percent in portfolio.items()
+                ],
+            )
+            for person, portfolio in rich_portfolio_map.items()
+        ]
+    )
+
+
+# 임시 dummy api 생성, 추후 개발하겠습니다.
+@chart_router.get("/people-portfolio", summary="포트폴리오 구경하기", response_model=PeoplePortfolioResponse)
+async def get_people_portfolio():
+    return PeoplePortfolioResponse(
+        [
+            PeoplePortfolioValue(
+                name="배당주 포트폴리오",
+                data=[
+                    PortfolioStockData(name="KO", percent_ratio=10.5),
+                    PortfolioStockData(name="PEP", percent_ratio=8.4),
+                    PortfolioStockData(name="JNJ", percent_ratio=7.2),
+                    PortfolioStockData(name="PG", percent_ratio=6.3),
+                    PortfolioStockData(name="MCD", percent_ratio=5.7),
+                    PortfolioStockData(name="PFE", percent_ratio=4.9),
+                    PortfolioStockData(name="MRK", percent_ratio=4.3),
+                    PortfolioStockData(name="T", percent_ratio=3.8),
+                    PortfolioStockData(name="VZ", percent_ratio=3.2),
+                    PortfolioStockData(name="IBM", percent_ratio=2.9),
+                ],
+            ),
+            PeoplePortfolioValue(
+                name="성장주 포트폴리오",
+                data=[
+                    PortfolioStockData(name="AAPL", percent_ratio=20.1),
+                    PortfolioStockData(name="AMZN", percent_ratio=18.3),
+                    PortfolioStockData(name="GOOG", percent_ratio=17.2),
+                    PortfolioStockData(name="MSFT", percent_ratio=15.5),
+                    PortfolioStockData(name="NVDA", percent_ratio=12.3),
+                    PortfolioStockData(name="TSLA", percent_ratio=8.9),
+                    PortfolioStockData(name="META", percent_ratio=5.0),
+                    PortfolioStockData(name="NFLX", percent_ratio=2.7),
+                ],
+            ),
+            PeoplePortfolioValue(
+                name="국내 포트폴리오",
+                data=[
+                    PortfolioStockData(name="005930", percent_ratio=25.6),
+                    PortfolioStockData(name="000660", percent_ratio=19.8),
+                    PortfolioStockData(name="051910", percent_ratio=12.4),
+                    PortfolioStockData(name="035420", percent_ratio=9.3),
+                    PortfolioStockData(name="035720", percent_ratio=8.7),
+                    PortfolioStockData(name="068270", percent_ratio=7.4),
+                    PortfolioStockData(name="005380", percent_ratio=6.2),
+                    PortfolioStockData(name="207940", percent_ratio=5.1),
+                ],
+            ),
+            PeoplePortfolioValue(
+                name="안전자산 포트폴리오",
+                data=[
+                    PortfolioStockData(name="GLD", percent_ratio=35.0),
+                    PortfolioStockData(name="BND", percent_ratio=25.0),
+                    PortfolioStockData(name="VNQ", percent_ratio=15.0),
+                    PortfolioStockData(name="TIP", percent_ratio=10.0),
+                    PortfolioStockData(name="AGG", percent_ratio=8.0),
+                    PortfolioStockData(name="IEF", percent_ratio=7.0),
+                ],
+            ),
+            PeoplePortfolioValue(
+                name="소형주 포트폴리오",
+                data=[
+                    PortfolioStockData(name="RGEN", percent_ratio=14.7),
+                    PortfolioStockData(name="BLD", percent_ratio=13.4),
+                    PortfolioStockData(name="CDXS", percent_ratio=11.9),
+                    PortfolioStockData(name="KTOS", percent_ratio=10.5),
+                    PortfolioStockData(name="NMIH", percent_ratio=9.1),
+                    PortfolioStockData(name="TMDX", percent_ratio=8.8),
+                    PortfolioStockData(name="VRM", percent_ratio=8.4),
+                    PortfolioStockData(name="CSIQ", percent_ratio=7.6),
+                    PortfolioStockData(name="IMMU", percent_ratio=6.5),
+                    PortfolioStockData(name="RPD", percent_ratio=5.1),
+                ],
+            ),
+            PeoplePortfolioValue(
+                name="테크주 포트폴리오",
+                data=[
+                    PortfolioStockData(name="AAPL", percent_ratio=22.0),
+                    PortfolioStockData(name="MSFT", percent_ratio=18.3),
+                    PortfolioStockData(name="GOOG", percent_ratio=16.1),
+                    PortfolioStockData(name="AMZN", percent_ratio=15.5),
+                    PortfolioStockData(name="NVDA", percent_ratio=12.2),
+                    PortfolioStockData(name="TSLA", percent_ratio=9.8),
+                    PortfolioStockData(name="META", percent_ratio=6.1),
+                ],
+            ),
+        ]
+    )
+
+
 @chart_router.get("/sample/asset-save-trend", summary="자산적립 추이", response_model=AssetSaveTrendResponse)
-async def get_sameple_asset_save_trend(
+async def get_sample_asset_save_trend(
     session: AsyncSession = Depends(get_mysql_session_router), redis_client: Redis = Depends(get_redis_pool)
 ) -> AssetSaveTrendResponse:
     asset_all: list = await AssetRepository.get_eager(session, DUMMY_USER_ID, AssetType.STOCK)
@@ -83,24 +189,22 @@ async def get_sameple_asset_save_trend(
     if len(asset_3month) == 0:
         return AssetSaveTrendResponse.no_near_invest_response(total_asset_amount_all)
 
-    total_asset_amount:float = await AssetFacade.get_total_asset_amount(session, redis_client, asset_3month)
-    total_invest_amount:float = await AssetFacade.get_total_investment_amount(session, redis_client, asset_3month)    
-    total_dividend_amount:float = await DividendFacade.get_total_dividend(session, redis_client, asset_3month)
+    total_asset_amount: float = await AssetFacade.get_total_asset_amount(session, redis_client, asset_3month)
+    total_invest_amount: float = await AssetFacade.get_total_investment_amount(session, redis_client, asset_3month)
+    total_dividend_amount: float = await DividendFacade.get_total_dividend(session, redis_client, asset_3month)
 
     total_profit_rate = AssetStockService.get_total_profit_rate(total_asset_amount, total_invest_amount)
     total_profit_rate_real = AssetStockService.get_total_profit_rate_real(
         total_asset_amount, total_invest_amount, INFLATION_RATE
     )
 
-    increase_invest_year = AssetService.get_average_investment_with_dividend_year(total_invest_amount, total_dividend_amount, THREE_MONTH)
+    increase_invest_year = AssetService.get_average_investment_with_dividend_year(
+        total_invest_amount, total_dividend_amount, THREE_MONTH
+    )
 
     values1, values2, unit = AssetService.calculate_trend_values(
-            total_asset_amount,
-            increase_invest_year,
-            total_profit_rate,
-            total_profit_rate_real,
-            ASSET_SAVE_TREND_YEAR
-        )
+        total_asset_amount_all, increase_invest_year, total_profit_rate, total_profit_rate_real, ASSET_SAVE_TREND_YEAR
+    )
 
     return AssetSaveTrendResponse(
         xAxises=SaveTrendService.get_x_axises(ASSET_SAVE_TREND_YEAR),
@@ -117,35 +221,33 @@ async def get_asset_save_trend(
     session: AsyncSession = Depends(get_mysql_session_router),
     redis_client: Redis = Depends(get_redis_pool),
 ) -> AssetSaveTrendResponse:
-    asset_all: list = await AssetRepository.get_eager(session, token.get('user'), AssetType.STOCK)
+    asset_all: list = await AssetRepository.get_eager(session, token.get("user"), AssetType.STOCK)
     if len(asset_all) == 0:
         return AssetSaveTrendResponse(xAxises=[], dates=[], values1={}, values2={}, unit="")
     total_asset_amount_all = await AssetFacade.get_total_asset_amount(session, redis_client, asset_all)
 
     asset_3month: list = await AssetRepository.get_eager_by_range(
-        session, token.get('user'), AssetType.STOCK, (get_now_date() - timedelta(days=THREE_MONTH_DAY), get_now_date())
+        session, token.get("user"), AssetType.STOCK, (get_now_date() - timedelta(days=THREE_MONTH_DAY), get_now_date())
     )
     if len(asset_3month) == 0:
         return AssetSaveTrendResponse.no_near_invest_response(total_asset_amount_all)
 
-    total_asset_amount:float = await AssetFacade.get_total_asset_amount(session, redis_client, asset_3month)
-    total_invest_amount:float = await AssetFacade.get_total_investment_amount(session, redis_client, asset_3month)    
-    total_dividend_amount:float = await DividendFacade.get_total_dividend(session, redis_client, asset_3month)
+    total_asset_amount: float = await AssetFacade.get_total_asset_amount(session, redis_client, asset_3month)
+    total_invest_amount: float = await AssetFacade.get_total_investment_amount(session, redis_client, asset_3month)
+    total_dividend_amount: float = await DividendFacade.get_total_dividend(session, redis_client, asset_3month)
 
     total_profit_rate = AssetStockService.get_total_profit_rate(total_asset_amount, total_invest_amount)
     total_profit_rate_real = AssetStockService.get_total_profit_rate_real(
         total_asset_amount, total_invest_amount, INFLATION_RATE
     )
 
-    increase_invest_year = AssetService.get_average_investment_with_dividend_year(total_invest_amount, total_dividend_amount, THREE_MONTH)
+    increase_invest_year = AssetService.get_average_investment_with_dividend_year(
+        total_invest_amount, total_dividend_amount, THREE_MONTH
+    )
 
     values1, values2, unit = AssetService.calculate_trend_values(
-            total_asset_amount,
-            increase_invest_year,
-            total_profit_rate,
-            total_profit_rate_real,
-            ASSET_SAVE_TREND_YEAR
-        )
+        total_asset_amount, increase_invest_year, total_profit_rate, total_profit_rate_real, ASSET_SAVE_TREND_YEAR
+    )
 
     return AssetSaveTrendResponse(
         xAxises=SaveTrendService.get_x_axises(ASSET_SAVE_TREND_YEAR),
@@ -153,16 +255,6 @@ async def get_asset_save_trend(
         values1=values1,
         values2=values2,
         unit=unit,
-    )
-
-
-
-@chart_router.get("/rich-portfolio", summary="부자들의 포트폴리오", response_model=RichPortfolioResponse)
-async def get_rich_portfolio(redis_client: Redis = Depends(get_redis_pool)) -> RichPortfolioResponse:
-    rich_portfolio_map: dict = await RichPortfolioService.get_rich_porfolio_map(redis_client)
-
-    return RichPortfolioResponse(
-        [RichPortfolioValue(name=person, stock=portfolio) for person, portfolio in rich_portfolio_map.items()]
     )
 
 
@@ -611,7 +703,7 @@ async def get_summary(
         )
 
     total_asset_amount = await AssetFacade.get_total_asset_amount(session, redis_client, assets)
-    total_investment_amount = await AssetFacade.get_total_investment_amount(session, redis_client, assets) 
+    total_investment_amount = await AssetFacade.get_total_investment_amount(session, redis_client, assets)
     today_review_rate: float = SummaryFacade.get_today_review_rate(
         assets, total_asset_amount, current_stock_price_map, exchange_rate_map
     )
@@ -637,7 +729,10 @@ async def get_sample_summary(
     assets: list[Asset] = await AssetRepository.get_eager(session, DUMMY_USER_ID, AssetType.STOCK)
     if len(assets) == 0:
         return SummaryResponse(
-            today_review_rate=0.0, total_asset_amount=0, total_investment_amount=0, profit_amount=0, profit_rate=0.0
+            today_review_rate=0.0,
+            total_asset_amount=0,
+            total_investment_amount=0,
+            profit=ProfitDetail(profit_amount=0.0, profit_rate=0.0),
         )
 
     stock_daily_map: dict[tuple[str, date], StockDaily] = await StockDailyService.get_map_range(session, assets)
@@ -656,11 +751,11 @@ async def get_sample_summary(
         )
 
     total_asset_amount = await AssetFacade.get_total_asset_amount(session, redis_client, assets)
-    total_investment_amount = await AssetFacade.get_total_investment_amount(session, redis_client, assets) 
+    total_investment_amount = await AssetFacade.get_total_investment_amount(session, redis_client, assets)
     today_review_rate: float = SummaryFacade.get_today_review_rate(
         assets, total_asset_amount, current_stock_price_map, exchange_rate_map
     )
-
+    
     return SummaryResponse(
         today_review_rate=today_review_rate,
         total_asset_amount=total_asset_amount,

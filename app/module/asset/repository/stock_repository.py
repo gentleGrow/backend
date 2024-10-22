@@ -14,7 +14,7 @@ class StockRepository:
         return result.scalars().all()
 
     @staticmethod
-    async def get_stock(session: AsyncSession, stock_id: int) -> Stock:
+    async def get_stock(session: AsyncSession, stock_id: int) -> Stock | None:
         stock_instance = await session.execute(select(Stock).where(Stock.id == stock_id))
         return stock_instance.scalar_one_or_none()
 

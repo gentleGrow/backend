@@ -27,6 +27,7 @@ class RichFacade:
                 user = await UserRepository.get_by_name(session, person)
                 if user is None:
                     continue
+
                 assets = await AssetRepository.get_eager(session, user.id, AssetType.STOCK)
                 for asset in assets:
                     stock_code = asset.asset_stock.stock.code

@@ -25,7 +25,7 @@ site_build
 venv
 docs.zip
 archive.zip
-
+celerybeat-schedule.db
 # Created by https://www.toptal.com/developers/gitignore/api/flask
 # Edit at https://www.toptal.com/developers/gitignore?templates=flask
 

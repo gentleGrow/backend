@@ -2,7 +2,6 @@ from datetime import date, datetime
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.module.asset.constant import REQUIRED_ASSET_FIELD
 from app.module.asset.enum import AssetType, CurrencyType, PurchaseCurrencyType, StockAsset
 from app.module.asset.model import Asset, AssetStock, StockDaily
 from app.module.asset.repository.asset_repository import AssetRepository
@@ -45,6 +44,10 @@ class AssetStockService:
                 * ExchangeRateService.get_won_exchange_rate(asset, exchange_rate_map)
             )
         return result
+
+    @staticmethod
+    async def check_asset_stock_exist(session: AsyncSession, buy_date: date, stock_id: int):
+        pass
 
     @staticmethod
     async def save_asset_stock_by_post(
@@ -92,7 +95,6 @@ class AssetStockService:
             current_price *= won_exchange_rate
             result += current_price * asset.asset_stock.quantity
         return result
-
 
     @staticmethod
     def get_total_investment_amount(

@@ -2,11 +2,11 @@ import asyncio
 
 import pandas as pd
 import yfinance
+from celery import shared_task
 from icecream import ic
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.data.celery_app.base import celery_task
-from app.data.common.service import get_all_stock_code_list
+from app.data.common.service import StockCodeFileReader
 from app.data.yahoo.source.constant import BATCH_SIZE
 from app.data.yahoo.source.service import format_stock_code
 from app.module.asset.enum import Country
@@ -56,14 +56,18 @@ async def insert_dividend_data(session: AsyncSession, stock_list: list[StockInfo
 
 async def execute_async_task():
     print("배당금 수집을 시작합니다.")
-    stock_list: list[StockInfo] = get_all_stock_code_list()
+    stock_list: list[StockInfo] = StockCodeFileReader.get_all_stock_code_list()
 
-    async with get_mysql_session() as session:
-        await insert_dividend_data(session, stock_list, BATCH_SIZE)
+    try:
+        async with get_mysql_session() as session:
+            await insert_dividend_data(session, stock_list, BATCH_SIZE)
+    except asyncio.CancelledError:
+        print("배당금 수집 작업이 취소되었습니다.")
+        raise
 
     print("배당금 수집을 완료합니다.")
 
 
-@celery_task.task
+@shared_task
 def main():
     asyncio.run(execute_async_task())

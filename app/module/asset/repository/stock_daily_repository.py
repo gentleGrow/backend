@@ -37,7 +37,7 @@ class StockDailyRepository:
         return result.scalars().all()
 
     @staticmethod
-    async def get_stock_daily(session: AsyncSession, stock_code: str, stock_date: date) -> StockDaily:
+    async def get_stock_daily(session: AsyncSession, stock_code: str, stock_date: date) -> StockDaily | None:
         result = await session.execute(
             select(StockDaily).where(StockDaily.code == stock_code, StockDaily.date == stock_date)
         )

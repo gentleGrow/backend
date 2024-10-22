@@ -1,4 +1,3 @@
-import logging
 from os import getenv
 
 from dotenv import load_dotenv
@@ -10,12 +9,6 @@ from database.enum import EnvironmentType
 
 load_dotenv()
 
-
-logging.basicConfig(
-    filename="router_query.log",
-    level=logging.INFO,
-    format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
-)
 
 ENVIRONMENT = getenv("ENVIRONMENT", None)
 

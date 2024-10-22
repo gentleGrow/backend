@@ -1,6 +1,6 @@
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
-
+from sqlalchemy import update
 from app.module.auth.enum import ProviderEnum
 from app.module.auth.model import User
 
@@ -36,3 +36,15 @@ class UserRepository:
         select_instance = select(User).where(User.nickname.in_(user_names))
         result = await session.execute(select_instance)
         return result.scalars().all()
+
+    @staticmethod
+    async def update_nickname(session: AsyncSession, user_id: int, nickname: str):
+        stmt = (
+            update(User)
+            .where(User.id == user_id)
+            .values(nickname=nickname)
+            .execution_options(synchronize_session="fetch")
+        )
+
+        await session.execute(stmt)
+        await session.commit()

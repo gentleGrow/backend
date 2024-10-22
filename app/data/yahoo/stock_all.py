@@ -4,7 +4,7 @@ import yfinance
 from icecream import ic
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.data.common.service import get_all_stock_code_list
+from app.data.common.service import StockCodeFileReader
 from app.data.yahoo.source.constant import (
     STOCK_HISTORY_TIMERANGE_YEAR,
     TIME_INTERVAL_MODEL_REPO_MAP,
@@ -13,9 +13,7 @@ from app.data.yahoo.source.constant import (
 from app.data.yahoo.source.schema import StockDataFrame
 from app.data.yahoo.source.service import format_stock_code, get_period_bounds
 from app.module.asset.enum import Country, TimeInterval
-from app.module.asset.model import Stock, StockDaily, StockMonthly, StockWeekly  # noqa: F401 > relationship 설정시 필요합니다.
 from app.module.asset.schema import StockInfo
-from app.module.auth.model import User  # noqa: F401 > relationship 설정시 필요합니다.
 from database.dependency import get_mysql_session
 
 
@@ -79,7 +77,7 @@ async def process_stock_data(session: AsyncSession, stock_list: list[StockInfo],
 
 async def main():
     start_period, end_period = get_period_bounds(STOCK_HISTORY_TIMERANGE_YEAR)
-    stock_list: list[StockInfo] = get_all_stock_code_list()
+    stock_list: list[StockInfo] = StockCodeFileReader.get_all_stock_code_list()
 
     async with get_mysql_session() as session:
         await process_stock_data(session, stock_list, start_period, end_period)
