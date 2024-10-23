@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from redis.asyncio import Redis
 from sqlalchemy.ext.asyncio import AsyncSession
-from icecream import ic
+
 from app.common.auth.security import verify_jwt_token
 from app.common.schema.common_schema import PostResponse
 from app.module.auth.constant import REDIS_JWT_REFRESH_EXPIRE_TIME_SECOND, SESSION_SPECIAL_KEY
@@ -39,6 +39,7 @@ async def get_user_info(
         else UserInfoResponse(nickname="", email="", isJoined=False)
     )
 
+
 @auth_router.get("/nickname", summary="해당 닉네임 존재 여부를 확인합니다.", response_model=NicknameResponse)
 async def check_nickname(nickname: str, session: AsyncSession = Depends(get_mysql_session_router)) -> NicknameResponse:
     user_nickname = await UserRepository.get_by_name(session, nickname)
@@ -48,6 +49,7 @@ async def check_nickname(nickname: str, session: AsyncSession = Depends(get_mysq
         if user_nickname is None
         else NicknameResponse(isValidatedNickname=True)
     )
+
 
 @auth_router.put("/nickname", summary="유저 닉네임을 수정합니다.", response_model=PostResponse)
 async def update_nickname(
@@ -133,7 +135,7 @@ async def kakao_login(
         id_info = await Kakao.verify_token(id_token)
     except ValueError as e:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
-    
+
     social_id = id_info.get("sub")
     if social_id is None:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="id token에 유저 정보가 없습니다.")
@@ -177,7 +179,6 @@ async def google_login(
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
 
     social_id = id_info.get("sub")
-    
 
     if social_id is None:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="id token에 유저 정보가 없습니다.")
@@ -185,11 +186,7 @@ async def google_login(
     user = await UserRepository.get_by_social_id(session, social_id, ProviderEnum.GOOGLE)
 
     if user is None:
-        user = User(
-            social_id=social_id,
-            provider=ProviderEnum.GOOGLE.value,
-            email=id_info.get('email')
-        )
+        user = User(social_id=social_id, provider=ProviderEnum.GOOGLE.value, email=id_info.get("email"))
         user = await UserRepository.create(session, user)
 
     access_token = JWTBuilder.generate_access_token(user.id, social_id)

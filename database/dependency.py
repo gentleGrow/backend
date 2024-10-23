@@ -6,7 +6,7 @@ from dotenv import load_dotenv
 from redis.asyncio import ConnectionPool, Redis
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from database.config import mysql_engine, mysql_session_factory
+from database.config import mysql_session_factory, collection_mysql_session_factory
 from database.constant import POOL_SIZE, REDIS_SOCKET_CONNECTION_TIMEOUT_SECOND
 from database.enum import EnvironmentType
 
@@ -35,12 +35,11 @@ async def get_mysql_session_router() -> AsyncGenerator[AsyncSession, None]:
 
 @asynccontextmanager
 async def get_mysql_session() -> AsyncGenerator[AsyncSession, None]:
-    db = mysql_session_factory()
+    db = collection_mysql_session_factory()
     try:
         yield db
     finally:
         await db.close()
-        await mysql_engine.dispose()
 
 
 def get_redis_pool() -> Redis:
