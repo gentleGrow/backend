@@ -1,8 +1,9 @@
 import asyncio
 import os
-
+import ray
 from dotenv import load_dotenv
 from icecream import ic
+from pyvirtualdisplay import Display
 from selenium import webdriver
 from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.chrome.service import Service
@@ -10,6 +11,7 @@ from selenium.webdriver.common.by import By
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.support.ui import WebDriverWait
 from webdriver_manager.chrome import ChromeDriverManager
+
 from app.common.util.time import get_now_datetime
 from app.data.common.constant import MARKET_INDEX_CACHE_SECOND
 from app.data.yahoo.source.constant import REALTIME_INDEX_COLLECTOR_WAIT_SECOND
@@ -19,18 +21,21 @@ from app.module.asset.redis_repository import RedisRealTimeMarketIndexRepository
 from app.module.asset.repository.market_index_minutely_repository import MarketIndexMinutelyRepository
 from app.module.asset.schema import MarketIndexData
 from database.dependency import get_mysql_session, get_redis_pool
-from database.enum import EnvironmentType
+
 
 load_dotenv()
 
 ENVIRONMENT = os.getenv("ENVIRONMENT", None)
 
 
+@ray.remote
 class RealtimeIndexWorldCollector:
     def __init__(self):
         self.redis_client = None
         self.session = None
         self.driver = None
+        self.display = None
+        self._is_running = False
 
     async def _setup(self):
         self.redis_client = get_redis_pool()
@@ -40,12 +45,17 @@ class RealtimeIndexWorldCollector:
     async def collect(self):
         if self.redis_client is None or self.session is None:
             await self._setup()
+        if self.driver is None or self.display is None:
+            self._init_webdriver()    
+        
         try:
             while True:
+                self._is_running = True
                 await self._fetch_market_data()
                 await asyncio.sleep(REALTIME_INDEX_COLLECTOR_WAIT_SECOND)
+                self._is_running = False
         except Exception:
-            pass
+            self._is_running = False
 
     async def _fetch_market_data(self):
         try:
@@ -55,7 +65,7 @@ class RealtimeIndexWorldCollector:
             america_index_table = WebDriverWait(self.driver, 10).until(
                 EC.presence_of_element_located((By.ID, "americaIndex"))
             )
-
+            
             tr_rows = america_index_table.find_elements(By.XPATH, ".//thead/tr")
 
             for tr_row in tr_rows:
@@ -68,19 +78,18 @@ class RealtimeIndexWorldCollector:
         except Exception as e:
             ic(f"마켓 데이터 fetch 중 에러 : {e}")
 
-    async def init_webdriver(self):
+    async def _init_webdriver(self):
+        self.display = Display(visible=0, size=(800, 600))
+        self.display.start()
+
         chrome_options = Options()
         chrome_options.add_argument("--no-sandbox")
         chrome_options.add_argument("--headless")
         chrome_options.add_argument("--disable-dev-shm-usage")
         chrome_options.add_argument("--window-size=800,600")
         chrome_options.add_argument("--enable-automation")
-        
-        self.driver = webdriver.Chrome(service=Service(ChromeDriverManager().install()))
-        # if ENVIRONMENT == EnvironmentType.DEV:
-        #     self.driver = webdriver.Chrome(service=Service(ChromeDriverManager().install()), options=chrome_options)
-        # else:
-        #     self.driver = webdriver.Chrome(service=Service("/usr/bin/chromedriver"), options=chrome_options)
+
+        self.driver = webdriver.Chrome(service=Service(ChromeDriverManager().install()), options=chrome_options)
 
     def _parse_tr_row(self, tr_row):
         tds = tr_row.find_elements(By.TAG_NAME, "td")
@@ -135,12 +144,11 @@ class RealtimeIndexWorldCollector:
             self.redis_client, redis_bulk_data, expire_time=MARKET_INDEX_CACHE_SECOND
         )
 
+    async def _stop_webdriver(self):
+        self.driver.quit()
 
-async def main():
-    collector = RealtimeIndexWorldCollector()
-    await collector.init_webdriver()
-    await collector.collect()
+        if self.display:
+            self.display.stop()
 
-
-if __name__ == "__main__":
-    asyncio.run(main())
+    def is_running(self) -> bool:
+        return self._is_running
