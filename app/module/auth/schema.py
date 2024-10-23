@@ -52,4 +52,5 @@ class AccessTokenResponse(BaseModel):
 
 class UserInfoResponse(BaseModel):
     nickname: str
+    email: str
     isJoined: bool

@@ -52,7 +52,7 @@ async def fetch_rich_porfolio(redis_client: Redis, session: AsyncSession, person
 
     tbody = driver.find_element(By.XPATH, "//div[@id='root']//table//tbody")
     rows = tbody.find_elements(By.TAG_NAME, "tr")
-
+    
     stock_codes = []
     percentages = {}
 
@@ -130,4 +130,8 @@ async def execute_async_task():
 
 @shared_task
 def main():
+    asyncio.run(execute_async_task())
+
+
+if __name__ == "__main__":
     asyncio.run(execute_async_task())
