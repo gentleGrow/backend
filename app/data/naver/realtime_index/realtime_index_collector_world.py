@@ -8,8 +8,6 @@ from pyvirtualdisplay import Display
 from selenium import webdriver
 from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.chrome.service import Service 
-from selenium.webdriver.firefox.service import Service as FirefoxService
-from selenium.webdriver.firefox.options import Options as FirefoxOptions
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.support.ui import WebDriverWait
@@ -81,27 +79,19 @@ class RealtimeIndexWorldCollector:
             display.stop()
 
     async def _init_webdriver(self):
+        chrome_options = Options()
+        chrome_options.add_argument("--no-sandbox")
+        chrome_options.add_argument("--disable-dev-shm-usage")
+        chrome_options.add_argument("--window-size=800,600")
+        chrome_options.add_argument("--enable-automation")
+
         display = Display(visible=0, size=(800, 600))
         display.start()
-        
-        
-        if ENVIRONMENT == EnvironmentType.DEV:
-            chrome_options = Options()
-            chrome_options.add_argument("--no-sandbox")
-            chrome_options.add_argument("--disable-dev-shm-usage")
-            chrome_options.add_argument("--window-size=800,600")
-            chrome_options.add_argument("--enable-automation")
 
+        if ENVIRONMENT == EnvironmentType.DEV:
             return webdriver.Chrome(service=Service(ChromeDriverManager().install()), options=chrome_options), display
         else:
-            firefox_options = FirefoxOptions()
-            firefox_options.add_argument("--no-sandbox")
-            firefox_options.add_argument("--disable-dev-shm-usage")
-            firefox_options.add_argument("--window-size=800,600")
-            firefox_options.add_argument("--enable-automation")
-            return webdriver.Firefox(service=FirefoxService("/snap/bin/geckodriver"), options=firefox_options), display
-
-
+            return webdriver.Chrome(service=Service("/usr/bin/chromedriver"), options=chrome_options), display
 
     def _parse_tr_row(self, tr_row):
         tds = tr_row.find_elements(By.TAG_NAME, "td")
