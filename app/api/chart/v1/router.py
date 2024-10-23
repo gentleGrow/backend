@@ -448,7 +448,7 @@ async def get_performance_analysis(
             session, redis_client, start_date, end_date
         )
         user_analysis_result: dict[date, float] = await PerformanceAnalysisFacade.get_user_analysis(
-            session, redis_client, start_date, end_date, token.get('user'), market_analysis_result
+            session, redis_client, start_date, end_date, token.get("user"), market_analysis_result
         )
         sorted_dates = sorted(market_analysis_result.keys())
 
@@ -472,7 +472,7 @@ async def get_performance_analysis(
             redis_client,
             start_datetime,
             end_datetime,
-            token.get('user'),
+            token.get("user"),
             interval,
             market_analysis_result_short,
         )
@@ -500,7 +500,7 @@ async def get_performance_analysis(
             session, redis_client, start_date, end_date
         )
         user_analysis_result_month: dict[date, float] = await PerformanceAnalysisFacade.get_user_analysis(
-            session, redis_client, start_date, end_date, token.get('user'), market_analysis_result_month
+            session, redis_client, start_date, end_date, token.get("user"), market_analysis_result_month
         )
 
         return PerformanceAnalysisResponse.get_performance_analysis_response(
@@ -613,7 +613,7 @@ async def get_sample_my_stock(
         redis_client, lastest_stock_daily_map, [asset.asset_stock.stock.code for asset in assets]
     )
     exchange_rate_map: dict[str, float] = await ExchangeRateService.get_exchange_rate_map(redis_client)
-  
+
     stock_assets: list[dict] = AssetStockService.get_stock_assets_all_fields(
         assets, stock_daily_map, current_stock_price_map, dividend_map, exchange_rate_map
     )

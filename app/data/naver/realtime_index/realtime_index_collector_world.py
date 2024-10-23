@@ -12,8 +12,7 @@ from selenium.webdriver.common.by import By
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.support.ui import WebDriverWait
 from webdriver_manager.chrome import ChromeDriverManager
-import logging
-from logging.handlers import RotatingFileHandler
+
 from app.common.util.time import get_now_datetime
 from app.data.common.constant import MARKET_INDEX_CACHE_SECOND
 from app.data.yahoo.source.constant import REALTIME_INDEX_COLLECTOR_WAIT_SECOND
@@ -28,19 +27,6 @@ from database.enum import EnvironmentType
 load_dotenv()
 
 ENVIRONMENT = os.getenv("ENVIRONMENT", None)
-
-log_dir = "/home/backend"
-log_file = "collect_world.log"
-log_path = os.path.join(log_dir, log_file)
-handler = RotatingFileHandler(log_path, maxBytes=1024, backupCount=5) 
-formatter = logging.Formatter("%(asctime)s - %(levelname)s - %(message)s")
-handler.setFormatter(formatter)
-
-logger = logging.getLogger()
-logger.setLevel(logging.ERROR)  
-logger.addHandler(handler)
-
-
 
 @ray.remote
 class RealtimeIndexWorldCollector:
@@ -68,7 +54,7 @@ class RealtimeIndexWorldCollector:
 
     async def _fetch_market_data(self):
         try:
-            driver = await self._init_webdriver()
+            driver, display = await self._init_webdriver()
 
             driver.get("https://finance.naver.com/world/")
             redis_bulk_data, db_bulk_data = [], []
@@ -86,15 +72,13 @@ class RealtimeIndexWorldCollector:
 
             await self._save_market_data(db_bulk_data, redis_bulk_data)
         except Exception as e:
-            logging.error(e)
             ic(f"마켓 데이터 fetch 중 에러 : {e}")
-            pass
         finally:
             driver.quit()
+            display.stop()
 
     async def _init_webdriver(self):
         chrome_options = Options()
-        chrome_options.add_argument("--headless")
         chrome_options.add_argument("--no-sandbox")
         chrome_options.add_argument("--disable-dev-shm-usage")
         chrome_options.add_argument("--disable-javascript")
@@ -105,9 +89,9 @@ class RealtimeIndexWorldCollector:
         display.start()
 
         if ENVIRONMENT == EnvironmentType.DEV:
-            return webdriver.Chrome(service=Service(ChromeDriverManager().install()), options=chrome_options)
+            return webdriver.Chrome(service=Service(ChromeDriverManager().install()), options=chrome_options), display
         else:
-            return webdriver.Chrome(service=Service("/usr/bin/chromedriver"), options=chrome_options)
+            return webdriver.Chrome(service=Service("/usr/bin/chromedriver"), options=chrome_options), display
 
     def _parse_tr_row(self, tr_row):
         tds = tr_row.find_elements(By.TAG_NAME, "td")
