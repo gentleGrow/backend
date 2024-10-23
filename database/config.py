@@ -5,12 +5,12 @@ from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine
 from sqlalchemy.orm import declarative_base, sessionmaker
 
 from database.constant import (
-    CONNECTION_TIMEOUT_SECOND, 
-    MAX_OVERFLOW, 
-    POOL_SIZE, 
-    POOL_TIMEOUT_SECOND,
+    COLLECT_MAX_OVERFLOW,
     COLLECT_POOL_SIZE,
-    COLLECT_MAX_OVERFLOW
+    CONNECTION_TIMEOUT_SECOND,
+    MAX_OVERFLOW,
+    POOL_SIZE,
+    POOL_TIMEOUT_SECOND,
 )
 from database.enum import EnvironmentType
 
@@ -56,7 +56,7 @@ else:
         pool_timeout=POOL_TIMEOUT_SECOND,
         connect_args={"connect_timeout": CONNECTION_TIMEOUT_SECOND},
     )
-    
+
     collection_mysql_engine = create_async_engine(
         MYSQL_URL,
         pool_pre_ping=True,
@@ -65,10 +65,11 @@ else:
         pool_timeout=POOL_TIMEOUT_SECOND,
         connect_args={"connect_timeout": CONNECTION_TIMEOUT_SECOND},
     )
-    
-    
+
 
 mysql_session_factory = sessionmaker(bind=mysql_engine, class_=AsyncSession, expire_on_commit=False)
-collection_mysql_session_factory = sessionmaker(bind=collection_mysql_engine, class_=AsyncSession, expire_on_commit=False)
+collection_mysql_session_factory = sessionmaker(
+    bind=collection_mysql_engine, class_=AsyncSession, expire_on_commit=False
+)
 
 MySQLBase = declarative_base()

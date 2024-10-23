@@ -442,75 +442,70 @@ async def get_performance_analysis(
     session: AsyncSession = Depends(get_mysql_session_router),
     redis_client: Redis = Depends(get_redis_pool),
 ) -> PerformanceAnalysisResponse:
-    try:
-        if interval is IntervalType.ONEMONTH:
-            start_date, end_date = interval.get_start_end_time()
-            market_analysis_result: dict[date, float] = await PerformanceAnalysisFacade.get_market_analysis(
-                session, redis_client, start_date, end_date
-            )
-            user_analysis_result: dict[date, float] = await PerformanceAnalysisFacade.get_user_analysis(
-                session, redis_client, start_date, end_date, token.get("user"), market_analysis_result
-            )
-            sorted_dates = sorted(market_analysis_result.keys())
+    if interval is IntervalType.ONEMONTH:
+        start_date, end_date = interval.get_start_end_time()
+        market_analysis_result: dict[date, float] = await PerformanceAnalysisFacade.get_market_analysis(
+            session, redis_client, start_date, end_date
+        )
+        user_analysis_result: dict[date, float] = await PerformanceAnalysisFacade.get_user_analysis(
+            session, redis_client, start_date, end_date, token.get('user'), market_analysis_result
+        )
+        sorted_dates = sorted(market_analysis_result.keys())
 
-            return PerformanceAnalysisResponse(
-                xAxises=[date.strftime("%m.%d") for date in sorted_dates],
-                dates=[date.strftime("%Y.%m.%d") for date in sorted_dates],
-                values1={"values": [user_analysis_result[date] for date in sorted_dates], "name": "내 수익률"},
-                values2={"values": [market_analysis_result[date] for date in sorted_dates], "name": "코스피"},
-                unit="%",
-                myReturnRate=mean([user_analysis_result[date] for date in sorted_dates]),
-                contrastMarketReturns=mean([market_analysis_result[date] for date in sorted_dates]),
-            )
-        elif interval in IntervalType.FIVEDAY:
-            start_datetime, end_datetime = interval.get_start_end_time()
+        return PerformanceAnalysisResponse(
+            xAxises=[date.strftime("%m.%d") for date in sorted_dates],
+            dates=[date.strftime("%Y.%m.%d") for date in sorted_dates],
+            values1={"values": [user_analysis_result[date] for date in sorted_dates], "name": "내 수익률"},
+            values2={"values": [market_analysis_result[date] for date in sorted_dates], "name": "코스피"},
+            unit="%",
+            myReturnRate=mean([user_analysis_result[date] for date in sorted_dates]),
+            contrastMarketReturns=mean([market_analysis_result[date] for date in sorted_dates]),
+        )
+    elif interval in IntervalType.FIVEDAY:
+        start_datetime, end_datetime = interval.get_start_end_time()
 
-            market_analysis_result_short: dict[
-                datetime, float
-            ] = await PerformanceAnalysisFacade.get_market_analysis_short(
-                session, redis_client, start_datetime, end_datetime, interval
-            )
-            user_analysis_result_short: dict[datetime, float] = await PerformanceAnalysisFacade.get_user_analysis_short(
-                session,
-                redis_client,
-                start_datetime,
-                end_datetime,
-                token.get("user"),
-                interval,
-                market_analysis_result_short,
-            )
+        market_analysis_result_short: dict[datetime, float] = await PerformanceAnalysisFacade.get_market_analysis_short(
+            session, redis_client, start_datetime, end_datetime, interval
+        )
+        user_analysis_result_short: dict[datetime, float] = await PerformanceAnalysisFacade.get_user_analysis_short(
+            session,
+            redis_client,
+            start_datetime,
+            end_datetime,
+            token.get('user'),
+            interval,
+            market_analysis_result_short,
+        )
 
-            sorted_datetimes = sorted(market_analysis_result_short.keys())
+        sorted_datetimes = sorted(market_analysis_result_short.keys())
 
-            return PerformanceAnalysisResponse(
-                xAxises=[datetime.strftime("%m.%d") for datetime in sorted_datetimes],
-                dates=[datetime.strftime("%Y.%m.%d %H:%M") for datetime in sorted_datetimes],
-                values1={
-                    "values": [user_analysis_result_short[datetime] for datetime in sorted_datetimes],
-                    "name": "내 수익률",
-                },
-                values2={
-                    "values": [market_analysis_result_short[datetime] for datetime in sorted_datetimes],
-                    "name": "코스피",
-                },
-                unit="%",
-                myReturnRate=mean([user_analysis_result_short[datetime] for datetime in sorted_datetimes]),
-                contrastMarketReturns=mean([market_analysis_result_short[datetime] for datetime in sorted_datetimes]),
-            )
-        else:
-            start_date, end_date = interval.get_start_end_time()
-            market_analysis_result_month: dict[date, float] = await PerformanceAnalysisFacade.get_market_analysis(
-                session, redis_client, start_date, end_date
-            )
-            user_analysis_result_month: dict[date, float] = await PerformanceAnalysisFacade.get_user_analysis(
-                session, redis_client, start_date, end_date, token.get("user"), market_analysis_result_month
-            )
+        return PerformanceAnalysisResponse(
+            xAxises=[datetime.strftime("%m.%d") for datetime in sorted_datetimes],
+            dates=[datetime.strftime("%Y.%m.%d %H:%M") for datetime in sorted_datetimes],
+            values1={
+                "values": [user_analysis_result_short[datetime] for datetime in sorted_datetimes],
+                "name": "내 수익률",
+            },
+            values2={
+                "values": [market_analysis_result_short[datetime] for datetime in sorted_datetimes],
+                "name": "코스피",
+            },
+            unit="%",
+            myReturnRate=mean([user_analysis_result_short[datetime] for datetime in sorted_datetimes]),
+            contrastMarketReturns=mean([market_analysis_result_short[datetime] for datetime in sorted_datetimes]),
+        )
+    else:
+        start_date, end_date = interval.get_start_end_time()
+        market_analysis_result_month: dict[date, float] = await PerformanceAnalysisFacade.get_market_analysis(
+            session, redis_client, start_date, end_date
+        )
+        user_analysis_result_month: dict[date, float] = await PerformanceAnalysisFacade.get_user_analysis(
+            session, redis_client, start_date, end_date, token.get('user'), market_analysis_result_month
+        )
 
-            return PerformanceAnalysisResponse.get_performance_analysis_response(
-                market_analysis_result_month, user_analysis_result_month, interval
-            )
-    except Exception:
-        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Internal Server Error")
+        return PerformanceAnalysisResponse.get_performance_analysis_response(
+            market_analysis_result_month, user_analysis_result_month, interval
+        )
 
 
 @chart_router.get("/sample/composition", summary="종목 구성", response_model=CompositionResponse)
@@ -618,6 +613,7 @@ async def get_sample_my_stock(
         redis_client, lastest_stock_daily_map, [asset.asset_stock.stock.code for asset in assets]
     )
     exchange_rate_map: dict[str, float] = await ExchangeRateService.get_exchange_rate_map(redis_client)
+  
     stock_assets: list[dict] = AssetStockService.get_stock_assets_all_fields(
         assets, stock_daily_map, current_stock_price_map, dividend_map, exchange_rate_map
     )

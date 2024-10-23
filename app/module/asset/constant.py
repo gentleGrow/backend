@@ -84,17 +84,17 @@ ACCOUNT_TYPES = [
 ]
 
 PURCHASE_CURRENCY_TYPES = [
-    PurchaseCurrencyType.USA.value,
     PurchaseCurrencyType.KOREA.value,
     PurchaseCurrencyType.KOREA.value,
     PurchaseCurrencyType.KOREA.value,
     PurchaseCurrencyType.KOREA.value,
     PurchaseCurrencyType.KOREA.value,
-    PurchaseCurrencyType.USA.value,
     PurchaseCurrencyType.KOREA.value,
-    PurchaseCurrencyType.USA.value,
     PurchaseCurrencyType.KOREA.value,
-    PurchaseCurrencyType.USA.value,
+    PurchaseCurrencyType.KOREA.value,
+    PurchaseCurrencyType.KOREA.value,
+    PurchaseCurrencyType.KOREA.value,
+    PurchaseCurrencyType.KOREA.value,
 ]
 
 STOCK_QUANTITIES = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11]

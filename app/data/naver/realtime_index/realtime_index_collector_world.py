@@ -12,7 +12,8 @@ from selenium.webdriver.common.by import By
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.support.ui import WebDriverWait
 from webdriver_manager.chrome import ChromeDriverManager
-
+import logging
+from logging.handlers import RotatingFileHandler
 from app.common.util.time import get_now_datetime
 from app.data.common.constant import MARKET_INDEX_CACHE_SECOND
 from app.data.yahoo.source.constant import REALTIME_INDEX_COLLECTOR_WAIT_SECOND
@@ -27,6 +28,18 @@ from database.enum import EnvironmentType
 load_dotenv()
 
 ENVIRONMENT = os.getenv("ENVIRONMENT", None)
+
+log_dir = "/home/backend"
+log_file = "collect_world.log"
+log_path = os.path.join(log_dir, log_file)
+handler = RotatingFileHandler(log_path, maxBytes=1024, backupCount=5) 
+formatter = logging.Formatter("%(asctime)s - %(levelname)s - %(message)s")
+handler.setFormatter(formatter)
+
+logger = logging.getLogger()
+logger.setLevel(logging.ERROR)  
+logger.addHandler(handler)
+
 
 
 @ray.remote
@@ -73,6 +86,7 @@ class RealtimeIndexWorldCollector:
 
             await self._save_market_data(db_bulk_data, redis_bulk_data)
         except Exception as e:
+            logging.error(e)
             ic(f"마켓 데이터 fetch 중 에러 : {e}")
             pass
         finally:
