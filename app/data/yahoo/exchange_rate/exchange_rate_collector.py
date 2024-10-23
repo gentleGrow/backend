@@ -10,7 +10,6 @@ from app.module.asset.redis_repository import RedisExchangeRateRepository
 from database.dependency import get_redis_pool
 
 
-
 @ray.remote
 class ExchangeRateCollector:
     def __init__(self):

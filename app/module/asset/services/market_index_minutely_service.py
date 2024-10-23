@@ -17,3 +17,6 @@ class MarketIndexMinutelyService:
             session, duration, market_type, interval.get_interval()
         )
         return {market_index.datetime: market_index for market_index in market_data}
+
+
+

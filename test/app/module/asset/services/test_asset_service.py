@@ -1,15 +1,65 @@
-from datetime import date
-
+from datetime import date, datetime
+from app.module.asset.services.exchange_rate_service import ExchangeRateService
 from sqlalchemy.ext.asyncio import AsyncSession
-
+from redis.asyncio import Redis
+from freezegun import freeze_time
 from app.module.asset.enum import AccountType, AssetType, InvestmentBankType, PurchaseCurrencyType
 from app.module.asset.model import Asset
 from app.module.asset.repository.asset_repository import AssetRepository
 from app.module.asset.schema import AssetStockPutRequest
 from app.module.asset.services.asset_service import AssetService
+from app.module.auth.constant import DUMMY_USER_ID
+from icecream import ic
+from app.module.asset.services.asset_service import AssetService
+from app.module.asset.repository.asset_repository import AssetRepository
 
 
 class TestAssetService:
+    async def test_get_total_asset_amount_with_datetime(self, redis_client:Redis, session:AsyncSession, setup_all):
+        # Given
+        exchange_rate_map: dict[str, float] = await ExchangeRateService.get_exchange_rate_map(redis_client)
+        
+        stock_datetime_price_map = {
+            "AAPL_2024-08-13 10:30:00": 150.0,
+            "AAPL_2024-08-13 10:45:00": 151.0,
+            "TSLA_2024-08-13 10:30:00": 720.0,
+            "TSLA_2024-08-13 10:45:00": 725.0
+        }
+
+        current_datetime = datetime(2024, 8, 13, 10, 30)
+        assets = await AssetRepository.get_eager(session, DUMMY_USER_ID, AssetType.STOCK)
+        
+        # When
+        total_amount = AssetService.get_total_asset_amount_with_datetime(
+            assets=assets,
+            exchange_rate_map=exchange_rate_map,
+            stock_datetime_price_map=stock_datetime_price_map,
+            current_datetime=current_datetime
+        )
+
+        # Then
+        expected_amount = (
+            150.0 * 1 * 1300.0 +
+            720.0 * 2 * 1300.0    
+        )
+        
+        assert total_amount == expected_amount
+    
+    
+    @freeze_time("2024-08-15")
+    async def test_asset_list_from_days(self, session:AsyncSession, setup_all):
+        # Given
+        days = 5
+        assets = await AssetRepository.get_eager(session, DUMMY_USER_ID, AssetType.STOCK)
+        
+        # When
+        result = AssetService.asset_list_from_days(assets, days)
+     
+        # Then
+        assert isinstance(result, dict)
+        assert len(result) == 3
+
+    
     async def test_get_asset_map_success(
         self,
         session: AsyncSession,

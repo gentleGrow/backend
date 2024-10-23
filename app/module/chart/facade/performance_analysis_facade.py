@@ -1,12 +1,12 @@
 from collections import defaultdict
-from datetime import date, datetime, time, timedelta
+from datetime import date, datetime, timedelta
 from math import floor
-
 from redis.asyncio import Redis
+from app.module.asset.facades.asset_facade import AssetFacade
 from sqlalchemy.ext.asyncio import AsyncSession
-
+from icecream import ic
 from app.module.asset.enum import AssetType, MarketIndex
-from app.module.asset.model import MarketIndexMinutely, StockDaily, StockMinutely
+from app.module.asset.model import MarketIndexMinutely, StockDaily, StockMinutely, Asset
 from app.module.asset.repository.asset_repository import AssetRepository
 from app.module.asset.repository.stock_minutely_repository import StockMinutelyRepository
 from app.module.asset.services.asset_stock_service import AssetStockService
@@ -17,6 +17,8 @@ from app.module.asset.services.market_index_minutely_service import MarketIndexM
 from app.module.asset.services.stock_daily_service import StockDailyService
 from app.module.asset.services.stock_service import StockService
 from app.module.chart.enum import IntervalType
+from app.module.asset.services.stock_minutely_service import StockMinutelyService
+from app.module.asset.services.asset_service import AssetService
 
 
 class PerformanceAnalysisFacade:
@@ -112,53 +114,35 @@ class PerformanceAnalysisFacade:
         interval: IntervalType,
         market_analysis_result: dict[datetime, float],
     ) -> dict[datetime, float]:
-        assets = await AssetRepository.get_eager_by_range(
-            session, user_id, AssetType.STOCK, (interval_start, interval_end)
-        )
-
-        stock_daily_map = await StockDailyService.get_map_range(session, assets)
-        exchange_rate_map: dict[str, float] = await ExchangeRateService.get_exchange_rate_map(redis_client)
-
-        interval_data: list[StockMinutely] = await StockMinutelyRepository.get_by_range_interval_minute(
-            session,
-            (interval_start, interval_end),
-            [asset.asset_stock.stock.code for asset in assets],
-            interval.get_interval(),
-        )
-
-        stock_interval_date_price_map = {
-            f"{stock_minutely.code}_{stock_minutely.datetime}": stock_minutely.current_price
-            for stock_minutely in interval_data
-        }
-
-        assets_by_date = defaultdict(list)
-        for asset in assets:
-            purchase_datetime = datetime.combine(asset.asset_stock.purchase_date, time.max)
-            assets_by_date[purchase_datetime].append(asset)
-
+        assets:list[Asset] = await AssetRepository.get_eager(session, user_id, AssetType.STOCK)
+        stock_datetime_price_map = await StockMinutelyService.get_datetime_interval_map(session, interval_start, interval_end, assets, interval.get_interval())      
+        assets_by_date:defaultdict = AssetService.asset_list_from_days(assets, interval.get_days())
+        exchange_rate_map = await ExchangeRateService.get_exchange_rate_map(redis_client)
+               
         result = {}
-        cumulative_assets = []
+        current_assets = None
+        current_investment_amount = None
 
         for market_datetime in sorted(market_analysis_result):
-            if market_datetime in assets_by_date:
-                assets_for_date = assets_by_date[market_datetime]
-                cumulative_assets.extend(assets_for_date)
+            if market_datetime.date() not in assets_by_date:
+                continue
+            
+            current_loop_assets = assets_by_date[market_datetime.date()]
+            if current_assets is not current_loop_assets:
+                current_assets = current_loop_assets
+                current_investment_amount = await AssetFacade.get_total_investment_amount(session, redis_client, current_assets)
 
-            total_asset_amount = AssetStockService.get_total_asset_amount_minute(
-                assets, stock_interval_date_price_map, exchange_rate_map, market_datetime
-            )
-
-            total_invest_amount = AssetStockService.get_total_investment_amount(
-                cumulative_assets, stock_daily_map, exchange_rate_map
-            )
-
-            total_profit_rate = 0.0
-            if total_invest_amount > 0:
-                total_profit_rate = ((total_asset_amount - total_invest_amount) / total_invest_amount) * 100
-
-            result[market_datetime] = total_profit_rate
-
+            currnet_total_amount = AssetService.get_total_asset_amount_with_datetime(current_assets, exchange_rate_map, stock_datetime_price_map, market_datetime)
+            
+            current_profit_rate = 0.0
+            if current_investment_amount > 0:
+                current_profit_rate = ((currnet_total_amount - current_investment_amount) / current_investment_amount) * 100
+      
+            result[market_datetime] = current_profit_rate
+            
         return result
+        
+
 
     @staticmethod
     async def get_market_analysis_short(

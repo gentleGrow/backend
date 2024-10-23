@@ -86,6 +86,9 @@ async def execute_async_task():
         await process_stock_data(session, stock_list, start_period, end_period)
 
 
-@shared_task
-def main():
+# @shared_task
+# def main():
+#     asyncio.run(execute_async_task())
+
+if __name__ == "__main__":
     asyncio.run(execute_async_task())

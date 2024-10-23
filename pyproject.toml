@@ -244,6 +244,7 @@ sentry-sdk = {extras = ["fastapi"], version = "^2.15.0"}
 celery = "^5.4.0"
 prometheus-fastapi-instrumentator = "^7.0.0"
 ray = "^2.37.0"
+pyvirtualdisplay = "^3.0"
 
 [tool.poetry.group.dev.dependencies]
 pytest = "^8.2"
