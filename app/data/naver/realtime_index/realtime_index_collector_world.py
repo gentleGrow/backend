@@ -1,5 +1,6 @@
 import asyncio
 import os
+
 import ray
 from dotenv import load_dotenv
 from icecream import ic
@@ -21,7 +22,6 @@ from app.module.asset.redis_repository import RedisRealTimeMarketIndexRepository
 from app.module.asset.repository.market_index_minutely_repository import MarketIndexMinutelyRepository
 from app.module.asset.schema import MarketIndexData
 from database.dependency import get_mysql_session, get_redis_pool
-
 
 load_dotenv()
 
@@ -46,8 +46,8 @@ class RealtimeIndexWorldCollector:
         if self.redis_client is None or self.session is None:
             await self._setup()
         if self.driver is None or self.display is None:
-            self._init_webdriver()    
-        
+            await self._init_webdriver()
+
         try:
             while True:
                 self._is_running = True
@@ -65,7 +65,7 @@ class RealtimeIndexWorldCollector:
             america_index_table = WebDriverWait(self.driver, 10).until(
                 EC.presence_of_element_located((By.ID, "americaIndex"))
             )
-            
+
             tr_rows = america_index_table.find_elements(By.XPATH, ".//thead/tr")
 
             for tr_row in tr_rows:
