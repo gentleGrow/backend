@@ -20,15 +20,24 @@ from app.module.auth.schema import (
     TokenRefreshRequest,
     TokenRequest,
     TokenResponse,
+    UserInfoResponse
 )
 from app.module.auth.service import Google, Kakao, Naver
-from database.dependency import get_redis_pool, get_router_sql_session
+from database.dependency import get_redis_pool, get_mysql_session_router
 
 auth_router = APIRouter(prefix="/v1")
 
+@auth_router.get("/user", summary="유저 정보를 확인합니다.", response_model=UserInfoResponse)
+async def get_user_info(
+    token: AccessToken = Depends(verify_jwt_token),
+    session: AsyncSession = Depends(get_mysql_session_router),
+) -> UserInfoResponse:
+    user = await UserRepository.get(session, token.get("user"))
+    return UserInfoResponse(nickname=user.nickname, isJoined=True if user.nickname else False)
+
 
 @auth_router.get("/nickname", summary="해당 닉네임 존재 여부를 확인합니다.", response_model=NicknameResponse)
-async def check_nickname(nickname: str, session: AsyncSession = Depends(get_router_sql_session)) -> NicknameResponse:
+async def check_nickname(nickname: str, session: AsyncSession = Depends(get_mysql_session_router)) -> NicknameResponse:
     user_nickname = await UserRepository.get_by_name(session, nickname)
 
     return (
@@ -42,7 +51,7 @@ async def check_nickname(nickname: str, session: AsyncSession = Depends(get_rout
 async def update_nickname(
     request: NicknameRequest,
     token: AccessToken = Depends(verify_jwt_token),
-    session: AsyncSession = Depends(get_router_sql_session),
+    session: AsyncSession = Depends(get_mysql_session_router),
 ) -> PostResponse:
     user_nickname = await UserRepository.get_by_name(session, request.nickname)
 
@@ -61,7 +70,7 @@ async def update_nickname(
 )
 async def naver_login(
     request: NaverTokenRequest,
-    session: AsyncSession = Depends(get_router_sql_session),
+    session: AsyncSession = Depends(get_mysql_session_router),
     redis_client: Redis = Depends(get_redis_pool),
 ) -> TokenResponse:
     access_token = request.access_token
@@ -74,23 +83,20 @@ async def naver_login(
     try:
         user_info = await Naver.verify_token(access_token)
     except ValueError as e:
-        logging.error(e)
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
 
     social_id = user_info["response"].get("id")
     if social_id is None:
-        logging.error("access token에 유저 정보가 없습니다.")
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="access token에 유저 정보가 없습니다.")
 
     user = await UserRepository.get_by_social_id(session, social_id, ProviderEnum.NAVER)
-    isNewUser = False
+
     if user is None:
         user = User(
             social_id=social_id,
             provider=ProviderEnum.NAVER.value,
         )
         user = await UserRepository.create(session, user)
-        isNewUser = True
 
     access_token = JWTBuilder.generate_access_token(user.id, social_id)
     refresh_token = JWTBuilder.generate_refresh_token(user.id, social_id)
@@ -99,7 +105,7 @@ async def naver_login(
         redis_client, f"{social_id}_{SESSION_SPECIAL_KEY}", refresh_token, REDIS_JWT_REFRESH_EXPIRE_TIME_SECOND
     )
 
-    return TokenResponse(access_token=access_token, refresh_token=refresh_token, isJoined=isNewUser)
+    return TokenResponse(access_token=access_token, refresh_token=refresh_token)
 
 
 @auth_router.post(
@@ -110,7 +116,7 @@ async def naver_login(
 )
 async def kakao_login(
     request: TokenRequest,
-    session: AsyncSession = Depends(get_router_sql_session),
+    session: AsyncSession = Depends(get_mysql_session_router),
     redis_client: Redis = Depends(get_redis_pool),
 ) -> TokenResponse:
     id_token = request.id_token
@@ -130,14 +136,14 @@ async def kakao_login(
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="id token에 유저 정보가 없습니다.")
 
     user = await UserRepository.get_by_social_id(session, social_id, ProviderEnum.KAKAO)
-    isNewUser = False
+ 
     if user is None:
         user = User(
             social_id=social_id,
             provider=ProviderEnum.KAKAO.value,
         )
         user = await UserRepository.create(session, user)
-        isNewUser = True
+
 
     access_token = JWTBuilder.generate_access_token(user.id, social_id)
     refresh_token = JWTBuilder.generate_refresh_token(user.id, social_id)
@@ -146,7 +152,7 @@ async def kakao_login(
         redis_client, f"{social_id}_{SESSION_SPECIAL_KEY}", refresh_token, REDIS_JWT_REFRESH_EXPIRE_TIME_SECOND
     )
 
-    return TokenResponse(access_token=access_token, refresh_token=refresh_token, isJoined=isNewUser)
+    return TokenResponse(access_token=access_token, refresh_token=refresh_token)
 
 
 @auth_router.post(
@@ -157,7 +163,7 @@ async def kakao_login(
 )
 async def google_login(
     request: TokenRequest,
-    session: AsyncSession = Depends(get_router_sql_session),
+    session: AsyncSession = Depends(get_mysql_session_router),
     redis_client: Redis = Depends(get_redis_pool),
 ) -> TokenResponse:
     id_token = request.id_token
@@ -173,14 +179,13 @@ async def google_login(
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="id token에 유저 정보가 없습니다.")
 
     user = await UserRepository.get_by_social_id(session, social_id, ProviderEnum.GOOGLE)
-    isNewUser = False
+
     if user is None:
         user = User(
             social_id=social_id,
             provider=ProviderEnum.GOOGLE.value,
         )
         user = await UserRepository.create(session, user)
-        isNewUser = True
 
     access_token = JWTBuilder.generate_access_token(user.id, social_id)
     refresh_token = JWTBuilder.generate_refresh_token(user.id, social_id)
@@ -189,7 +194,7 @@ async def google_login(
         redis_client, f"{social_id}_{SESSION_SPECIAL_KEY}", refresh_token, REDIS_JWT_REFRESH_EXPIRE_TIME_SECOND
     )
 
-    return TokenResponse(access_token=access_token, refresh_token=refresh_token, isJoined=isNewUser)
+    return TokenResponse(access_token=access_token, refresh_token=refresh_token)
 
 
 @auth_router.post(

@@ -10,6 +10,7 @@ from app.module.asset.repository.asset_repository import AssetRepository
 from app.module.asset.schema import AssetStockPutRequest
 from app.module.asset.services.asset_service import AssetService
 from app.module.asset.services.exchange_rate_service import ExchangeRateService
+from app.module.asset.services.stock_daily_service import StockDailyService
 from app.module.auth.constant import DUMMY_USER_ID
 
 
@@ -27,6 +28,7 @@ class TestAssetService:
 
         current_datetime = datetime(2024, 8, 13, 10, 30)
         assets = await AssetRepository.get_eager(session, DUMMY_USER_ID, AssetType.STOCK)
+        stock_daily_map = await StockDailyService.get_map_range(session, assets)
 
         # When
         total_amount = AssetService.get_total_asset_amount_with_datetime(
@@ -34,10 +36,11 @@ class TestAssetService:
             exchange_rate_map=exchange_rate_map,
             stock_datetime_price_map=stock_datetime_price_map,
             current_datetime=current_datetime,
+            stock_daily_map=stock_daily_map,
         )
 
         # Then
-        expected_amount = 150.0 * 1 * 1300.0 + 720.0 * 2 * 1300.0
+        expected_amount = 150.0 * 1 * 1300.0 + 720.0 * 2 * 1300.0 + 72000 * 1 * 1
 
         assert total_amount == expected_amount
 

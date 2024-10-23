@@ -4,7 +4,7 @@ from math import floor
 
 from redis.asyncio import Redis
 from sqlalchemy.ext.asyncio import AsyncSession
-from icecream import ic
+
 from app.module.asset.enum import AssetType, MarketIndex
 from app.module.asset.facades.asset_facade import AssetFacade
 from app.module.asset.model import Asset, MarketIndexMinutely, StockDaily
@@ -121,7 +121,7 @@ class PerformanceAnalysisFacade:
         assets_by_date: defaultdict = AssetService.asset_list_from_days(assets, interval.get_days())
         exchange_rate_map = await ExchangeRateService.get_exchange_rate_map(redis_client)
         stock_daily_map = await StockDailyService.get_map_range(session, assets)
-        
+
         result = {}
         current_assets = None
         current_investment_amount = None
@@ -149,7 +149,7 @@ class PerformanceAnalysisFacade:
                 current_profit_rate = (
                     (currnet_total_amount - current_investment_amount) / current_investment_amount
                 ) * 100
-                
+
             result[market_datetime] = current_profit_rate
 
         return result

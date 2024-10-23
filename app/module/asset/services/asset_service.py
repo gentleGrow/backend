@@ -1,5 +1,5 @@
 from collections import defaultdict
-from datetime import datetime, timedelta, date
+from datetime import date, datetime, timedelta
 from typing import Any
 
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -110,15 +110,18 @@ class AssetService:
         exchange_rate_map: dict[str, float],
         stock_datetime_price_map: dict[str, float],
         current_datetime: datetime,
-        stock_daily_map: dict[tuple[str, date], StockDaily]
+        stock_daily_map: dict[tuple[str, date], StockDaily],
     ) -> float:
         result = 0.0
 
         for asset in assets:
             current_value = stock_datetime_price_map.get(f"{asset.asset_stock.stock.code}_{current_datetime}", None)
+
             if current_value is None:
-                current_stock_daily = stock_daily_map.get((asset.asset_stock.stock.code, asset.asset_stock.purchase_date), 1.0)
-                current_value = current_stock_daily.adj_close_price
+                current_stock_daily = stock_daily_map.get(
+                    (asset.asset_stock.stock.code, asset.asset_stock.purchase_date), None
+                )
+                current_value = current_stock_daily.adj_close_price if current_stock_daily is not None else 1.0
 
             result += (
                 current_value

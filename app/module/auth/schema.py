@@ -44,8 +44,12 @@ class TokenRefreshRequest(BaseModel):
 class TokenResponse(BaseModel):
     access_token: str
     refresh_token: str
-    isJoined: bool
 
 
 class AccessTokenResponse(BaseModel):
     access_token: str
+
+
+class UserInfoResponse(BaseModel):
+    nickname: str
+    isJoined: bool

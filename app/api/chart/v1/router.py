@@ -4,7 +4,7 @@ from statistics import mean
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from redis.asyncio import Redis
 from sqlalchemy.ext.asyncio import AsyncSession
-from icecream import ic
+
 from app.common.auth.security import verify_jwt_token
 from app.common.util.time import get_now_date
 from app.module.asset.constant import (
