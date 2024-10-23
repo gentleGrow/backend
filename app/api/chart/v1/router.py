@@ -403,7 +403,7 @@ async def get_sample_performance_analysis(
             interval,
             market_analysis_result_short,
         )
-        
+
         sorted_datetimes = sorted(market_analysis_result_short.keys())
 
         return PerformanceAnalysisResponse(

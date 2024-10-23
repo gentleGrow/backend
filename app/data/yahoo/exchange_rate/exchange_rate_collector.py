@@ -10,7 +10,7 @@ from app.module.asset.redis_repository import RedisExchangeRateRepository
 from database.dependency import get_redis_pool
 
 
-@ray.remote
+# @ray.remote
 class ExchangeRateCollector:
     def __init__(self):
         self.redis_client = get_redis_pool()
@@ -49,10 +49,9 @@ class ExchangeRateCollector:
 
 
 # local 테스트 용, 추후 삭제 예정입니다.
-# async def main():
-#     collector = ExchangeRateCollector()
-#     await collector.collect()
+async def main():
+    collector = ExchangeRateCollector()
+    await collector.collect()
 
-
-# if __name__ == "__main__":
-#     asyncio.run(main())
+if __name__ == "__main__":
+    asyncio.run(main())

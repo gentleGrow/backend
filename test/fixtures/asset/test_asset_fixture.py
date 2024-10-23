@@ -23,7 +23,7 @@ from app.module.asset.model import (
     MarketIndexMinutely,
     Stock,
     StockDaily,
-    StockMinutely
+    StockMinutely,
 )
 from app.module.auth.constant import DUMMY_NAME, DUMMY_USER_ID
 from app.module.auth.enum import ProviderEnum, UserRoleEnum
@@ -320,35 +320,19 @@ async def setup_market_index_minutely(session: AsyncSession):
     session.add_all([market_index_1, market_index_2])
     await session.commit()
 
+
 @pytest.fixture(scope="function")
 async def setup_stock_minutely(session: AsyncSession):
-    stock_minutely_1 = StockMinutely(
-        code="AAPL",
-        datetime=datetime(2024, 8, 13, 10, 30),
-        current_price=150.0
-    )
-    
-    stock_minutely_2 = StockMinutely(
-        code="AAPL",
-        datetime=datetime(2024, 8, 13, 10, 45),
-        current_price=151.0
-    )
-    
-    stock_minutely_3 = StockMinutely(
-        code="TSLA",
-        datetime=datetime(2024, 8, 13, 10, 30),
-        current_price=720.0
-    )
-    
-    stock_minutely_4 = StockMinutely(
-        code="TSLA",
-        datetime=datetime(2024, 8, 13, 10, 45),
-        current_price=725.0
-    )
-    
+    stock_minutely_1 = StockMinutely(code="AAPL", datetime=datetime(2024, 8, 13, 10, 30), current_price=150.0)
+
+    stock_minutely_2 = StockMinutely(code="AAPL", datetime=datetime(2024, 8, 13, 10, 45), current_price=151.0)
+
+    stock_minutely_3 = StockMinutely(code="TSLA", datetime=datetime(2024, 8, 13, 10, 30), current_price=720.0)
+
+    stock_minutely_4 = StockMinutely(code="TSLA", datetime=datetime(2024, 8, 13, 10, 45), current_price=725.0)
+
     session.add_all([stock_minutely_1, stock_minutely_2, stock_minutely_3, stock_minutely_4])
     await session.commit()
-
 
 
 @pytest.fixture(scope="function")
@@ -365,6 +349,6 @@ async def setup_all(
     setup_market_index_daily,
     setup_market_index_minutely_data,
     setup_market_index_minutely,
-    setup_stock_minutely
+    setup_stock_minutely,
 ):
     pass

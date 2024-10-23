@@ -86,9 +86,11 @@ async def execute_async_task():
         await process_stock_data(session, stock_list, start_period, end_period)
 
 
-# @shared_task
-# def main():
-#     asyncio.run(execute_async_task())
-
-if __name__ == "__main__":
+@shared_task
+def main():
     asyncio.run(execute_async_task())
+
+
+# local 임시 데이터 저장용, 추후 삭제 예정
+# if __name__ == "__main__":
+#     asyncio.run(execute_async_task())

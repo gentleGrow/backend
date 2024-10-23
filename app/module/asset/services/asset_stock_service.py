@@ -86,13 +86,13 @@ class AssetStockService:
 
             if current_price is None:
                 continue
-            
+
             source_country = asset.asset_stock.stock.country.upper().strip()
             source_currency = CurrencyType[source_country]
             won_exchange_rate = ExchangeRateService.get_exchange_rate(
                 source_currency, CurrencyType.KOREA, exchange_rate_map
             )
-            
+
             current_price *= won_exchange_rate
             result += current_price * asset.asset_stock.quantity
         return result

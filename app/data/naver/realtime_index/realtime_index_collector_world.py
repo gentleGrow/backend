@@ -4,8 +4,8 @@ import os
 import ray
 from dotenv import load_dotenv
 from icecream import ic
-from selenium import webdriver
 from pyvirtualdisplay import Display
+from selenium import webdriver
 from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.chrome.service import Service
 from selenium.webdriver.common.by import By

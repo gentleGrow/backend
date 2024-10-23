@@ -1,36 +1,34 @@
-from typing import Any
-from app.common.util.time import get_now_date
-from sqlalchemy.ext.asyncio import AsyncSession
 from collections import defaultdict
+from datetime import datetime, timedelta, date
+from typing import Any
+
+from sqlalchemy.ext.asyncio import AsyncSession
+
+from app.common.util.time import get_now_date
 from app.module.asset.enum import ASSETNAME, AmountUnit
-from app.module.asset.model import Asset
+from app.module.asset.model import Asset, StockDaily
 from app.module.asset.repository.asset_repository import AssetRepository
 from app.module.asset.schema import AssetStockPutRequest
-from datetime import timedelta, datetime
 from app.module.asset.services.exchange_rate_service import ExchangeRateService
 
 
 class AssetService:
     @staticmethod
-    def asset_list_from_days(
-        assets: list[Asset],
-        days:int
-    ) -> defaultdict :
+    def asset_list_from_days(assets: list[Asset], days: int) -> defaultdict:
         assets_by_date = defaultdict(list)
 
         current_date = get_now_date()
         for day_offset in range(days):
             target_date = current_date - timedelta(days=day_offset)
-            
+
             for asset in assets:
                 purchase_date = asset.asset_stock.purchase_date
-                
+
                 if purchase_date <= target_date:
                     assets_by_date[target_date].append(asset)
-        
+
         return assets_by_date
-        
-    
+
     @staticmethod
     def get_average_investment_with_dividend_year(
         total_invest_amount: float, total_dividend_amount: float, months: float
@@ -110,20 +108,22 @@ class AssetService:
     def get_total_asset_amount_with_datetime(
         assets: list[Asset],
         exchange_rate_map: dict[str, float],
-        stock_datetime_price_map: dict[datetime, float],
-        current_datetime:datetime
+        stock_datetime_price_map: dict[str, float],
+        current_datetime: datetime,
+        stock_daily_map: dict[tuple[str, date], StockDaily]
     ) -> float:
         result = 0.0
-        
+
         for asset in assets:
-            current_value = stock_datetime_price_map.get(f"{asset.asset_stock.stock.code}_{current_datetime}")
+            current_value = stock_datetime_price_map.get(f"{asset.asset_stock.stock.code}_{current_datetime}", None)
             if current_value is None:
-                continue
-            
+                current_stock_daily = stock_daily_map.get((asset.asset_stock.stock.code, asset.asset_stock.purchase_date), 1.0)
+                current_value = current_stock_daily.adj_close_price
+
             result += (
                 current_value
                 * asset.asset_stock.quantity
                 * ExchangeRateService.get_won_exchange_rate(asset, exchange_rate_map)
             )
-        
+
         return result
