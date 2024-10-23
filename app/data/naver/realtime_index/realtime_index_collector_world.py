@@ -10,7 +10,6 @@ from selenium.webdriver.common.by import By
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.support.ui import WebDriverWait
 from webdriver_manager.chrome import ChromeDriverManager
-
 from app.common.util.time import get_now_datetime
 from app.data.common.constant import MARKET_INDEX_CACHE_SECOND
 from app.data.yahoo.source.constant import REALTIME_INDEX_COLLECTOR_WAIT_SECOND
@@ -31,6 +30,7 @@ class RealtimeIndexWorldCollector:
     def __init__(self):
         self.redis_client = None
         self.session = None
+        self.driver = None
 
     async def _setup(self):
         self.redis_client = get_redis_pool()
@@ -46,19 +46,16 @@ class RealtimeIndexWorldCollector:
                 await asyncio.sleep(REALTIME_INDEX_COLLECTOR_WAIT_SECOND)
         except Exception:
             pass
-        
-        
-        
+
     async def _fetch_market_data(self):
         try:
-            driver = await self._init_webdriver()
-
-            driver.get("https://finance.naver.com/world/")
+            self.driver.get("https://finance.naver.com/world/")
             redis_bulk_data, db_bulk_data = [], []
 
-            america_index_table = WebDriverWait(driver, 10).until(
+            america_index_table = WebDriverWait(self.driver, 10).until(
                 EC.presence_of_element_located((By.ID, "americaIndex"))
             )
+
             tr_rows = america_index_table.find_elements(By.XPATH, ".//thead/tr")
 
             for tr_row in tr_rows:
@@ -70,21 +67,20 @@ class RealtimeIndexWorldCollector:
             await self._save_market_data(db_bulk_data, redis_bulk_data)
         except Exception as e:
             ic(f"마켓 데이터 fetch 중 에러 : {e}")
-        finally:
-            driver.quit()
 
-    async def _init_webdriver(self):
+    async def init_webdriver(self):
         chrome_options = Options()
         chrome_options.add_argument("--no-sandbox")
         chrome_options.add_argument("--headless")
         chrome_options.add_argument("--disable-dev-shm-usage")
         chrome_options.add_argument("--window-size=800,600")
         chrome_options.add_argument("--enable-automation")
-
-        if ENVIRONMENT == EnvironmentType.DEV:
-            return webdriver.Chrome(service=Service(ChromeDriverManager().install()), options=chrome_options)
-        else:
-            return webdriver.Chrome(service=Service("/usr/bin/chromedriver"), options=chrome_options)
+        
+        self.driver = webdriver.Chrome(service=Service(ChromeDriverManager().install()))
+        # if ENVIRONMENT == EnvironmentType.DEV:
+        #     self.driver = webdriver.Chrome(service=Service(ChromeDriverManager().install()), options=chrome_options)
+        # else:
+        #     self.driver = webdriver.Chrome(service=Service("/usr/bin/chromedriver"), options=chrome_options)
 
     def _parse_tr_row(self, tr_row):
         tds = tr_row.find_elements(By.TAG_NAME, "td")
@@ -141,8 +137,10 @@ class RealtimeIndexWorldCollector:
 
 
 async def main():
-        collector = RealtimeIndexWorldCollector()
-        await collector.collect()
+    collector = RealtimeIndexWorldCollector()
+    await collector.init_webdriver()
+    await collector.collect()
+
 
 if __name__ == "__main__":
     asyncio.run(main())
