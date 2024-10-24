@@ -33,11 +33,14 @@ async def get_user_info(
     session: AsyncSession = Depends(get_mysql_session_router),
 ) -> UserInfoResponse:
     user = await UserRepository.get(session, token.get("user"))
-    return (
-        UserInfoResponse(nickname=user.nickname, email=user.email, isJoined=True if user.nickname else False)
-        if user is not None
-        else UserInfoResponse(nickname="", email="", isJoined=False)
-    )
+    if user is None:
+        return UserInfoResponse(nickname="", email="", isJoined=False)
+    else:
+        nickname = user.nickname if user.nickname is not None else ""
+        email = user.email if user.nickname is not None else ""
+        isJoined = True if user.nickname else False
+        return UserInfoResponse(nickname=nickname, email=email, isJoined=isJoined)
+
 
 
 @auth_router.get("/nickname", summary="해당 닉네임 존재 여부를 확인합니다.", response_model=NicknameResponse)
@@ -45,9 +48,9 @@ async def check_nickname(nickname: str, session: AsyncSession = Depends(get_mysq
     user_nickname = await UserRepository.get_by_name(session, nickname)
 
     return (
-        NicknameResponse(isValidatedNickname=False)
+        NicknameResponse(isValidatedNickname=True)
         if user_nickname is None
-        else NicknameResponse(isValidatedNickname=True)
+        else NicknameResponse(isValidatedNickname=False)
     )
 
 
