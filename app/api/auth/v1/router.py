@@ -24,6 +24,8 @@ from app.module.auth.schema import (
 from app.module.auth.service import Google, Kakao, Naver
 from database.dependency import get_mysql_session_router, get_redis_pool
 
+from icecream import ic
+
 auth_router = APIRouter(prefix="/v1")
 
 
@@ -34,13 +36,13 @@ async def get_user_info(
 ) -> UserInfoResponse:
     user = await UserRepository.get(session, token.get("user"))
     if user is None:
-        return UserInfoResponse(nickname="", email="", isJoined=False)
+        return UserInfoResponse(nickname="test", email="", isJoined=False)
     else:
-        nickname = user.nickname if user.nickname is not None else ""
-        email = user.email if user.nickname is not None else ""
+        # nickname = user.nickname if user.nickname is not None else ""
+        email = user.email if user.email is not None else ""
         isJoined = True if user.nickname else False
-        return UserInfoResponse(nickname=nickname, email=email, isJoined=isJoined)
-
+        
+        return UserInfoResponse(nickname='test', email=email, isJoined=isJoined)
 
 
 @auth_router.get("/nickname", summary="해당 닉네임 존재 여부를 확인합니다.", response_model=NicknameResponse)
@@ -148,7 +150,7 @@ async def kakao_login(
     if user is None:
         user = User(
             social_id=social_id,
-            email=id_info.get("email"),
+            email=id_info.get("email", None),
             provider=ProviderEnum.KAKAO.value,
         )
         user = await UserRepository.create(session, user)
@@ -189,7 +191,7 @@ async def google_login(
     user = await UserRepository.get_by_social_id(session, social_id, ProviderEnum.GOOGLE)
 
     if user is None:
-        user = User(social_id=social_id, provider=ProviderEnum.GOOGLE.value, email=id_info.get("email"))
+        user = User(social_id=social_id, provider=ProviderEnum.GOOGLE.value, email=id_info.get("email", None))
         user = await UserRepository.create(session, user)
 
     access_token = JWTBuilder.generate_access_token(user.id, social_id)
