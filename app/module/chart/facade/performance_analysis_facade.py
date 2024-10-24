@@ -1,10 +1,9 @@
 from collections import defaultdict
 from datetime import date, datetime, timedelta
 from math import floor
-
+from icecream import ic
 from redis.asyncio import Redis
 from sqlalchemy.ext.asyncio import AsyncSession
-
 from app.module.asset.enum import AssetType, MarketIndex
 from app.module.asset.facades.asset_facade import AssetFacade
 from app.module.asset.model import Asset, MarketIndexMinutely, StockDaily
@@ -105,6 +104,50 @@ class PerformanceAnalysisFacade:
         return result
 
     @staticmethod
+    async def get_user_analysis_single_month(
+        session: AsyncSession,
+        redis_client: Redis,
+        user_id: int,
+        interval: IntervalType,
+        market_analysis_result: dict[date, float],
+    ) -> dict[date, float]:
+        assets: list[Asset] = await AssetRepository.get_eager(session, user_id, AssetType.STOCK)
+        assets_by_date: defaultdict = AssetService.asset_list_from_days(assets, interval.get_days())
+        exchange_rate_map = await ExchangeRateService.get_exchange_rate_map(redis_client)
+        stock_daily_map = await StockDailyService.get_map_range(session, assets)
+        
+        result = {}
+        
+        for market_date in sorted(market_analysis_result):
+            if market_date not in assets_by_date:
+                continue
+            current_assets = assets_by_date[market_date]
+            current_investment_amount = await AssetFacade.get_total_investment_amount(
+                    session, redis_client, current_assets
+                )
+            if current_assets is None or current_investment_amount == 0.0:
+                result[market_date] = 0.0
+                continue
+            
+            currnet_total_amount = AssetService.get_total_asset_amount_with_date(
+                current_assets, exchange_rate_map, stock_daily_map
+            )
+            
+            current_profit_rate = (
+                (currnet_total_amount - current_investment_amount) / current_investment_amount
+            ) * 100
+            
+            ic(currnet_total_amount)
+            ic(current_investment_amount)
+            ic(current_profit_rate)
+            
+            result[market_date] = current_profit_rate
+        
+        return result
+        
+        
+
+    @staticmethod
     async def get_user_analysis_short(
         session: AsyncSession,
         redis_client: Redis,
@@ -137,6 +180,7 @@ class PerformanceAnalysisFacade:
                     session, redis_client, current_assets
                 )
             if current_assets is None or current_investment_amount is None:
+                result[market_datetime] = 0.0
                 continue
 
             currnet_total_amount = AssetService.get_total_asset_amount_with_datetime(

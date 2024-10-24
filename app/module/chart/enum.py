@@ -26,6 +26,8 @@ class IntervalType(StrEnum):
     def get_days(self) -> int:
         if self == IntervalType.FIVEDAY:
             return 5
+        elif self == IntervalType.ONEMONTH:
+            return 30
         return 5
 
     def get_start_end_time(self) -> tuple[date | datetime, date | datetime]:

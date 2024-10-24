@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from redis.asyncio import Redis
 from sqlalchemy.ext.asyncio import AsyncSession
-from pydantic import ValidationError
+
 from app.common.auth.security import verify_jwt_token
 from app.common.schema.common_schema import PostResponse
 from app.module.auth.constant import REDIS_JWT_REFRESH_EXPIRE_TIME_SECOND, SESSION_SPECIAL_KEY
@@ -34,7 +34,7 @@ async def get_user_info(
 ) -> UserInfoResponse:
     user = await UserRepository.get(session, token.get("user"))
     if user is None:
-        return UserInfoResponse(nickname="test", email="", isJoined=False)
+        return UserInfoResponse(nickname="", email="", isJoined=False)
     else:
         nickname = user.nickname if user.nickname is not None else ""
         email = user.email if user.email is not None else ""
@@ -47,11 +47,7 @@ async def get_user_info(
 async def check_nickname(nickname: str, session: AsyncSession = Depends(get_mysql_session_router)) -> NicknameResponse:
     user_nickname = await UserRepository.get_by_name(session, nickname)
 
-    return (
-        NicknameResponse(isUsed=False)
-        if user_nickname is None
-        else NicknameResponse(isUsed=True)
-    )
+    return NicknameResponse(isUsed=False) if user_nickname is None else NicknameResponse(isUsed=True)
 
 
 @auth_router.put("/nickname", summary="유저 닉네임을 수정합니다.", response_model=PostResponse)
@@ -65,7 +61,6 @@ async def update_nickname(
         request.nickname = NicknameRequest.validate_nickname(request.nickname)
     except HTTPException as e:
         return PostResponse(status_code=e.status_code, content=e.detail)
-
 
     if user_nickname is not None:
         return PostResponse(status_code=status.HTTP_400_BAD_REQUEST, content="이미 존재하는 닉네임입니다.")

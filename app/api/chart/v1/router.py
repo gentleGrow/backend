@@ -1,6 +1,6 @@
 from datetime import date, datetime, timedelta
 from statistics import mean
-
+from icecream import ic
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from redis.asyncio import Redis
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -374,11 +374,12 @@ async def get_sample_performance_analysis(
         market_analysis_result: dict[date, float] = await PerformanceAnalysisFacade.get_market_analysis(
             session, redis_client, start_date, end_date
         )
-        user_analysis_result: dict[date, float] = await PerformanceAnalysisFacade.get_user_analysis(
-            session, redis_client, start_date, end_date, DUMMY_USER_ID, market_analysis_result
+        user_analysis_result: dict[date, float] = await PerformanceAnalysisFacade.get_user_analysis_single_month(
+            session, redis_client, DUMMY_USER_ID, interval, market_analysis_result
         )
+        
         sorted_dates = sorted(market_analysis_result.keys())
-
+        
         return PerformanceAnalysisResponse(
             xAxises=[date.strftime("%m.%d") for date in sorted_dates],
             dates=[date.strftime("%Y.%m.%d") for date in sorted_dates],
