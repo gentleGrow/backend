@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from redis.asyncio import Redis
 from sqlalchemy.ext.asyncio import AsyncSession
-
+from pydantic import ValidationError
 from app.common.auth.security import verify_jwt_token
 from app.common.schema.common_schema import PostResponse
 from app.module.auth.constant import REDIS_JWT_REFRESH_EXPIRE_TIME_SECOND, SESSION_SPECIAL_KEY
@@ -24,8 +24,6 @@ from app.module.auth.schema import (
 from app.module.auth.service import Google, Kakao, Naver
 from database.dependency import get_mysql_session_router, get_redis_pool
 
-from icecream import ic
-
 auth_router = APIRouter(prefix="/v1")
 
 
@@ -38,11 +36,11 @@ async def get_user_info(
     if user is None:
         return UserInfoResponse(nickname="test", email="", isJoined=False)
     else:
-        # nickname = user.nickname if user.nickname is not None else ""
+        nickname = user.nickname if user.nickname is not None else ""
         email = user.email if user.email is not None else ""
         isJoined = True if user.nickname else False
-        
-        return UserInfoResponse(nickname='test', email=email, isJoined=isJoined)
+
+        return UserInfoResponse(nickname=nickname, email=email, isJoined=isJoined)
 
 
 @auth_router.get("/nickname", summary="해당 닉네임 존재 여부를 확인합니다.", response_model=NicknameResponse)
@@ -50,9 +48,9 @@ async def check_nickname(nickname: str, session: AsyncSession = Depends(get_mysq
     user_nickname = await UserRepository.get_by_name(session, nickname)
 
     return (
-        NicknameResponse(isValidatedNickname=True)
+        NicknameResponse(isUsed=False)
         if user_nickname is None
-        else NicknameResponse(isValidatedNickname=False)
+        else NicknameResponse(isUsed=True)
     )
 
 
@@ -63,6 +61,11 @@ async def update_nickname(
     session: AsyncSession = Depends(get_mysql_session_router),
 ) -> PostResponse:
     user_nickname = await UserRepository.get_by_name(session, request.nickname)
+    try:
+        request.nickname = NicknameRequest.validate_nickname(request.nickname)
+    except HTTPException as e:
+        return PostResponse(status_code=e.status_code, content=e.detail)
+
 
     if user_nickname is not None:
         return PostResponse(status_code=status.HTTP_400_BAD_REQUEST, content="이미 존재하는 닉네임입니다.")

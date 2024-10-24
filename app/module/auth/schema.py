@@ -1,6 +1,7 @@
-from datetime import datetime
-
+import re
 from pydantic import BaseModel
+from fastapi import HTTPException, status
+from datetime import datetime
 
 from app.module.auth.enum import ProviderEnum, UserRoleEnum
 
@@ -26,11 +27,22 @@ class TokenRequest(BaseModel):
 
 
 class NicknameResponse(BaseModel):
-    isValidatedNickname: bool
+    isUsed: bool
 
 
 class NicknameRequest(BaseModel):
     nickname: str
+
+    @staticmethod
+    def validate_nickname(nickname: str):
+        if len(nickname) < 2 or len(nickname) > 12:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="닉네임은 2자 이상 12자 이하여야 합니다.")
+        
+        if re.search(r"[^a-zA-Z0-9가-힣]", nickname):
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="문자와 숫자만 가능합니다.")
+        
+        return nickname
+
 
 
 class NaverTokenRequest(BaseModel):
