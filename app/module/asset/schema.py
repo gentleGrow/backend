@@ -145,3 +145,13 @@ class MarketIndexData(BaseModel):
     change_value: str = Field(..., description="The change in value from the previous close")
     change_percent: str = Field(..., description="The percentage change from the previous close")
     update_time: str = Field(..., description="The time at which the data was last updated")
+
+
+class TodayTempStockDaily(BaseModel):
+    adj_close_price: float
+    highest_price: float
+    lowest_price: float
+    opening_price: float
+    trade_volume: int
+    
+    

@@ -23,10 +23,7 @@ class StockService:
             return True
 
         stock = await StockDailyRepository.get_stock_daily(session, stock_code, buy_date)
-        if stock is None:
-            return False
-        else:
-            return True
+        return True if stock else False
 
     @staticmethod
     def check_not_found_stock(
