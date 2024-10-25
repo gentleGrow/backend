@@ -6,7 +6,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.common.util.time import get_now_date
 from app.module.asset.enum import ASSETNAME, AmountUnit
-from app.module.asset.model import Asset, StockDaily, Stock
+from app.module.asset.model import Asset, Stock, StockDaily
 from app.module.asset.repository.asset_repository import AssetRepository
 from app.module.asset.schema import AssetStockPutRequest
 from app.module.asset.services.exchange_rate_service import ExchangeRateService

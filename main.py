@@ -38,3 +38,7 @@ app.include_router(chart_router, prefix="/api/chart", tags=["chart"])
 app.include_router(asset_stock_router, prefix="/api", tags=["asset"])
 
 Instrumentator().instrument(app).expose(app, include_in_schema=False, endpoint="/metrics")
+
+@app.get("/health")
+async def health():
+    return {"status": "ok"}

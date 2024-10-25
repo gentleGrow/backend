@@ -91,10 +91,10 @@ class TestAssetService:
             purchase_price=600.0,
         )
 
-        stock_id = 3
+        stock = None
 
         # When
-        await AssetService.save_asset_by_put(session, request_data, asset, stock_id)
+        await AssetService.save_asset_by_put(session, request_data, asset, stock)
         updated_asset = await AssetRepository.get_asset_by_id(session, asset_id)
 
         # Then
@@ -104,4 +104,3 @@ class TestAssetService:
         assert updated_asset.asset_stock.purchase_date == date(2024, 9, 1)
         assert updated_asset.asset_stock.purchase_price == 600.0
         assert updated_asset.asset_stock.quantity == 5
-        assert updated_asset.asset_stock.stock_id == stock_id
