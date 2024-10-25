@@ -148,10 +148,8 @@ async def update_asset_stock(
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"{request_data.id} id에 해당하는 자산을 찾지 못 했습니다.")
 
     stock = await StockRepository.get_by_code(session, request_data.stock_code)
-    if stock is None:
-        return PutResponse(status_code=status.HTTP_400_BAD_REQUEST, content="잘못된 주식 코드를 전달 했습니다.")
 
-    await AssetService.save_asset_by_put(session, request_data, asset, stock.id)
+    await AssetService.save_asset_by_put(session, request_data, asset, stock)
     return PutResponse(status_code=status.HTTP_200_OK, content="주식 자산을 성공적으로 수정 하였습니다.")
 
 

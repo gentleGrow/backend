@@ -6,7 +6,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.common.util.time import get_now_date
 from app.module.asset.enum import ASSETNAME, AmountUnit
-from app.module.asset.model import Asset, StockDaily
+from app.module.asset.model import Asset, StockDaily, Stock
 from app.module.asset.repository.asset_repository import AssetRepository
 from app.module.asset.schema import AssetStockPutRequest
 from app.module.asset.services.exchange_rate_service import ExchangeRateService
@@ -80,7 +80,7 @@ class AssetService:
 
     @staticmethod
     async def save_asset_by_put(
-        session: AsyncSession, request_data: AssetStockPutRequest, asset: Asset, stock_id: int | None
+        session: AsyncSession, request_data: AssetStockPutRequest, asset: Asset, stock: Stock | None
     ) -> None:
         if request_data.account_type is not None:
             asset.asset_stock.account_type = request_data.account_type
@@ -100,8 +100,8 @@ class AssetService:
         if request_data.quantity is not None:
             asset.asset_stock.quantity = request_data.quantity
 
-        if stock_id is not None:
-            asset.asset_stock.stock_id = stock_id
+        if stock is not None:
+            asset.asset_stock.stock_id = stock.id
 
         await AssetRepository.save(session, asset)
 
