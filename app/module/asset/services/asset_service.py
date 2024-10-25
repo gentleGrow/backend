@@ -100,7 +100,7 @@ class AssetService:
         if request_data.quantity is not None:
             asset.asset_stock.quantity = request_data.quantity
 
-        asset.asset_stock.stock_id = stock_id
+        asset.asset_stock.stock_id = stock_id 
 
         await AssetRepository.save(session, asset)
 

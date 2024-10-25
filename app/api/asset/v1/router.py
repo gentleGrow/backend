@@ -35,8 +35,8 @@ asset_stock_router = APIRouter(prefix="/v1")
 
 @asset_stock_router.get("/asset-field", summary="자산 필드를 반환합니다.", response_model=AssetFieldResponse)
 async def get_asset_field(
-    session: AsyncSession = Depends(get_mysql_session_router),
     token: AccessToken = Depends(verify_jwt_token),
+    session: AsyncSession = Depends(get_mysql_session_router),
 ) -> AssetFieldResponse:
     asset_field: list[str] = await AssetFieldService.get_asset_field(session, token.get("user"))
     return AssetFieldResponse(asset_field)
@@ -147,7 +147,11 @@ async def update_asset_stock(
     if asset is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"{request_data.id} id에 해당하는 자산을 찾지 못 했습니다.")
 
-    await AssetService.save_asset_by_put(session, request_data, asset, request_data.id)
+    stock = await StockRepository.get_by_code(session, request_data.stock_code)
+    if stock is None:
+        return PutResponse(status_code=status.HTTP_400_BAD_REQUEST, content="잘못된 주식 코드를 전달 했습니다.")
+    
+    await AssetService.save_asset_by_put(session, request_data, asset, stock.id)
     return PutResponse(status_code=status.HTTP_200_OK, content="주식 자산을 성공적으로 수정 하였습니다.")
 
 
