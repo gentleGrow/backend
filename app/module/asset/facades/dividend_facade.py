@@ -51,26 +51,8 @@ class DividendFacade:
 
         for asset in assets:
             won_exchange_rate: float = ExchangeRateService.get_won_exchange_rate(asset, exchange_rate_map)
-
-            asset_dividend, last_dividend_date = DividendService.get_asset_total_dividend(
-                won_exchange_rate=won_exchange_rate, dividend_map=dividend_map, asset=asset
-            )
-
-            for dividend_date, amount in asset_dividend.items():
-                total_dividend_date[dividend_date] += amount
-
-            if last_dividend_date is None:
-                continue
-
-            last_year_dividends = DividendService.get_last_year_dividends(
-                asset=asset,
-                dividend_map=dividend_map,
-                won_exchange_rate=won_exchange_rate,
-                last_dividend_date=last_dividend_date,
-            )
-
-            for dividend_date, amount in last_year_dividends.items():
-                total_dividend_date[dividend_date] += amount
+            cloest_dividend, dividend_date = DividendService.get_closest_dividend(asset, dividend_map)
+            total_dividend_date[dividend_date] += (cloest_dividend * won_exchange_rate)
 
         return {dividend_date: amount for dividend_date, amount in total_dividend_date.items()}
 
