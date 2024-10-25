@@ -130,8 +130,7 @@ class AssetService:
             )
 
         return result
-    
-    
+
     @staticmethod
     def get_total_asset_amount_with_date(
         assets: list[Asset],
@@ -141,13 +140,15 @@ class AssetService:
         result = 0.0
 
         for asset in assets:
-            current_stock_daily = stock_daily_map.get((asset.asset_stock.stock.code, asset.asset_stock.purchase_date), None)
+            current_stock_daily = stock_daily_map.get(
+                (asset.asset_stock.stock.code, asset.asset_stock.purchase_date), None
+            )
 
             if current_stock_daily is None:
                 current_stock_daily = AssetService.find_closest_stock_daily(
                     asset.asset_stock.stock.code, asset.asset_stock.purchase_date, stock_daily_map
                 )
-                
+
                 current_value = current_stock_daily.close_price if current_stock_daily else 1.0
             else:
                 current_value = current_stock_daily.adj_close_price
@@ -160,17 +161,13 @@ class AssetService:
 
         return result
 
-
     @staticmethod
     def find_closest_stock_daily(
-        stock_code: str,
-        purchase_date: date,
-        stock_daily_map: dict[tuple[str, date], StockDaily]
+        stock_code: str, purchase_date: date, stock_daily_map: dict[tuple[str, date], StockDaily]
     ) -> StockDaily | None:
         available_dates = [date for (code, date) in stock_daily_map.keys() if code == stock_code]
         if not available_dates:
             return None
         closest_date = max([d for d in available_dates if d <= purchase_date], default=None)
-        
+
         return stock_daily_map.get((stock_code, closest_date), None) if closest_date else None
-        
