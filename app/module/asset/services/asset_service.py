@@ -80,7 +80,7 @@ class AssetService:
 
     @staticmethod
     async def save_asset_by_put(
-        session: AsyncSession, request_data: AssetStockPutRequest, asset: Asset, stock_id: int
+        session: AsyncSession, request_data: AssetStockPutRequest, asset: Asset, stock_id: int | None
     ) -> None:
         if request_data.account_type is not None:
             asset.asset_stock.account_type = request_data.account_type
@@ -100,7 +100,8 @@ class AssetService:
         if request_data.quantity is not None:
             asset.asset_stock.quantity = request_data.quantity
 
-        asset.asset_stock.stock_id = stock_id 
+        if stock_id is not None:
+            asset.asset_stock.stock_id = stock_id
 
         await AssetRepository.save(session, asset)
 
