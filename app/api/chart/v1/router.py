@@ -4,7 +4,7 @@ from statistics import mean
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from redis.asyncio import Redis
 from sqlalchemy.ext.asyncio import AsyncSession
-
+from icecream import ic
 from app.common.auth.security import verify_jwt_token
 from app.common.util.time import get_now_date
 from app.module.asset.constant import (
@@ -289,13 +289,14 @@ async def get_sample_estimate_dividend(
         total_dividends: dict[date, float] = DividendFacade.get_full_month_estimate_dividend(
             assets, exchange_rate_map, dividend_map
         )
+        
         dividend_data_by_year = DividendService.process_dividends_by_year_month(total_dividends)
-
+        
         response_data = {}
         for year, months in dividend_data_by_year.items():
             data = [months.get(month, 0.0) for month in range(1, 13)]
             total = sum(data)
-            response_data[year] = EstimateDividendEveryValue(xAxises=MONTHS, data=data, unit="만원", total=total)
+            response_data[year] = EstimateDividendEveryValue(xAxises=MONTHS, data=data, unit="원", total=total)
 
         return EstimateDividendEveryResponse(response_data)
     else:

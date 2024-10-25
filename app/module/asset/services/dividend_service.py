@@ -10,6 +10,22 @@ from app.module.asset.services.exchange_rate_service import ExchangeRateService
 
 class DividendService:
     @staticmethod
+    def get_closest_dividend(asset: Asset, dividend_map: dict[tuple[str, date], float]) -> date:
+        asset_code: str = asset.asset_stock.stock.code
+        asset_date: date = asset.asset_stock.purchase_date
+
+        filtered_dividends = sorted(
+            (
+                (dividend_date, dividend_amount)
+                for (dividend_code, dividend_date), dividend_amount in dividend_map.items()
+                if dividend_code == asset_code and dividend_date > asset_date
+            ),
+            key=lambda x: x[0]
+        )
+
+        return filtered_dividends[0][0] if filtered_dividends else None
+
+    @staticmethod
     def process_dividends_by_year_month(total_dividends: dict[date, float]) -> dict[str, dict[int, float]]:
         dividend_by_year_month: dict[int, dict[int, float]] = defaultdict(lambda: defaultdict(float))
 

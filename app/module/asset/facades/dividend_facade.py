@@ -3,7 +3,7 @@ from datetime import date
 
 from redis.asyncio import Redis
 from sqlalchemy.ext.asyncio import AsyncSession
-
+from icecream import ic
 from app.module.asset.model import Asset
 from app.module.asset.services.dividend_service import DividendService
 from app.module.asset.services.exchange_rate_service import ExchangeRateService
@@ -46,15 +46,20 @@ class DividendFacade:
     @staticmethod
     def get_full_month_estimate_dividend(
         assets: list[Asset], exchange_rate_map: dict[str, float], dividend_map: dict[tuple[str, date], float]
-    ) -> dict[date, float]:
-        total_dividend_date: defaultdict[date, float] = defaultdict(float)
-
+    ) -> defaultdict[date, float]:
+        result: defaultdict[date, float] = defaultdict(float)
+        
         for asset in assets:
             won_exchange_rate: float = ExchangeRateService.get_won_exchange_rate(asset, exchange_rate_map)
-            cloest_dividend, dividend_date = DividendService.get_closest_dividend(asset, dividend_map)
-            total_dividend_date[dividend_date] += (cloest_dividend * won_exchange_rate)
-
-        return {dividend_date: amount for dividend_date, amount in total_dividend_date.items()}
+            closest_dividend_date: date = DividendService.get_closest_dividend(asset, dividend_map)
+            if closest_dividend_date is None:
+                continue
+            
+            for (code, current_date), dividend_amount in sorted(dividend_map.items()):
+                if code == asset.asset_stock.stock.code and current_date >= closest_dividend_date:
+                    result[current_date] += dividend_amount * won_exchange_rate
+                    
+        return result
 
     @staticmethod
     async def get_total_dividend(session: AsyncSession, redis_client: Redis, assets: list[Asset]) -> float:

@@ -69,6 +69,8 @@ class AssetService:
             values2["values"] = [v / 100000000 for v in values2["values"]]
             unit = AmountUnit.BILLION_WON
         else:
+            values1["values"] = [v / 10000 for v in values1["values"]]
+            values2["values"] = [v / 10000 for v in values2["values"]]
             unit = AmountUnit.MILLION_WON
 
         return values1, values2, unit
