@@ -1,6 +1,6 @@
 from redis.asyncio import Redis
 from sqlalchemy.ext.asyncio import AsyncSession
-
+from icecream import ic
 from app.module.asset.constant import REQUIRED_ASSET_FIELD
 from app.module.asset.enum import PurchaseCurrencyType, StockAsset
 from app.module.asset.model import Asset
@@ -74,8 +74,8 @@ class AssetFacade:
                 else None,
                 StockAsset.PROFIT_AMOUNT.value: (
                     (
-                        current_stock_price_map.get(asset.asset_stock.stock.code, 0.0) * apply_exchange_rate
-                        - purchase_price
+                        (current_stock_price_map.get(asset.asset_stock.stock.code, 0.0) * apply_exchange_rate)
+                        - (purchase_price * apply_exchange_rate)
                     )
                     * asset.asset_stock.quantity
                 )

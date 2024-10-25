@@ -172,10 +172,10 @@ class AssetStockService:
                 else None,
                 StockAsset.PROFIT_RATE.value: (
                     (
-                        current_stock_price_map.get(asset.asset_stock.stock.code, 0.0) * apply_exchange_rate
-                        - purchase_price
+                        (current_stock_price_map.get(asset.asset_stock.stock.code, 0.0) * apply_exchange_rate)
+                        - (purchase_price * apply_exchange_rate)
                     )
-                    / purchase_price
+                    / (purchase_price * apply_exchange_rate)
                     * 100
                 )
                 if purchase_price
@@ -183,7 +183,7 @@ class AssetStockService:
                 StockAsset.PROFIT_AMOUNT.value: (
                     (
                         current_stock_price_map.get(asset.asset_stock.stock.code, 0.0) * apply_exchange_rate
-                        - purchase_price
+                        - (purchase_price * apply_exchange_rate)
                     )
                     * asset.asset_stock.quantity
                 )
