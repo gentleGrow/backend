@@ -11,6 +11,7 @@ from app.module.asset.services.stock_daily_service import StockDailyService
 from app.module.asset.services.stock_service import StockService
 
 
+
 class AssetFacade:
     @staticmethod
     async def get_stock_assets(
@@ -34,25 +35,31 @@ class AssetFacade:
             )
 
             stock_daily = stock_daily_map.get((asset.asset_stock.stock.code, asset.asset_stock.purchase_date), None)
-            
+
             if stock_daily is None:
                 recent_stockdaily = lastest_stock_daily_map.get(asset.asset_stock.stock.code, None)
-                open_price:float = recent_stockdaily.adj_close_price if recent_stockdaily else current_stock_price_map.get(asset.asset_stock.stock.code, 1.0)
-                
+                open_price: float = (
+                    recent_stockdaily.adj_close_price
+                    if recent_stockdaily
+                    else current_stock_price_map.get(asset.asset_stock.stock.code, 1.0)
+                )
+
                 stock_daily = TodayTempStockDaily(
                     adj_close_price=current_stock_price_map.get(asset.asset_stock.stock.code, 1.0),
                     highest_price=current_stock_price_map.get(asset.asset_stock.stock.code, 1.0),
                     lowest_price=current_stock_price_map.get(asset.asset_stock.stock.code, 1.0),
-                    opening_price= open_price ,
+                    opening_price=open_price,
                     trade_volume=1,
                 )
-                purchase_price = (
-                    asset.asset_stock.purchase_price if asset.asset_stock.purchase_price else open_price
-                )
+                
+                purchase_price = asset.asset_stock.purchase_price if asset.asset_stock.purchase_price else open_price
             else:
                 purchase_price = (
-                    asset.asset_stock.purchase_price if asset.asset_stock.purchase_price else stock_daily.adj_close_price
+                    asset.asset_stock.purchase_price
+                    if asset.asset_stock.purchase_price
+                    else stock_daily.adj_close_price
                 )
+        
 
             stock_asset_data = {
                 StockAsset.ID.value: asset.id,
@@ -123,13 +130,14 @@ class AssetFacade:
     async def get_total_investment_amount(session: AsyncSession, redis_client: Redis, assets: list[Asset]) -> float:
         stock_daily_map = await StockDailyService.get_map_range(session, assets)
         exchange_rate_map = await ExchangeRateService.get_exchange_rate_map(redis_client)
-
+        lastest_stock_daily_map = await StockDailyService.get_latest_map(session, assets)
+        
         result = 0.0
 
         for asset in assets:
             stock_daily = stock_daily_map.get((asset.asset_stock.stock.code, asset.asset_stock.purchase_date), None)
             if stock_daily is None:
-                continue
+                stock_daily = lastest_stock_daily_map.get(asset.asset_stock.stock.code)
 
             invest_price = (
                 asset.asset_stock.purchase_price * ExchangeRateService.get_won_exchange_rate(asset, exchange_rate_map)
