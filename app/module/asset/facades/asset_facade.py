@@ -4,11 +4,12 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.module.asset.constant import REQUIRED_ASSET_FIELD
 from app.module.asset.enum import PurchaseCurrencyType, StockAsset
 from app.module.asset.model import Asset
+from app.module.asset.schema import TodayTempStockDaily
 from app.module.asset.services.dividend_service import DividendService
 from app.module.asset.services.exchange_rate_service import ExchangeRateService
 from app.module.asset.services.stock_daily_service import StockDailyService
 from app.module.asset.services.stock_service import StockService
-from app.module.asset.schema import TodayTempStockDaily
+
 
 class AssetFacade:
     @staticmethod
@@ -33,18 +34,25 @@ class AssetFacade:
             )
 
             stock_daily = stock_daily_map.get((asset.asset_stock.stock.code, asset.asset_stock.purchase_date), None)
+            
             if stock_daily is None:
+                recent_stockdaily = lastest_stock_daily_map.get(asset.asset_stock.stock.code, None)
+                open_price:float = recent_stockdaily.adj_close_price if recent_stockdaily else current_stock_price_map.get(asset.asset_stock.stock.code, 1.0)
+                
                 stock_daily = TodayTempStockDaily(
-                        adj_close_price = current_stock_price_map.get(asset.asset_stock.stock.code, 1.0),
-                        highest_price = current_stock_price_map.get(asset.asset_stock.stock.code, 1.0),
-                        lowest_price = current_stock_price_map.get(asset.asset_stock.stock.code, 1.0),
-                        opening_price = current_stock_price_map.get(asset.asset_stock.stock.code, 1.0),
-                        trade_volume = 1
-                    )
-
-            purchase_price = (
-                asset.asset_stock.purchase_price if asset.asset_stock.purchase_price else stock_daily.adj_close_price
-            )
+                    adj_close_price=current_stock_price_map.get(asset.asset_stock.stock.code, 1.0),
+                    highest_price=current_stock_price_map.get(asset.asset_stock.stock.code, 1.0),
+                    lowest_price=current_stock_price_map.get(asset.asset_stock.stock.code, 1.0),
+                    opening_price= open_price ,
+                    trade_volume=1,
+                )
+                purchase_price = (
+                    asset.asset_stock.purchase_price if asset.asset_stock.purchase_price else open_price
+                )
+            else:
+                purchase_price = (
+                    asset.asset_stock.purchase_price if asset.asset_stock.purchase_price else stock_daily.adj_close_price
+                )
 
             stock_asset_data = {
                 StockAsset.ID.value: asset.id,

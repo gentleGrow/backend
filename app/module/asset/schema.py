@@ -153,5 +153,3 @@ class TodayTempStockDaily(BaseModel):
     lowest_price: float
     opening_price: float
     trade_volume: int
-    
-    
