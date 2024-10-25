@@ -3,16 +3,6 @@ import datetime
 from app.common.util.time import end_timestamp, start_timestamp
 from app.module.asset.constant import KOSPI
 from app.module.asset.enum import Country, CountryMarketCode
-from app.module.asset.model import (  # noqa: F401 > relationship 설정시 필요합니다.
-    Asset,
-    AssetStock,
-    Dividend,
-    Stock,
-    StockDaily,
-    StockMonthly,
-    StockWeekly,
-)
-from app.module.auth.model import User  # noqa: F401 > relationship 설정시 필요합니다.
 
 
 def get_last_week_period_bounds() -> tuple[int, int]:

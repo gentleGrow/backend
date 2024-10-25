@@ -1,10 +1,8 @@
 import asyncio
 
 from app.data.common.service import StockCodeFileReader
-from app.module.asset.model import Stock  # noqa: F401 > relationship 설정시 필요합니다.
 from app.module.asset.repository.stock_repository import StockRepository
 from app.module.asset.schema import StockInfo
-from app.module.auth.model import User  # noqa: F401 > relationship 설정시 필요합니다.
 from database.dependency import get_mysql_session
 
 

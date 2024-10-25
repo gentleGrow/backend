@@ -27,7 +27,7 @@ from app.module.asset.model import (
 )
 from app.module.auth.constant import DUMMY_NAME, DUMMY_USER_ID
 from app.module.auth.enum import ProviderEnum, UserRoleEnum
-from app.module.auth.model import User  # noqa: F401 > relationship 설정시 필요합니다.
+from app.module.auth.model import User 
 
 
 @pytest.fixture(scope="function")

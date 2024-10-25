@@ -14,7 +14,6 @@ from sqlalchemy import (
 from sqlalchemy.orm import relationship
 
 from app.common.mixin.timestamp import TimestampMixin
-from app.module.auth.model import User  # noqa: F401 > relationship 설정시 필요합니다.
 from database.config import MySQLBase
 
 
