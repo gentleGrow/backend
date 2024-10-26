@@ -1,7 +1,7 @@
 from collections import defaultdict
 from datetime import date, datetime, timedelta
 from math import floor
-
+from icecream import ic
 from redis.asyncio import Redis
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -115,12 +115,21 @@ class PerformanceAnalysisFacade:
         assets: list[Asset] = await AssetRepository.get_eager(session, user_id, AssetType.STOCK)
         assets_by_date: defaultdict = AssetService.asset_list_from_days(assets, interval.get_days())
         exchange_rate_map = await ExchangeRateService.get_exchange_rate_map(redis_client)
+        
+        dates = sorted(market_analysis_result.keys())
+        if dates:
+            oldest_date = dates[0]
+            previous_dates = [oldest_date - timedelta(days=i) for i in range(1, 8)]
+            dates = previous_dates + dates  
+
+        sorted_dates = sorted(dates)
+        
         stock_daily_date_map = await StockDailyService.get_date_map(
-            session, assets, sorted(market_analysis_result.keys())
+            session, assets, sorted_dates
         )
 
         result = {}
-
+        
         for market_date in sorted(market_analysis_result):
             if market_date not in assets_by_date:
                 continue
@@ -131,13 +140,14 @@ class PerformanceAnalysisFacade:
             if current_assets is None or current_investment_amount == 0.0:
                 result[market_date] = 0.0
                 continue
-
+            
+            
             currnet_total_amount = AssetService.get_total_asset_amount_with_date(
                 current_assets, exchange_rate_map, stock_daily_date_map, market_date
             )
 
             current_profit_rate = ((currnet_total_amount - current_investment_amount) / current_investment_amount) * 100
-
+            
             result[market_date] = current_profit_rate
 
         return result

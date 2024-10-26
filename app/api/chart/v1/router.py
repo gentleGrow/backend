@@ -378,7 +378,7 @@ async def get_sample_performance_analysis(
         user_analysis_result: dict[date, float] = await PerformanceAnalysisFacade.get_user_analysis_single_month(
             session, redis_client, DUMMY_USER_ID, interval, market_analysis_result
         )
-
+        
         sorted_dates = sorted(market_analysis_result.keys())
 
         return PerformanceAnalysisResponse(
