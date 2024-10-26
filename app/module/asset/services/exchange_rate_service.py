@@ -4,7 +4,7 @@ from app.module.asset.constant import CURRENCY_PAIRS
 from app.module.asset.enum import CurrencyType
 from app.module.asset.model import Asset
 from app.module.asset.redis_repository import RedisExchangeRateRepository
-from icecream import ic
+
 
 class ExchangeRateService:
     @staticmethod

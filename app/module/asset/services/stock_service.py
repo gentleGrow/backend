@@ -2,6 +2,7 @@ from datetime import date
 
 from redis.asyncio import Redis
 from sqlalchemy.ext.asyncio import AsyncSession
+from icecream import ic
 
 from app.common.util.time import get_now_date
 from app.module.asset.model import Asset, Stock, StockDaily
@@ -25,20 +26,6 @@ class StockService:
         stock = await StockDailyRepository.get_stock_daily(session, stock_code, buy_date)
         return True if stock else False
 
-    @staticmethod
-    def check_not_found_stock(
-        stock_daily_map: dict[tuple[str, date], StockDaily],
-        current_stock_daily_map: dict[str, float] | dict[str, None],
-        assets: list[Asset],
-    ) -> list[str]:
-        result = []
-        for asset in assets:
-            stock_daily = stock_daily_map.get((asset.asset_stock.stock.code, asset.asset_stock.purchase_date))
-            current_stock_daily = current_stock_daily_map.get(asset.asset_stock.stock.code)
-            if stock_daily is None or current_stock_daily is None:
-                result.append(asset.asset_stock.stock.code)
-                continue
-        return result
 
     @staticmethod
     async def get_current_stock_price(

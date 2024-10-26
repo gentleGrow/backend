@@ -1,6 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from redis.asyncio import Redis
 from sqlalchemy.ext.asyncio import AsyncSession
+
 from app.common.auth.security import verify_jwt_token
 from app.common.schema.common_schema import DeleteResponse, PostResponse, PutResponse
 from app.module.asset.enum import AccountType, AssetType, InvestmentBankType
@@ -99,7 +100,7 @@ async def get_asset_stock(
 ) -> AssetStockResponse:
     assets: list[Asset] = await AssetRepository.get_eager(session, token.get("user"), AssetType.STOCK)
     no_asset_response = AssetStockResponse.validate_assets(assets)
-    
+
     if no_asset_response:
         return no_asset_response
 

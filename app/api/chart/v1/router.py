@@ -686,20 +686,11 @@ async def get_summary(
             profit=ProfitDetail(profit_amount=0.0, profit_rate=0.0),
         )
 
-    stock_daily_map: dict[tuple[str, date], StockDaily] = await StockDailyService.get_map_range(session, assets)
     latest_stock_daily_map: dict[str, StockDaily] = await StockDailyService.get_latest_map(session, assets)
     current_stock_price_map: dict[str, float] = await StockService.get_current_stock_price_by_code(
         redis_client, latest_stock_daily_map, [asset.asset_stock.stock.code for asset in assets]
     )
     exchange_rate_map: dict[str, float] = await ExchangeRateService.get_exchange_rate_map(redis_client)
-
-    not_found_stock_codes: list[str] = StockService.check_not_found_stock(
-        stock_daily_map, current_stock_price_map, assets
-    )
-    if not_found_stock_codes:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND, detail={"다음의 주식 코드를 찾지 못 했습니다.": not_found_stock_codes}
-        )
 
     total_asset_amount = await AssetFacade.get_total_asset_amount(session, redis_client, assets)
     total_investment_amount = await AssetFacade.get_total_investment_amount(session, redis_client, assets)
@@ -734,20 +725,12 @@ async def get_sample_summary(
             profit=ProfitDetail(profit_amount=0.0, profit_rate=0.0),
         )
 
-    stock_daily_map: dict[tuple[str, date], StockDaily] = await StockDailyService.get_map_range(session, assets)
     latest_stock_daily_map: dict[str, StockDaily] = await StockDailyService.get_latest_map(session, assets)
     current_stock_price_map: dict[str, float] = await StockService.get_current_stock_price_by_code(
         redis_client, latest_stock_daily_map, [asset.asset_stock.stock.code for asset in assets]
     )
     exchange_rate_map: dict[str, float] = await ExchangeRateService.get_exchange_rate_map(redis_client)
 
-    not_found_stock_codes: list[str] = StockService.check_not_found_stock(
-        stock_daily_map, current_stock_price_map, assets
-    )
-    if not_found_stock_codes:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND, detail={"다음의 주식 코드를 찾지 못 했습니다.": not_found_stock_codes}
-        )
 
     total_asset_amount = await AssetFacade.get_total_asset_amount(session, redis_client, assets)
     total_investment_amount = await AssetFacade.get_total_investment_amount(session, redis_client, assets)
