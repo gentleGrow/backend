@@ -131,11 +131,16 @@ class CurrencyType(StrEnum):
     BRAZIL = "BRL"
     CANADA = "CAD"
     CHINA = "CNY"
-    EUROPE = "EUR"
     HONG_KONG = "HKD"
     INDIA = "INR"
     SWITZERLAND = "CHF"
     UNITED_KINGDOM = "GBP"
+    EUROPE = "EUR"
+    FRANCE = "EUR"
+    GERMANY = "EUR"
+    NETHERLAND = "EUR"
+    ITALY = "EUR"
+    SPAIN = "EUR"
 
 
 class TimeInterval(StrEnum):

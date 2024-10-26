@@ -3,7 +3,7 @@ from datetime import date
 
 from redis.asyncio import Redis
 from sqlalchemy.ext.asyncio import AsyncSession
-from icecream import ic
+
 from app.module.asset.model import Asset
 from app.module.asset.services.dividend_service import DividendService
 from app.module.asset.services.exchange_rate_service import ExchangeRateService
@@ -48,17 +48,17 @@ class DividendFacade:
         assets: list[Asset], exchange_rate_map: dict[str, float], dividend_map: dict[tuple[str, date], float]
     ) -> defaultdict[date, float]:
         result: defaultdict[date, float] = defaultdict(float)
-        
+
         for asset in assets:
             won_exchange_rate: float = ExchangeRateService.get_won_exchange_rate(asset, exchange_rate_map)
-            closest_dividend_date: date = DividendService.get_closest_dividend(asset, dividend_map)
+            closest_dividend_date: date | None = DividendService.get_closest_dividend(asset, dividend_map)
             if closest_dividend_date is None:
                 continue
-            
+
             for (code, current_date), dividend_amount in sorted(dividend_map.items()):
                 if code == asset.asset_stock.stock.code and current_date >= closest_dividend_date:
                     result[current_date] += dividend_amount * won_exchange_rate
-                    
+
         return result
 
     @staticmethod

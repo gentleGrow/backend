@@ -3,7 +3,7 @@ from datetime import date, datetime, timedelta
 from typing import Any
 
 from sqlalchemy.ext.asyncio import AsyncSession
-from icecream import ic
+
 from app.common.util.time import get_now_date
 from app.module.asset.enum import ASSETNAME, AmountUnit
 from app.module.asset.model import Asset, Stock, StockDaily
@@ -139,7 +139,7 @@ class AssetService:
         assets: list[Asset],
         exchange_rate_map: dict[str, float],
         stock_daily_date_map: dict[tuple[str, date], StockDaily],
-        market_date: date
+        market_date: date,
     ) -> float:
         result = 0.0
 
@@ -149,7 +149,7 @@ class AssetService:
             if current_stock_daily is None:
                 current_stock_daily = AssetService.find_closest_stock_daily(
                     asset.asset_stock.stock.code, market_date, stock_daily_date_map
-                )                
+                )
                 current_value = current_stock_daily.close_price if current_stock_daily else 1.0
             else:
                 current_value = current_stock_daily.adj_close_price
