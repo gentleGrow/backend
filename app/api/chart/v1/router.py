@@ -1,10 +1,10 @@
 from datetime import date, datetime, timedelta
 from statistics import mean
 
-from fastapi import APIRouter, Depends, HTTPException, Query, status
+from fastapi import APIRouter, Depends, Query
 from redis.asyncio import Redis
 from sqlalchemy.ext.asyncio import AsyncSession
-
+from icecream import ic
 from app.common.auth.security import verify_jwt_token
 from app.common.util.time import get_now_date
 from app.module.asset.constant import (
@@ -660,7 +660,7 @@ async def get_my_stock(
     return MyStockResponse(
         [
             MyStockResponseValue(
-                name=stock_asset["종목명"],
+                name=stock_asset["종목명"].strip(),
                 current_price=stock_asset["현재가"],
                 profit_rate=stock_asset["수익률"],
                 profit_amount=stock_asset["수익금"],
@@ -730,7 +730,6 @@ async def get_sample_summary(
         redis_client, latest_stock_daily_map, [asset.asset_stock.stock.code for asset in assets]
     )
     exchange_rate_map: dict[str, float] = await ExchangeRateService.get_exchange_rate_map(redis_client)
-
 
     total_asset_amount = await AssetFacade.get_total_asset_amount(session, redis_client, assets)
     total_investment_amount = await AssetFacade.get_total_investment_amount(session, redis_client, assets)

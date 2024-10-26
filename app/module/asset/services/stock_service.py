@@ -2,7 +2,6 @@ from datetime import date
 
 from redis.asyncio import Redis
 from sqlalchemy.ext.asyncio import AsyncSession
-from icecream import ic
 
 from app.common.util.time import get_now_date
 from app.module.asset.model import Asset, Stock, StockDaily
@@ -25,7 +24,6 @@ class StockService:
 
         stock = await StockDailyRepository.get_stock_daily(session, stock_code, buy_date)
         return True if stock else False
-
 
     @staticmethod
     async def get_current_stock_price(
