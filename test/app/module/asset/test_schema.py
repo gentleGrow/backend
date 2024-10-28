@@ -3,10 +3,12 @@ from fastapi import HTTPException
 from redis.asyncio import Redis
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.module.asset.constant import CurrencyType
 from app.module.asset.enum import AssetType
 from app.module.asset.facades.asset_facade import AssetFacade
 from app.module.asset.facades.dividend_facade import DividendFacade
 from app.module.asset.model import Asset
+from app.module.asset.redis_repository import RedisExchangeRateRepository
 from app.module.asset.repository.asset_repository import AssetRepository
 from app.module.asset.schema import AssetStockResponse, UpdateAssetFieldRequest
 from app.module.asset.services.asset_field_service import AssetFieldService
@@ -79,6 +81,8 @@ class TestAssetStockResponse:
             total_profit_rate=0.0,
             total_profit_amount=0.0,
             total_dividend_amount=0.0,
+            dollar_exchange=0.0,
+            won_exchange=0.0,
         )
 
         assert response == expected_response
@@ -104,6 +108,10 @@ class TestAssetStockResponse:
         total_asset_amount = await AssetFacade.get_total_asset_amount(session, redis_client, assets)
         total_invest_amount = await AssetFacade.get_total_investment_amount(session, redis_client, assets)
         total_dividend_amount = await DividendFacade.get_total_dividend(session, redis_client, assets)
+        dollar_exchange = await RedisExchangeRateRepository.get(
+            redis_client, f"{CurrencyType.KOREA}_{CurrencyType.USA}"
+        )
+        won_exchange = await RedisExchangeRateRepository.get(redis_client, f"{CurrencyType.USA}_{CurrencyType.KOREA}")
 
         # When
         stock_asset_response = AssetStockResponse.parse(
@@ -112,6 +120,8 @@ class TestAssetStockResponse:
             total_asset_amount=total_asset_amount,
             total_invest_amount=total_invest_amount,
             total_dividend_amount=total_dividend_amount,
+            dollar_exchange=dollar_exchange if dollar_exchange else 0.0,
+            won_exchange=won_exchange if won_exchange else 0.0,
         )
 
         # Then

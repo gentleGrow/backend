@@ -1,13 +1,15 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from redis.asyncio import Redis
 from sqlalchemy.ext.asyncio import AsyncSession
-from app.module.asset.redis_repository import RedisExchangeRateRepository
+
 from app.common.auth.security import verify_jwt_token
 from app.common.schema.common_schema import DeleteResponse, PostResponse, PutResponse
+from app.module.asset.constant import CurrencyType
 from app.module.asset.enum import AccountType, AssetType, InvestmentBankType
 from app.module.asset.facades.asset_facade import AssetFacade
 from app.module.asset.facades.dividend_facade import DividendFacade
 from app.module.asset.model import Asset, AssetField, Stock
+from app.module.asset.redis_repository import RedisExchangeRateRepository
 from app.module.asset.repository.asset_field_repository import AssetFieldRepository
 from app.module.asset.repository.asset_repository import AssetRepository
 from app.module.asset.repository.stock_repository import StockRepository
@@ -21,7 +23,6 @@ from app.module.asset.schema import (
     StockListValue,
     UpdateAssetFieldRequest,
 )
-from app.module.asset.constant import CurrencyType
 from app.module.asset.services.asset_field_service import AssetFieldService
 from app.module.asset.services.asset_service import AssetService
 from app.module.asset.services.asset_stock_service import AssetStockService
@@ -88,8 +89,17 @@ async def get_sample_asset_stock(
     total_invest_amount = await AssetFacade.get_total_investment_amount(session, redis_client, assets)
     total_dividend_amount = await DividendFacade.get_total_dividend(session, redis_client, assets)
 
+    dollar_exchange = await RedisExchangeRateRepository.get(redis_client, f"{CurrencyType.KOREA}_{CurrencyType.USA}")
+    won_exchange = await RedisExchangeRateRepository.get(redis_client, f"{CurrencyType.USA}_{CurrencyType.KOREA}")
+
     return AssetStockResponse.parse(
-        stock_assets, asset_fields, total_asset_amount, total_invest_amount, total_dividend_amount
+        stock_assets,
+        asset_fields,
+        total_asset_amount,
+        total_invest_amount,
+        total_dividend_amount,
+        dollar_exchange if dollar_exchange else 1.0,
+        won_exchange if won_exchange else 1.0,
     )
 
 
@@ -115,7 +125,13 @@ async def get_asset_stock(
     won_exchange = await RedisExchangeRateRepository.get(redis_client, f"{CurrencyType.USA}_{CurrencyType.KOREA}")
 
     return AssetStockResponse.parse(
-        stock_assets, asset_fields, total_asset_amount, total_invest_amount, total_dividend_amount,dollar_exchange,won_exchange
+        stock_assets,
+        asset_fields,
+        total_asset_amount,
+        total_invest_amount,
+        total_dividend_amount,
+        dollar_exchange if dollar_exchange else 1.0,
+        won_exchange if won_exchange else 1.0,
     )
 
 
@@ -162,7 +178,6 @@ async def update_asset_stock(
 
     await AssetService.save_asset_by_put(session, request_data, asset, stock)
     return PutResponse(status_code=status.HTTP_200_OK, content="주식 자산을 성공적으로 수정 하였습니다.")
-
 
 
 @asset_stock_router.delete("/assetstock/{asset_id}", summary="자산을 삭제합니다.", response_model=DeleteResponse)

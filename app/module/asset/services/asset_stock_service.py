@@ -1,7 +1,8 @@
 from datetime import date, datetime
 
-from sqlalchemy.ext.asyncio import AsyncSession
 from icecream import ic
+from sqlalchemy.ext.asyncio import AsyncSession
+
 from app.module.asset.enum import AssetType, CurrencyType, PurchaseCurrencyType, StockAsset
 from app.module.asset.model import Asset, AssetStock, StockDaily
 from app.module.asset.repository.asset_repository import AssetRepository
@@ -141,11 +142,11 @@ class AssetStockService:
             )
 
             stock_daily = stock_daily_map.get((asset.asset_stock.stock.code, asset.asset_stock.purchase_date), None)
-            
+
             ic(asset.asset_stock.stock.code)
             ic(asset.asset_stock.purchase_date)
             ic(stock_daily)
-            
+
             if stock_daily is None:
                 continue
 
