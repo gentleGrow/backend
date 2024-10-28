@@ -15,5 +15,3 @@ class User(TimestampMixin, MySQLBase):
     role = Column(Enum(UserRoleEnum), default=UserRoleEnum.USER)
     nickname = Column(String(255), nullable=True, unique=True)
     email = Column(String(255), nullable=True, unique=True)
-
-    asset = relationship("Asset", back_populates="user")

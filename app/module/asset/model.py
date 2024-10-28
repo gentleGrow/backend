@@ -61,7 +61,7 @@ class Asset(TimestampMixin, MySQLBase):
     asset_type = Column(String(255), nullable=False, info={"description": "자산 종류"})
 
     user_id = Column(BigInteger, ForeignKey("user.id"), nullable=False)
-    user = relationship("User", back_populates="asset")
+ 
     stock = relationship(
         "Stock", secondary="asset_stock", back_populates="asset", overlaps="asset_stock", lazy="selectin"
     )

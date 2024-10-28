@@ -3,10 +3,11 @@ import time
 from datetime import datetime
 from zoneinfo import ZoneInfo
 
+
 def check_weekend():
     today = datetime.today().weekday()
-    return today >= 5 
-    
+    return today >= 5
+
 
 def get_now_date():
     seoul_tz = ZoneInfo("Asia/Seoul")

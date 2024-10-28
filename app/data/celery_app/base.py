@@ -27,8 +27,14 @@ celery_task = Celery(
     "celery_schedule", broker=f"redis://{REDIS_HOST}:{REDIS_PORT}", backend=f"redis://{REDIS_HOST}:{REDIS_PORT}"
 )
 
-celery_task.conf.timezone = "Asia/Seoul"
-celery_task.conf.enable_utc = False
+celery_task.conf.update(
+    {
+        "beat_schedule_filename": "/home/ubuntu/celerybeat-schedule.db",
+        "timezone": "Asia/Seoul",
+        "enable_utc": False,
+    }
+)
+
 
 
 celery_task.conf.beat_schedule = {

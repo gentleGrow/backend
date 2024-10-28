@@ -1,9 +1,10 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from redis.asyncio import Redis
 from sqlalchemy.ext.asyncio import AsyncSession
-from app.common.util.time import check_weekend
+
 from app.common.auth.security import verify_jwt_token
 from app.common.schema.common_schema import DeleteResponse, PostResponse, PutResponse
+from app.common.util.time import check_weekend
 from app.module.asset.constant import CurrencyType
 from app.module.asset.enum import AccountType, AssetType, InvestmentBankType
 from app.module.asset.facades.asset_facade import AssetFacade
@@ -151,14 +152,14 @@ async def create_asset_stock(
             status_code=status.HTTP_404_NOT_FOUND,
             content=f"{request_data.stock_code} 코드의 {request_data.buy_date} 날짜가 존재하지 않습니다.",
         )
-    
+
     is_weekend = check_weekend()
     if is_weekend:
         return PostResponse(
             status_code=status.HTTP_404_NOT_FOUND,
-            content=f"구매일자 주말은 허용하지 않습니다.",
+            content="구매일자 주말은 허용하지 않습니다.",
         )
-    
+
     await AssetStockService.save_asset_stock_by_post(session, request_data, stock.id, token.get("user"))
     return PostResponse(status_code=status.HTTP_201_CREATED, content="주식 자산 성공적으로 등록 했습니다.")
 
@@ -184,7 +185,7 @@ async def update_asset_stock(
     if is_weekend:
         return PutResponse(
             status_code=status.HTTP_404_NOT_FOUND,
-            content=f"구매일자 주말은 허용하지 않습니다.",
+            content="구매일자 주말은 허용하지 않습니다.",
         )
 
     stock = await StockRepository.get_by_code(session, request_data.stock_code)
