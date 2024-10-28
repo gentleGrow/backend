@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from redis.asyncio import Redis
 from sqlalchemy.ext.asyncio import AsyncSession
-
+from app.module.asset.redis_repository import RedisExchangeRateRepository
 from app.common.auth.security import verify_jwt_token
 from app.common.schema.common_schema import DeleteResponse, PostResponse, PutResponse
 from app.module.asset.enum import AccountType, AssetType, InvestmentBankType
@@ -21,6 +21,7 @@ from app.module.asset.schema import (
     StockListValue,
     UpdateAssetFieldRequest,
 )
+from app.module.asset.constant import CurrencyType
 from app.module.asset.services.asset_field_service import AssetFieldService
 from app.module.asset.services.asset_service import AssetService
 from app.module.asset.services.asset_stock_service import AssetStockService
@@ -110,9 +111,11 @@ async def get_asset_stock(
     total_asset_amount = await AssetFacade.get_total_asset_amount(session, redis_client, assets)
     total_invest_amount = await AssetFacade.get_total_investment_amount(session, redis_client, assets)
     total_dividend_amount = await DividendFacade.get_total_dividend(session, redis_client, assets)
+    dollar_exchange = await RedisExchangeRateRepository.get(redis_client, f"{CurrencyType.KOREA}_{CurrencyType.USA}")
+    won_exchange = await RedisExchangeRateRepository.get(redis_client, f"{CurrencyType.USA}_{CurrencyType.KOREA}")
 
     return AssetStockResponse.parse(
-        stock_assets, asset_fields, total_asset_amount, total_invest_amount, total_dividend_amount
+        stock_assets, asset_fields, total_asset_amount, total_invest_amount, total_dividend_amount,dollar_exchange,won_exchange
     )
 
 
@@ -147,17 +150,19 @@ async def update_asset_stock(
     if asset is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"{request_data.id} id에 해당하는 자산을 찾지 못 했습니다.")
 
-    stock_exist = await StockService.check_stock_exist(session, request_data.stock_code, request_data.buy_date)
-    if stock_exist is False:
-        return PutResponse(
-            status_code=status.HTTP_404_NOT_FOUND,
-            content=f"{request_data.stock_code} 코드의 {request_data.buy_date} 날짜가 존재하지 않습니다.",
-        )
+    if request_data.stock_code and request_data.buy_date:
+        stock_exist = await StockService.check_stock_exist(session, request_data.stock_code, request_data.buy_date)
+        if stock_exist is False:
+            return PutResponse(
+                status_code=status.HTTP_404_NOT_FOUND,
+                content=f"{request_data.stock_code} 코드의 {request_data.buy_date} 날짜가 존재하지 않습니다.",
+            )
 
     stock = await StockRepository.get_by_code(session, request_data.stock_code)
 
     await AssetService.save_asset_by_put(session, request_data, asset, stock)
     return PutResponse(status_code=status.HTTP_200_OK, content="주식 자산을 성공적으로 수정 하였습니다.")
+
 
 
 @asset_stock_router.delete("/assetstock/{asset_id}", summary="자산을 삭제합니다.", response_model=DeleteResponse)

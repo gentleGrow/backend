@@ -94,6 +94,8 @@ class AssetStockResponse(BaseModel):
     total_profit_rate: float
     total_profit_amount: float
     total_dividend_amount: float
+    dollar_exchange:float
+    won_exchange:float
 
     @classmethod
     def parse(
@@ -103,6 +105,8 @@ class AssetStockResponse(BaseModel):
         total_asset_amount: float,
         total_invest_amount: float,
         total_dividend_amount: float,
+        dollar_exchange:float,
+        won_exchange:float
     ) -> "AssetStockResponse":
         return cls(
             stock_assets=stock_assets,
@@ -114,6 +118,8 @@ class AssetStockResponse(BaseModel):
             else 0.0,
             total_profit_amount=total_asset_amount - total_invest_amount,
             total_dividend_amount=total_dividend_amount,
+            dollar_exchange=dollar_exchange,
+            won_exchange=won_exchange
         )
 
     @staticmethod
