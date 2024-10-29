@@ -12,6 +12,6 @@ async def test_get_all_stocks(session: AsyncSession, setup_stock):
 
     # Then
     assert stocks[0].code == "AAPL"
-    assert stocks[0].name == "Apple Inc."
+    assert stocks[0].name_en == "Apple"
     assert stocks[1].code == "TSLA"
-    assert stocks[1].name == "Tesla Inc."
+    assert stocks[1].name_kr == "테슬라"

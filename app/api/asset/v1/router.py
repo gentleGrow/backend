@@ -79,7 +79,9 @@ async def get_sample_asset_stock(
     session: AsyncSession = Depends(get_mysql_session_router), redis_client: Redis = Depends(get_redis_pool)
 ) -> AssetStockResponse:
     assets: list[Asset] = await AssetRepository.get_eager(session, DUMMY_USER_ID, AssetType.STOCK)
-    no_asset_response = AssetStockResponse.validate_assets(assets)
+    asset_fields:list[str] = await AssetFieldService.get_asset_field(session, DUMMY_USER_ID)
+    
+    no_asset_response = AssetStockResponse.validate_assets(assets, asset_fields)
     if no_asset_response:
         return no_asset_response
 
@@ -111,12 +113,12 @@ async def get_asset_stock(
     session: AsyncSession = Depends(get_mysql_session_router),
 ) -> AssetStockResponse:
     assets: list[Asset] = await AssetRepository.get_eager(session, token.get("user"), AssetType.STOCK)
-    no_asset_response = AssetStockResponse.validate_assets(assets)
+    asset_fields:list[str] = await AssetFieldService.get_asset_field(session, token.get("user"))
 
+    no_asset_response = AssetStockResponse.validate_assets(assets, asset_fields)
     if no_asset_response:
         return no_asset_response
 
-    asset_fields = await AssetFieldService.get_asset_field(session, token.get("user"))
     stock_assets: list[dict] = await AssetFacade.get_stock_assets(session, redis_client, assets, asset_fields)
 
     total_asset_amount = await AssetFacade.get_total_asset_amount(session, redis_client, assets)

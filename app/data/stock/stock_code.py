@@ -21,6 +21,7 @@ async def main():
                 market_index=stock_info.market_index,
                 country=stock_info.country,
             )
+            
 
             stock_code_list.append(stock)
 

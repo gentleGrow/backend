@@ -1,6 +1,8 @@
 from sqlalchemy.dialects.mysql import insert
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
+from sqlalchemy import update
+
 from sqlalchemy.sql import func
 
 from app.module.asset.model import Stock
@@ -47,7 +49,13 @@ class StockRepository:
     async def bulk_upsert(session: AsyncSession, stocks: list[Stock]) -> None:
         stmt = insert(Stock).values(
             [
-                {"code": stock.code, "name_kr": stock.name_kr, "name_en": stock.name_en, "market_index": stock.market_index, "country": stock.country}
+                {
+                    "code": stock.code,
+                    "name_kr": stock.name_kr,
+                    "name_en": stock.name_en,
+                    "market_index": stock.market_index,
+                    "country": stock.country,
+                }
                 for stock in stocks
             ]
         )
@@ -67,3 +75,20 @@ class StockRepository:
             await session.commit()
         except Exception:
             await session.rollback()
+
+    @staticmethod
+    async def update_code_by_name_kr(session: AsyncSession, name_kr: str, new_code: str) -> None:
+        stmt = (
+            update(Stock)
+            .where(Stock.name_kr == name_kr)
+            .values(code=new_code, updated_at=func.now())
+        )
+        
+        try:
+            await session.execute(stmt)
+            await session.commit()
+        except Exception as e:
+            await session.rollback()
+            raise e
+        
+        

@@ -110,9 +110,9 @@ async def setup_user(session: AsyncSession):
 
 @pytest.fixture(scope="function")
 async def setup_stock(session: AsyncSession):
-    stock_1 = Stock(id=1, code="AAPL", country="USA", market_index="NASDAQ", name="Apple Inc.")
-    stock_2 = Stock(id=2, code="TSLA", country="USA", market_index="NASDAQ", name="Tesla Inc.")
-    stock_3 = Stock(id=3, code="005930", country="KOREA", market_index="KOSPI", name="삼성전자")
+    stock_1 = Stock(id=1, code="AAPL", country="USA", market_index="NASDAQ", name_kr="애플", name_en="Apple")
+    stock_2 = Stock(id=2, code="TSLA", country="USA", market_index="NASDAQ", name_kr="테슬라", name_en="Tesla")
+    stock_3 = Stock(id=3, code="005930", country="KOREA", market_index="KOSPI", name_kr="삼성전자", name_en="")
     session.add_all([stock_1, stock_2, stock_3])
     await session.commit()
 

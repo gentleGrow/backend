@@ -32,7 +32,7 @@ class TestCompositionFacade:
         # Then
         expected_result = [
             {
-                "name": "Tesla Inc.",
+                "name": "테슬라",
                 "percent_rate": approx(
                     (2 * 720 * exchange_rate_map["USD_KRW"])
                     / (2 * 720 * exchange_rate_map["USD_KRW"] + 1 * 150 * exchange_rate_map["USD_KRW"] + 1 * 70000)
@@ -42,7 +42,7 @@ class TestCompositionFacade:
                 "current_amount": approx(2 * 720 * exchange_rate_map["USD_KRW"], rel=1e-2),
             },
             {
-                "name": "Apple Inc.",
+                "name": "애플",
                 "percent_rate": approx(
                     (1 * 150 * exchange_rate_map["USD_KRW"])
                     / (2 * 720 * exchange_rate_map["USD_KRW"] + 1 * 150 * exchange_rate_map["USD_KRW"] + 1 * 70000)

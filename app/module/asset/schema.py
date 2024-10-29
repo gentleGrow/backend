@@ -123,11 +123,11 @@ class AssetStockResponse(BaseModel):
         )
 
     @staticmethod
-    def validate_assets(assets: list[Asset]) -> Optional["AssetStockResponse"]:
+    def validate_assets(assets: list[Asset], asset_fields:list[str]) -> Optional["AssetStockResponse"]:
         if len(assets) == 0:
             return AssetStockResponse(
                 stock_assets=[],
-                asset_fields=[],
+                asset_fields=asset_fields,
                 total_asset_amount=0.0,
                 total_invest_amount=0.0,
                 total_profit_rate=0.0,

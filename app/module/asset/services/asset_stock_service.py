@@ -1,6 +1,5 @@
 from datetime import date, datetime
 
-from icecream import ic
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.module.asset.enum import AssetType, CurrencyType, PurchaseCurrencyType, StockAsset
