@@ -71,7 +71,7 @@ async def get_bank_account_list() -> BankAccountResponse:
 async def get_stock_list(session: AsyncSession = Depends(get_mysql_session_router)) -> StockListResponse:
     stock_list: list[Stock] = await StockRepository.get_all(session)
 
-    return StockListResponse([StockListValue(name=stock.name, code=stock.code) for stock in stock_list])
+    return StockListResponse([StockListValue(name=stock.name_kr, code=stock.code) for stock in stock_list])
 
 
 @asset_stock_router.get("/sample/assetstock", summary="임시 자산 정보를 반환합니다.", response_model=AssetStockResponse)

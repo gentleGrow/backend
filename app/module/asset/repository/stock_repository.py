@@ -47,13 +47,14 @@ class StockRepository:
     async def bulk_upsert(session: AsyncSession, stocks: list[Stock]) -> None:
         stmt = insert(Stock).values(
             [
-                {"code": stock.code, "name": stock.name, "market_index": stock.market_index, "country": stock.country}
+                {"code": stock.code, "name_kr": stock.name_kr, "name_en": stock.name_en, "market_index": stock.market_index, "country": stock.country}
                 for stock in stocks
             ]
         )
 
         update_dict = {
-            "name": stmt.inserted.name,
+            "name_kr": stmt.inserted.name_kr,
+            "name_en": stmt.inserted.name_en,
             "market_index": stmt.inserted.market_index,
             "country": stmt.inserted.country,
             "updated_at": func.now(),

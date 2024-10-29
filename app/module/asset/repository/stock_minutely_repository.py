@@ -9,7 +9,7 @@ from app.module.asset.model import StockMinutely
 
 class StockMinutelyRepository:
     @staticmethod
-    async def remove_old_data(session: AsyncSession, remove_time: datetime) -> None:
+    async def remove_by_datetime(session: AsyncSession, remove_time: datetime) -> None:
         stmt = delete(StockMinutely).where(StockMinutely.datetime < remove_time)
         await session.execute(stmt)
         await session.commit()

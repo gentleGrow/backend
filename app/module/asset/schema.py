@@ -141,7 +141,8 @@ class AssetStockResponse(BaseModel):
 
 class StockInfo(BaseModel):
     code: str = Field(..., description="종목 코드", examples="095570")
-    name: str = Field(..., description="종목명", examples="BGF리테일")
+    name_kr: str = Field(..., description="종목명", examples="BGF리테일")
+    name_en: str = Field(..., description="종목명", examples="Apple")
     country: str = Field(..., description="나라명", examples="Korea")
     market_index: str = Field(..., description="주가 지수", examples="KOSPI")
 

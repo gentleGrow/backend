@@ -183,10 +183,14 @@ class StockCodeFileReader:
     def _read_stock_codes_from_excel(filepath: str) -> list[StockInfo]:
         try:
             df = pd.read_excel(
-                filepath, usecols=["Symbol", "Company Name", "Country", "Code"], header=0, dtype={"Symbol": str}
+                filepath, usecols=["Symbol", "NameKr", "NameEn", "Country", "Code"], header=0, dtype={"Symbol": str}
             )
-            df.columns = ["Symbol", "Company_Name", "Country", "Code"]
+            df.columns = ["Symbol", "NameKr", "NameEn", "Country", "Code"]
+            df["Symbol"] = df["Symbol"].str.strip()
+            df["NameKr"] = df["NameKr"].str.strip()
+            df["NameEn"] = df["NameEn"].str.strip()
             df["Country"] = df["Country"].str.strip()
+            df["Code"] = df["Code"].str.strip()
 
         except Exception as e:
             ic(f"Unexpected error: {e}")
@@ -197,7 +201,8 @@ class StockCodeFileReader:
             try:
                 stock_info = StockInfo(
                     code=str(row.Symbol),
-                    name=str(row.Company_Name),
+                    name_kr=str(row.NameKr),
+                    name_en=str(row.NameEn),
                     country=str(row.Country),
                     market_index=str(row.Code),
                 )

@@ -15,7 +15,7 @@ class CompositionFacade:
 
         for asset in assets:
             stock_code = asset.asset_stock.stock.code
-            stock_name = asset.asset_stock.stock.name
+            stock_name = asset.asset_stock.stock.name_kr
             quantity = asset.asset_stock.quantity
             current_price = current_stock_price_map.get(stock_code, 1.0)
             won_exchange_rate: float = ExchangeRateService.get_won_exchange_rate(asset, exchange_rate_map)

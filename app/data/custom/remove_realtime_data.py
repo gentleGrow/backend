@@ -13,8 +13,8 @@ from database.dependency import get_mysql_session
 
 async def remove_realtime_data(session: AsyncSession):
     remove_time = get_now_datetime() - timedelta(days=REMOVE_TIME_DAY)
-    await StockMinutelyRepository.remove_old_data(session, remove_time)
-    await MarketIndexMinutelyRepository.remove_old_data(session, remove_time)
+    await StockMinutelyRepository.remove_by_datetime(session, remove_time)
+    await MarketIndexMinutelyRepository.remove_by_datetime(session, remove_time)
 
 
 async def execute_async_task():

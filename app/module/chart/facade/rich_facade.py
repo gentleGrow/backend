@@ -32,7 +32,7 @@ class RichFacade:
                 for asset in assets:
                     stock_code = asset.asset_stock.stock.code
                     stock_count[stock_code] += 1
-                    new_stock_name_map[stock_code] = asset.asset_stock.stock.name
+                    new_stock_name_map[stock_code] = asset.asset_stock.stock.name_kr
 
             new_top_10_stock_codes: list[str] = [
                 stock[0] for stock in sorted(stock_count.items(), key=lambda x: x[1], reverse=True)[:10]

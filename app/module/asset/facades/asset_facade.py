@@ -107,7 +107,7 @@ class AssetFacade:
                 StockAsset.PURCHASE_CURRENCY_TYPE.value: asset.asset_stock.purchase_currency_type or None,
                 StockAsset.QUANTITY.value: asset.asset_stock.quantity,
                 StockAsset.STOCK_CODE.value: asset.asset_stock.stock.code,
-                StockAsset.STOCK_NAME.value: asset.asset_stock.stock.name,
+                StockAsset.STOCK_NAME.value: asset.asset_stock.stock.name_kr,
                 StockAsset.STOCK_VOLUME.value: stock_daily.trade_volume if stock_daily.trade_volume else None,
             }
 

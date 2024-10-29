@@ -143,10 +143,6 @@ class AssetStockService:
 
             stock_daily = stock_daily_map.get((asset.asset_stock.stock.code, asset.asset_stock.purchase_date), None)
 
-            ic(asset.asset_stock.stock.code)
-            ic(asset.asset_stock.purchase_date)
-            ic(stock_daily)
-
             if stock_daily is None:
                 continue
 
@@ -202,7 +198,7 @@ class AssetStockService:
                 StockAsset.PURCHASE_CURRENCY_TYPE.value: asset.asset_stock.purchase_currency_type or None,
                 StockAsset.QUANTITY.value: asset.asset_stock.quantity,
                 StockAsset.STOCK_CODE.value: asset.asset_stock.stock.code,
-                StockAsset.STOCK_NAME.value: asset.asset_stock.stock.name,
+                StockAsset.STOCK_NAME.value: asset.asset_stock.stock.name_kr,
                 StockAsset.STOCK_VOLUME.value: stock_daily.trade_volume if stock_daily.trade_volume else None,
             }
             stock_assets.append(stock_asset_data)

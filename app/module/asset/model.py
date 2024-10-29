@@ -61,7 +61,7 @@ class Asset(TimestampMixin, MySQLBase):
     asset_type = Column(String(255), nullable=False, info={"description": "자산 종류"})
 
     user_id = Column(BigInteger, ForeignKey("user.id"), nullable=False)
- 
+
     stock = relationship(
         "Stock", secondary="asset_stock", back_populates="asset", overlaps="asset_stock", lazy="selectin"
     )
@@ -75,7 +75,8 @@ class Stock(TimestampMixin, MySQLBase):
     code = Column(String(255), nullable=False, unique=True)
     country = Column(String(255), nullable=False)
     market_index = Column(String(255), nullable=False)
-    name = Column(String(255), nullable=False)
+    name_kr = Column(String(255), nullable=False)
+    name_en = Column(String(255), nullable=False)
 
     asset = relationship(
         "Asset", secondary="asset_stock", back_populates="stock", overlaps="asset_stock", lazy="selectin"

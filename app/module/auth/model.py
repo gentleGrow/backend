@@ -1,5 +1,4 @@
 from sqlalchemy import BigInteger, Column, Enum, String
-from sqlalchemy.orm import relationship
 
 from app.common.mixin.timestamp import TimestampMixin
 from app.module.auth.enum import UserRoleEnum

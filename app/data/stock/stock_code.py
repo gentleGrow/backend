@@ -16,7 +16,8 @@ async def main():
         for stock_info in stock_list:
             stock = Stock(
                 code=stock_info.code,
-                name=stock_info.name,
+                name_kr=stock_info.name_kr,
+                name_en=stock_info.name_en,
                 market_index=stock_info.market_index,
                 country=stock_info.country,
             )
