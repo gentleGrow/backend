@@ -171,7 +171,7 @@ async def create_asset_stock(
         )
 
     await AssetStockService.save_asset_stock_by_post(session, request_data, stock.id, token.get("user"))
-    return AssetPostResponse(status_code=status.HTTP_201_CREATED, content="주식 자산 성공적으로 등록 했습니다.")
+    return AssetPostResponse(status_code=status.HTTP_201_CREATED, content="주식 자산 성공적으로 등록 했습니다.",field="")
 
 
 @asset_stock_router.patch("/assetstock", summary="주식 자산을 수정합니다.", response_model=AssetPutResponse)
@@ -190,19 +190,20 @@ async def update_asset_stock(
             return AssetPutResponse(
                 status_code=status.HTTP_404_NOT_FOUND,
                 content=f"{request_data.stock_code} 코드의 {request_data.buy_date} 날짜가 존재하지 않습니다.",
-                field="",
+                field=StockAsset.BUY_DATE,
             )
     is_weekend = check_weekend()
     if is_weekend:
         return AssetPutResponse(
             status_code=status.HTTP_404_NOT_FOUND,
             content="구매일자 주말은 허용하지 않습니다.",
+            field=StockAsset.BUY_DATE
         )
 
     stock = await StockRepository.get_by_code(session, request_data.stock_code)
 
     await AssetService.save_asset_by_put(session, request_data, asset, stock)
-    return AssetPutResponse(status_code=status.HTTP_200_OK, content="주식 자산을 성공적으로 수정 하였습니다.")
+    return AssetPutResponse(status_code=status.HTTP_200_OK, content="주식 자산을 성공적으로 수정 하였습니다.", field="")
 
 
 @asset_stock_router.delete("/assetstock/{asset_id}", summary="자산을 삭제합니다.", response_model=DeleteResponse)

@@ -37,10 +37,10 @@ class TestGetStockList:
         # Then
         response_data = response.json()
 
-
-        expected_stocks = [{'code': 'AAPL', 'name_en': 'Apple', 'name_kr': '애플'},
-                    {'code': 'TSLA', 'name_en': 'Tesla', 'name_kr': '테슬라'},
-                    {'code': '005930', 'name_en': 'Samsung', 'name_kr': '삼성전자'}]
-
+        expected_stocks = [
+            {"code": "AAPL", "name_en": "Apple", "name_kr": "애플"},
+            {"code": "TSLA", "name_en": "Tesla", "name_kr": "테슬라"},
+            {"code": "005930", "name_en": "Samsung", "name_kr": "삼성전자"},
+        ]
 
         assert response_data == expected_stocks
