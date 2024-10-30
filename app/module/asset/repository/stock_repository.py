@@ -1,8 +1,7 @@
+from sqlalchemy import update
 from sqlalchemy.dialects.mysql import insert
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
-from sqlalchemy import update
-
 from sqlalchemy.sql import func
 
 from app.module.asset.model import Stock
@@ -78,17 +77,11 @@ class StockRepository:
 
     @staticmethod
     async def update_code_by_name_kr(session: AsyncSession, name_kr: str, new_code: str) -> None:
-        stmt = (
-            update(Stock)
-            .where(Stock.name_kr == name_kr)
-            .values(code=new_code, updated_at=func.now())
-        )
-        
+        stmt = update(Stock).where(Stock.name_kr == name_kr).values(code=new_code, updated_at=func.now())
+
         try:
             await session.execute(stmt)
             await session.commit()
         except Exception as e:
             await session.rollback()
             raise e
-        
-        

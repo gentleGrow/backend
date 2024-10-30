@@ -9,6 +9,18 @@ from app.module.asset.enum import AccountType, InvestmentBankType, PurchaseCurre
 from app.module.asset.model import Asset
 
 
+class AssetPostResponse(BaseModel):
+    status_code: int = Field(..., description="상태 코드")
+    content: str
+    field: str
+
+
+class AssetPutResponse(BaseModel):
+    status_code: int = Field(..., description="상태 코드")
+    content: str
+    field: str
+
+
 class AssetStockPostRequest(BaseModel):
     buy_date: date = Field(..., description="구매일자")
     purchase_currency_type: PurchaseCurrencyType = Field(..., description="매입 통화")
@@ -78,7 +90,8 @@ class BankAccountResponse(BaseModel):
 
 
 class StockListValue(BaseModel):
-    name: str
+    name_en: str
+    name_kr: str
     code: str
 
 
@@ -123,7 +136,7 @@ class AssetStockResponse(BaseModel):
         )
 
     @staticmethod
-    def validate_assets(assets: list[Asset], asset_fields:list[str]) -> Optional["AssetStockResponse"]:
+    def validate_assets(assets: list[Asset], asset_fields: list[str]) -> Optional["AssetStockResponse"]:
         if len(assets) == 0:
             return AssetStockResponse(
                 stock_assets=[],

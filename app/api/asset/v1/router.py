@@ -3,10 +3,10 @@ from redis.asyncio import Redis
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.common.auth.security import verify_jwt_token
-from app.common.schema.common_schema import DeleteResponse, PostResponse, PutResponse
+from app.common.schema.common_schema import DeleteResponse, PutResponse
 from app.common.util.time import check_weekend
 from app.module.asset.constant import CurrencyType
-from app.module.asset.enum import AccountType, AssetType, InvestmentBankType
+from app.module.asset.enum import AccountType, AssetType, InvestmentBankType, StockAsset
 from app.module.asset.facades.asset_facade import AssetFacade
 from app.module.asset.facades.dividend_facade import DividendFacade
 from app.module.asset.model import Asset, AssetField, Stock
@@ -16,6 +16,8 @@ from app.module.asset.repository.asset_repository import AssetRepository
 from app.module.asset.repository.stock_repository import StockRepository
 from app.module.asset.schema import (
     AssetFieldResponse,
+    AssetPostResponse,
+    AssetPutResponse,
     AssetStockPostRequest,
     AssetStockPutRequest,
     AssetStockResponse,
@@ -71,7 +73,9 @@ async def get_bank_account_list() -> BankAccountResponse:
 async def get_stock_list(session: AsyncSession = Depends(get_mysql_session_router)) -> StockListResponse:
     stock_list: list[Stock] = await StockRepository.get_all(session)
 
-    return StockListResponse([StockListValue(name=stock.name_kr, code=stock.code) for stock in stock_list])
+    return StockListResponse(
+        [StockListValue(name_en=stock.name_en, name_kr=stock.name_kr, code=stock.code) for stock in stock_list]
+    )
 
 
 @asset_stock_router.get("/sample/assetstock", summary="임시 자산 정보를 반환합니다.", response_model=AssetStockResponse)
@@ -79,8 +83,8 @@ async def get_sample_asset_stock(
     session: AsyncSession = Depends(get_mysql_session_router), redis_client: Redis = Depends(get_redis_pool)
 ) -> AssetStockResponse:
     assets: list[Asset] = await AssetRepository.get_eager(session, DUMMY_USER_ID, AssetType.STOCK)
-    asset_fields:list[str] = await AssetFieldService.get_asset_field(session, DUMMY_USER_ID)
-    
+    asset_fields: list[str] = await AssetFieldService.get_asset_field(session, DUMMY_USER_ID)
+
     no_asset_response = AssetStockResponse.validate_assets(assets, asset_fields)
     if no_asset_response:
         return no_asset_response
@@ -113,7 +117,7 @@ async def get_asset_stock(
     session: AsyncSession = Depends(get_mysql_session_router),
 ) -> AssetStockResponse:
     assets: list[Asset] = await AssetRepository.get_eager(session, token.get("user"), AssetType.STOCK)
-    asset_fields:list[str] = await AssetFieldService.get_asset_field(session, token.get("user"))
+    asset_fields: list[str] = await AssetFieldService.get_asset_field(session, token.get("user"))
 
     no_asset_response = AssetStockResponse.validate_assets(assets, asset_fields)
     if no_asset_response:
@@ -138,40 +142,44 @@ async def get_asset_stock(
     )
 
 
-@asset_stock_router.post("/assetstock", summary="자산관리 정보를 등록합니다.", response_model=PostResponse)
+@asset_stock_router.post("/assetstock", summary="자산관리 정보를 등록합니다.", response_model=AssetPostResponse)
 async def create_asset_stock(
     request_data: AssetStockPostRequest,
     token: AccessToken = Depends(verify_jwt_token),
     session: AsyncSession = Depends(get_mysql_session_router),
-) -> PostResponse:
+) -> AssetPostResponse:
     stock = await StockRepository.get_by_code(session, request_data.stock_code)
     if stock is None:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"{request_data.stock_code}를 찾지 못 했습니다.")
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"{request_data.stock_code}를 찾지 못 했습니다.",
+            field=StockAsset.STOCK_CODE,
+        )
 
     stock_exist = await StockService.check_stock_exist(session, request_data.stock_code, request_data.buy_date)
     if stock_exist is False:
-        return PostResponse(
+        return AssetPostResponse(
             status_code=status.HTTP_404_NOT_FOUND,
             content=f"{request_data.stock_code} 코드의 {request_data.buy_date} 날짜가 존재하지 않습니다.",
+            field=StockAsset.BUY_DATE,
         )
 
     is_weekend = check_weekend()
     if is_weekend:
-        return PostResponse(
-            status_code=status.HTTP_404_NOT_FOUND,
-            content="구매일자 주말은 허용하지 않습니다.",
+        return AssetPostResponse(
+            status_code=status.HTTP_404_NOT_FOUND, content="구매일자 주말은 허용하지 않습니다.", field=StockAsset.BUY_DATE
         )
 
     await AssetStockService.save_asset_stock_by_post(session, request_data, stock.id, token.get("user"))
-    return PostResponse(status_code=status.HTTP_201_CREATED, content="주식 자산 성공적으로 등록 했습니다.")
+    return AssetPostResponse(status_code=status.HTTP_201_CREATED, content="주식 자산 성공적으로 등록 했습니다.")
 
 
-@asset_stock_router.patch("/assetstock", summary="주식 자산을 수정합니다.", response_model=PutResponse)
+@asset_stock_router.patch("/assetstock", summary="주식 자산을 수정합니다.", response_model=AssetPutResponse)
 async def update_asset_stock(
     request_data: AssetStockPutRequest,
     token: AccessToken = Depends(verify_jwt_token),
     session: AsyncSession = Depends(get_mysql_session_router),
-) -> PutResponse:
+) -> AssetPutResponse:
     asset = await AssetRepository.get_asset_by_id(session, request_data.id)
     if asset is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"{request_data.id} id에 해당하는 자산을 찾지 못 했습니다.")
@@ -179,13 +187,14 @@ async def update_asset_stock(
     if request_data.stock_code and request_data.buy_date:
         stock_exist = await StockService.check_stock_exist(session, request_data.stock_code, request_data.buy_date)
         if stock_exist is False:
-            return PutResponse(
+            return AssetPutResponse(
                 status_code=status.HTTP_404_NOT_FOUND,
                 content=f"{request_data.stock_code} 코드의 {request_data.buy_date} 날짜가 존재하지 않습니다.",
+                field="",
             )
     is_weekend = check_weekend()
     if is_weekend:
-        return PutResponse(
+        return AssetPutResponse(
             status_code=status.HTTP_404_NOT_FOUND,
             content="구매일자 주말은 허용하지 않습니다.",
         )
@@ -193,7 +202,7 @@ async def update_asset_stock(
     stock = await StockRepository.get_by_code(session, request_data.stock_code)
 
     await AssetService.save_asset_by_put(session, request_data, asset, stock)
-    return PutResponse(status_code=status.HTTP_200_OK, content="주식 자산을 성공적으로 수정 하였습니다.")
+    return AssetPutResponse(status_code=status.HTTP_200_OK, content="주식 자산을 성공적으로 수정 하였습니다.")
 
 
 @asset_stock_router.delete("/assetstock/{asset_id}", summary="자산을 삭제합니다.", response_model=DeleteResponse)

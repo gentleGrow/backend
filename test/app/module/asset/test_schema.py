@@ -68,9 +68,10 @@ class TestAssetStockResponse:
     async def test_validate_assets_empty(self, setup_asset):
         # Given
         empty_assets: list[Asset] = []
+        stock_fields = []
 
         # When
-        response = AssetStockResponse.validate_assets(empty_assets)
+        response = AssetStockResponse.validate_assets(empty_assets, stock_fields)
 
         # Then
         expected_response = AssetStockResponse(
@@ -90,9 +91,10 @@ class TestAssetStockResponse:
     async def test_validate_assets_non_empty(self, session, setup_asset):
         # Given
         non_empty_assets: list[Asset] = await AssetRepository.get_eager(session, DUMMY_USER_ID, AssetType.STOCK)
+        stock_fields = []
 
         # When
-        response = AssetStockResponse.validate_assets(non_empty_assets)
+        response = AssetStockResponse.validate_assets(non_empty_assets, stock_fields)
 
         # Then
         assert response is None
