@@ -89,6 +89,5 @@ def main():
     asyncio.run(execute_async_task())
 
 
-# local 임시 데이터 저장용, 추후 삭제 예정
-# if __name__ == "__main__":
-#     asyncio.run(execute_async_task())
+if __name__ == "__main__":
+    asyncio.run(execute_async_task())

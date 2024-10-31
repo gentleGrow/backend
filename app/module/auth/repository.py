@@ -1,17 +1,18 @@
-from sqlalchemy import update,delete
+from sqlalchemy import delete, update
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
 
+from app.module.asset.model import Asset, AssetField, AssetStock
+from app.module.asset.repository.asset_repository import AssetRepository
 from app.module.auth.enum import ProviderEnum
 from app.module.auth.model import User
-from app.module.asset.model import AssetField, AssetStock, Asset
-from app.module.asset.repository.asset_repository import AssetRepository
+
 
 class UserRepository:
     @staticmethod
     async def delete_user_and_related_data(session: AsyncSession, user_id: int) -> None:
         await session.execute(delete(AssetField).where(AssetField.user_id == user_id))
-        
+
         assets = await AssetRepository.get_assets(session, user_id)
         asset_ids = [asset.id for asset in assets]
 
@@ -20,7 +21,7 @@ class UserRepository:
         await session.execute(delete(Asset).where(Asset.user_id == user_id))
 
         await session.execute(delete(User).where(User.id == user_id))
-        
+
         await session.commit()
 
     @staticmethod

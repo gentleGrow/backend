@@ -3,7 +3,7 @@ from redis.asyncio import Redis
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.common.auth.security import verify_jwt_token
-from app.common.schema.common_schema import PostResponse, DeleteResponse
+from app.common.schema.common_schema import DeleteResponse, PostResponse
 from app.module.auth.constant import REDIS_JWT_REFRESH_EXPIRE_TIME_SECOND, SESSION_SPECIAL_KEY
 from app.module.auth.enum import ProviderEnum
 from app.module.auth.jwt import JWTBuilder
@@ -26,18 +26,19 @@ from database.dependency import get_mysql_session_router, get_redis_pool
 
 auth_router = APIRouter(prefix="/v1")
 
-@auth_router.delete('/user', summary="회원 탈퇴합니다.", response_model='')
+
+@auth_router.delete("/user", summary="회원 탈퇴합니다.", response_model="")
 async def delete_user(
     token: AccessToken = Depends(verify_jwt_token),
     session: AsyncSession = Depends(get_mysql_session_router),
 ):
     user = await UserRepository.get(session, token.get("user"))
     if user is None:
-        return DeleteResponse(status_code=status.HTTP_404_NOT_FOUND, content="유저 정보가 없습니다.")    
+        return DeleteResponse(status_code=status.HTTP_404_NOT_FOUND, content="유저 정보가 없습니다.")
     else:
         await UserRepository.delete_user_and_related_data(session, user.id)
         return DeleteResponse(status_code=status.HTTP_200_OK, content="성공적으로 삭제하였습니다.")
-    
+
 
 @auth_router.get("/user", summary="유저 정보를 확인합니다.", response_model=UserInfoResponse)
 async def get_user_info(
