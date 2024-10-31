@@ -1,7 +1,6 @@
 from collections import defaultdict
 from datetime import date, datetime, timedelta
 from typing import Any
-
 from redis.asyncio import Redis
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -98,11 +97,11 @@ class AssetService:
                 * 100
             )
 
-    def _get_purchase_amount(self, asset: Asset, purchase_price: float, apply_exchange_rate: float):
+    def _get_purchase_amount(self, asset: Asset, purchase_price: float, apply_exchange_rate: float) -> float:
         if asset.asset_stock.purchase_price:
-            purchase_price * asset.asset_stock.quantity
+            return purchase_price * asset.asset_stock.quantity
         else:
-            purchase_price * asset.asset_stock.quantity * apply_exchange_rate
+            return purchase_price * asset.asset_stock.quantity * apply_exchange_rate
 
     def _get_profit_amount(
         self, asset: Asset, current_stock_price_map: dict, purchase_price: float, apply_exchange_rate: float
