@@ -12,6 +12,19 @@ from app.module.asset.services.stock_service import StockService
 
 
 class AssetFacade:
+    def __init__(
+        self,
+        stock_daily_service: StockDailyService,
+        exchange_rate_service: ExchangeRateService,
+        stock_service: StockService,
+        dividend_service: DividendService,
+    ):
+        self.stock_daily_service = stock_daily_service
+        self.exchange_rate_service = exchange_rate_service
+        self.stock_service = stock_service
+        self.dividend_service = dividend_service
+
+
     @staticmethod
     async def get_stock_assets(
         session: AsyncSession, redis_client: Redis, assets: list[Asset], asset_fields: list
@@ -123,6 +136,15 @@ class AssetFacade:
             stock_assets.append(stock_asset_data_filter)
 
         return stock_assets
+
+    
+    def _get_apply_exchange_rate(self, asset: Asset, exchange_rate_map: dict) -> float:
+        return (
+            self.exchange_rate_service.get_dollar_exchange_rate(asset, exchange_rate_map)
+            if asset.asset_stock.purchase_currency_type == PurchaseCurrencyType.USA
+            else self.exchange_rate_service.get_won_exchange_rate(asset, exchange_rate_map)
+        )
+
 
     @staticmethod
     async def get_total_investment_amount(session: AsyncSession, redis_client: Redis, assets: list[Asset]) -> float:

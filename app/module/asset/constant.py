@@ -9,6 +9,7 @@ from app.module.asset.enum import (
     PurchaseCurrencyType,
 )
 
+DEFAULT_EXCHANGE_RATE = 1.0
 ASSET_SAVE_TREND_YEAR = 15
 INFLATION_RATE = 3.0
 

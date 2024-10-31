@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from redis.asyncio import Redis
 from sqlalchemy.ext.asyncio import AsyncSession
-
+from app.module.asset.dependencies.asset_dependency import get_asset_service
 from app.common.auth.security import verify_jwt_token
 from app.common.schema.common_schema import DeleteResponse, PutResponse
 from app.common.util.time import check_weekend
@@ -80,7 +80,9 @@ async def get_stock_list(session: AsyncSession = Depends(get_mysql_session_route
 
 @asset_stock_router.get("/sample/assetstock", summary="임시 자산 정보를 반환합니다.", response_model=AssetStockResponse)
 async def get_sample_asset_stock(
-    session: AsyncSession = Depends(get_mysql_session_router), redis_client: Redis = Depends(get_redis_pool)
+    session: AsyncSession = Depends(get_mysql_session_router), 
+    redis_client: Redis = Depends(get_redis_pool),
+    asset_service: AssetService = Depends(get_asset_service),
 ) -> AssetStockResponse:
     assets: list[Asset] = await AssetRepository.get_eager(session, DUMMY_USER_ID, AssetType.STOCK)
     asset_fields: list[str] = await AssetFieldService.get_asset_field(session, DUMMY_USER_ID)
@@ -90,7 +92,7 @@ async def get_sample_asset_stock(
         return no_asset_response
 
     asset_fields = await AssetFieldService.get_asset_field(session, DUMMY_USER_ID)
-    stock_assets: list[dict] = await AssetFacade.get_stock_assets(session, redis_client, assets, asset_fields)
+    stock_assets: list[dict] = await asset_service.get_stock_assets(session, redis_client, assets, asset_fields)
 
     total_asset_amount = await AssetFacade.get_total_asset_amount(session, redis_client, assets)
     total_invest_amount = await AssetFacade.get_total_investment_amount(session, redis_client, assets)
@@ -115,6 +117,7 @@ async def get_asset_stock(
     token: AccessToken = Depends(verify_jwt_token),
     redis_client: Redis = Depends(get_redis_pool),
     session: AsyncSession = Depends(get_mysql_session_router),
+    asset_service: AssetService = Depends(get_asset_service),
 ) -> AssetStockResponse:
     assets: list[Asset] = await AssetRepository.get_eager(session, token.get("user"), AssetType.STOCK)
     asset_fields: list[str] = await AssetFieldService.get_asset_field(session, token.get("user"))
@@ -123,7 +126,7 @@ async def get_asset_stock(
     if no_asset_response:
         return no_asset_response
 
-    stock_assets: list[dict] = await AssetFacade.get_stock_assets(session, redis_client, assets, asset_fields)
+    stock_assets: list[dict] = await asset_service.get_stock_assets(session, redis_client, assets, asset_fields)
 
     total_asset_amount = await AssetFacade.get_total_asset_amount(session, redis_client, assets)
     total_invest_amount = await AssetFacade.get_total_investment_amount(session, redis_client, assets)
