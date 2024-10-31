@@ -1,11 +1,12 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from redis.asyncio import Redis
 from sqlalchemy.ext.asyncio import AsyncSession
-from app.module.asset.dependencies.asset_dependency import get_asset_service
+
 from app.common.auth.security import verify_jwt_token
 from app.common.schema.common_schema import DeleteResponse, PutResponse
 from app.common.util.time import check_weekend
 from app.module.asset.constant import CurrencyType
+from app.module.asset.dependencies.asset_dependency import get_asset_service
 from app.module.asset.enum import AccountType, AssetType, InvestmentBankType, StockAsset
 from app.module.asset.facades.asset_facade import AssetFacade
 from app.module.asset.facades.dividend_facade import DividendFacade
@@ -80,7 +81,7 @@ async def get_stock_list(session: AsyncSession = Depends(get_mysql_session_route
 
 @asset_stock_router.get("/sample/assetstock", summary="임시 자산 정보를 반환합니다.", response_model=AssetStockResponse)
 async def get_sample_asset_stock(
-    session: AsyncSession = Depends(get_mysql_session_router), 
+    session: AsyncSession = Depends(get_mysql_session_router),
     redis_client: Redis = Depends(get_redis_pool),
     asset_service: AssetService = Depends(get_asset_service),
 ) -> AssetStockResponse:

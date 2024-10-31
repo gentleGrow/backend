@@ -14,7 +14,6 @@ class ExchangeRateService:
             return 1.0
         return float(exchange_rate_map.get(f"{source_currency}_{CurrencyType.KOREA}", 0.0))
 
-
     def get_dollar_exchange_rate_temp(self, asset: Asset, exchange_rate_map: dict[str, float]) -> float:
         source_country = asset.asset_stock.stock.country.upper().strip()
         source_currency = CurrencyType[source_country]
@@ -22,7 +21,6 @@ class ExchangeRateService:
             return 1.0
         return float(exchange_rate_map.get(f"{source_currency}_{CurrencyType.USA}", 0.0))
 
-    
     async def get_exchange_rate_map_temp(self, redis_client: Redis) -> dict[str, float]:
         result = {}
         keys = [f"{source_currency}_{target_currency}" for source_currency, target_currency in CURRENCY_PAIRS]
@@ -34,22 +32,14 @@ class ExchangeRateService:
         return result
 
     def get_exchange_rate_temp(
-        self, 
-        source: CurrencyType, 
-        target: CurrencyType, 
-        exchange_rate_map: dict[str, float]
+        self, source: CurrencyType, target: CurrencyType, exchange_rate_map: dict[str, float]
     ) -> float:
         if source == target:
             return 1.0
         return float(exchange_rate_map.get(f"{source}_{target}", 0.0))
 
-    
-    
-    
     ##################   staticmethod는 차츰 변경하겠습니다!   ##################
-    
-    
-    
+
     @staticmethod
     def get_won_exchange_rate(asset: Asset, exchange_rate_map: dict[str, float]) -> float:
         source_country = asset.asset_stock.stock.country.upper().strip()

@@ -5,17 +5,17 @@ from typing import Any
 from redis.asyncio import Redis
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.module.asset.constant import REQUIRED_ASSET_FIELD, DEFAULT_EXCHANGE_RATE
-
 from app.common.util.time import get_now_date
-from app.module.asset.enum import ASSETNAME, AmountUnit, PurchaseCurrencyType, StockAsset, Country
+from app.module.asset.constant import DEFAULT_EXCHANGE_RATE, REQUIRED_ASSET_FIELD
+from app.module.asset.enum import ASSETNAME, AmountUnit, Country, PurchaseCurrencyType, StockAsset
 from app.module.asset.model import Asset, Stock, StockDaily
 from app.module.asset.repository.asset_repository import AssetRepository
 from app.module.asset.schema import AssetStockPutRequest, TodayTempStockDaily
+from app.module.asset.services.dividend_service import DividendService
 from app.module.asset.services.exchange_rate_service import ExchangeRateService
 from app.module.asset.services.stock_daily_service import StockDailyService
 from app.module.asset.services.stock_service import StockService
-from app.module.asset.services.dividend_service import DividendService
+
 
 class AssetService:
     def __init__(
@@ -29,7 +29,7 @@ class AssetService:
         self.exchange_rate_service = exchange_rate_service
         self.stock_service = stock_service
         self.dividend_service = dividend_service
-    
+
     async def get_stock_assets(
         self, session: AsyncSession, redis_client: Redis, assets: list[Asset], asset_fields: list
     ) -> list[dict]:
@@ -37,13 +37,17 @@ class AssetService:
         lastest_stock_daily_map = await self.stock_daily_service.get_latest_map_temp(session, assets)
         dividend_map = await self.dividend_service.get_recent_map_temp(session, assets)
         exchange_rate_map = await self.exchange_rate_service.get_exchange_rate_map_temp(redis_client)
-        current_stock_price_map = await self.stock_service.get_current_stock_price_temp(redis_client, lastest_stock_daily_map, assets)
+        current_stock_price_map = await self.stock_service.get_current_stock_price_temp(
+            redis_client, lastest_stock_daily_map, assets
+        )
 
         stock_assets = []
 
         for asset in assets:
             apply_exchange_rate = self._get_apply_exchange_rate(asset, exchange_rate_map)
-            stock_daily = self._get_matching_stock_daily(asset, stock_daily_map, lastest_stock_daily_map, current_stock_price_map)
+            stock_daily = self._get_matching_stock_daily(
+                asset, stock_daily_map, lastest_stock_daily_map, current_stock_price_map
+            )
             purchase_price = self._get_purchase_price(asset, stock_daily)
 
             stock_asset_data = self._build_stock_asset(
@@ -54,22 +58,28 @@ class AssetService:
             stock_assets.append(stock_asset_data_filter)
 
         return stock_assets
-    
+
     def _get_apply_exchange_rate(self, asset: Asset, exchange_rate_map: dict) -> float:
         # 한국 주식은 원화 입력만 가능, 해외 주식은 원화, 달러 입력 모두 가능
         asset_purchase_currency_type = asset.asset_stock.purchase_currency_type
         asset_country = asset.asset_stock.stock.country.upper().strip()
-        
+
         if asset_purchase_currency_type == PurchaseCurrencyType.USA and asset_country != Country.KOREA:
             return self.exchange_rate_service.get_won_exchange_rate_temp(asset, exchange_rate_map)
         else:
             return DEFAULT_EXCHANGE_RATE
 
-    def _get_matching_stock_daily(self, asset: Asset, stock_daily_map: dict, lastest_stock_daily_map: dict, current_stock_price_map: dict) -> TodayTempStockDaily:
+    def _get_matching_stock_daily(
+        self, asset: Asset, stock_daily_map: dict, lastest_stock_daily_map: dict, current_stock_price_map: dict
+    ) -> TodayTempStockDaily:
         stock_daily = stock_daily_map.get((asset.asset_stock.stock.code, asset.asset_stock.purchase_date), None)
         if stock_daily is None:
             recent_stockdaily = lastest_stock_daily_map.get(asset.asset_stock.stock.code, None)
-            open_price = recent_stockdaily.adj_close_price if recent_stockdaily else current_stock_price_map.get(asset.asset_stock.stock.code, 1.0)
+            open_price = (
+                recent_stockdaily.adj_close_price
+                if recent_stockdaily
+                else current_stock_price_map.get(asset.asset_stock.stock.code, 1.0)
+            )
             stock_daily = TodayTempStockDaily(
                 adj_close_price=current_stock_price_map.get(asset.asset_stock.stock.code, 1.0),
                 highest_price=current_stock_price_map.get(asset.asset_stock.stock.code, 1.0),
@@ -78,34 +88,61 @@ class AssetService:
                 trade_volume=1,
             )
         return stock_daily
-    
+
     def _get_purchase_price(self, asset: Asset, stock_daily: TodayTempStockDaily) -> float:
         return asset.asset_stock.purchase_price if asset.asset_stock.purchase_price else stock_daily.adj_close_price
-    
+
     def _build_stock_asset(
-        self, asset: Asset, 
-        stock_daily: TodayTempStockDaily, 
-        apply_exchange_rate: float, 
-        current_stock_price_map: dict, 
-        dividend_map: dict, 
-        purchase_price: float
+        self,
+        asset: Asset,
+        stock_daily: TodayTempStockDaily,
+        apply_exchange_rate: float,
+        current_stock_price_map: dict,
+        dividend_map: dict,
+        purchase_price: float,
     ) -> dict:
-        
-        
-        
+
         return {
             StockAsset.ID.value: asset.id,
             StockAsset.ACCOUNT_TYPE.value: asset.asset_stock.account_type or None,
             StockAsset.BUY_DATE.value: asset.asset_stock.purchase_date,
-            StockAsset.CURRENT_PRICE.value: current_stock_price_map.get(asset.asset_stock.stock.code, 1.0) * apply_exchange_rate,
-            StockAsset.DIVIDEND.value: dividend_map.get(asset.asset_stock.stock.code, 1.0) * asset.asset_stock.quantity * apply_exchange_rate,
-            StockAsset.HIGHEST_PRICE.value: stock_daily.highest_price * apply_exchange_rate if stock_daily.highest_price else None,
+            StockAsset.CURRENT_PRICE.value: current_stock_price_map.get(asset.asset_stock.stock.code, 1.0)
+            * apply_exchange_rate,
+            StockAsset.DIVIDEND.value: dividend_map.get(asset.asset_stock.stock.code, 1.0)
+            * asset.asset_stock.quantity
+            * apply_exchange_rate,
+            StockAsset.HIGHEST_PRICE.value: stock_daily.highest_price * apply_exchange_rate
+            if stock_daily.highest_price
+            else None,
             StockAsset.INVESTMENT_BANK.value: asset.asset_stock.investment_bank or None,
-            StockAsset.LOWEST_PRICE.value: stock_daily.lowest_price * apply_exchange_rate if stock_daily.lowest_price else None,
-            StockAsset.OPENING_PRICE.value: stock_daily.opening_price * apply_exchange_rate if stock_daily.opening_price else None,
-            StockAsset.PROFIT_RATE.value: ((current_stock_price_map.get(asset.asset_stock.stock.code, 1.0) * apply_exchange_rate - (purchase_price * apply_exchange_rate)) / (purchase_price * apply_exchange_rate) * 100) if purchase_price else None,
-            StockAsset.PROFIT_AMOUNT.value: ((current_stock_price_map.get(asset.asset_stock.stock.code, 1.0) * apply_exchange_rate - purchase_price * apply_exchange_rate) * asset.asset_stock.quantity) if purchase_price else None,
-            StockAsset.PURCHASE_AMOUNT.value: asset.asset_stock.purchase_price * asset.asset_stock.quantity if asset.asset_stock.purchase_price else None,
+            StockAsset.LOWEST_PRICE.value: stock_daily.lowest_price * apply_exchange_rate
+            if stock_daily.lowest_price
+            else None,
+            StockAsset.OPENING_PRICE.value: stock_daily.opening_price * apply_exchange_rate
+            if stock_daily.opening_price
+            else None,
+            StockAsset.PROFIT_RATE.value: (
+                (
+                    current_stock_price_map.get(asset.asset_stock.stock.code, 1.0) * apply_exchange_rate
+                    - (purchase_price * apply_exchange_rate)
+                )
+                / (purchase_price * apply_exchange_rate)
+                * 100
+            )
+            if purchase_price
+            else None,
+            StockAsset.PROFIT_AMOUNT.value: (
+                (
+                    current_stock_price_map.get(asset.asset_stock.stock.code, 1.0) * apply_exchange_rate
+                    - purchase_price * apply_exchange_rate
+                )
+                * asset.asset_stock.quantity
+            )
+            if purchase_price
+            else None,
+            StockAsset.PURCHASE_AMOUNT.value: asset.asset_stock.purchase_price * asset.asset_stock.quantity
+            if asset.asset_stock.purchase_price
+            else None,
             StockAsset.PURCHASE_PRICE.value: asset.asset_stock.purchase_price or None,
             StockAsset.PURCHASE_CURRENCY_TYPE.value: asset.asset_stock.purchase_currency_type or None,
             StockAsset.QUANTITY.value: asset.asset_stock.quantity,
@@ -113,31 +150,20 @@ class AssetService:
             StockAsset.STOCK_NAME.value: asset.asset_stock.stock.name_kr,
             StockAsset.STOCK_VOLUME.value: stock_daily.trade_volume if stock_daily.trade_volume else None,
         }
-    
+
     def _filter_stock_asset(self, stock_asset_data: dict, asset_fields: list) -> dict:
-        result =  {
+        result = {
             field: {"isRequired": field in REQUIRED_ASSET_FIELD, "value": value}
-            for field, value in stock_asset_data.items() if field in asset_fields
+            for field, value in stock_asset_data.items()
+            if field in asset_fields
         }
-        
+
         result[StockAsset.ID.value] = stock_asset_data[StockAsset.ID.value]
-        result[StockAsset.PURCHASE_CURRENCY_TYPE.value] = stock_asset_data[
-            StockAsset.PURCHASE_CURRENCY_TYPE.value
-        ]
+        result[StockAsset.PURCHASE_CURRENCY_TYPE.value] = stock_asset_data[StockAsset.PURCHASE_CURRENCY_TYPE.value]
         return result
-        
-        
-        
-        
-        
-    
+
     ##################   staticmethod는 차츰 변경하겠습니다!   ##################
-    
-    
-    
-    
-    
-    
+
     @staticmethod
     def asset_list_from_days(assets: list[Asset], days: int) -> defaultdict:
         assets_by_date = defaultdict(list)
@@ -283,7 +309,7 @@ class AssetService:
                 current_value
                 * asset.asset_stock.quantity
                 * ExchangeRateService.get_won_exchange_rate(asset, exchange_rate_map)
-              )
+            )
 
         return result
 

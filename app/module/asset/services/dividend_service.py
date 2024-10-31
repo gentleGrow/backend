@@ -24,7 +24,6 @@ class DividendService:
 
         return filtered_dividends[0][0] if filtered_dividends else None
 
-    
     def process_dividends_by_year_month_temp(self, total_dividends: dict[date, float]) -> dict[str, dict[int, float]]:
         dividend_by_year_month: dict[int, dict[int, float]] = defaultdict(lambda: defaultdict(float))
 
@@ -37,7 +36,6 @@ class DividendService:
 
         return result
 
-    
     def get_last_year_dividends_temp(
         self,
         asset: Asset,
@@ -61,12 +59,8 @@ class DividendService:
 
         return result
 
-    
     def get_asset_total_dividend_temp(
-        self,
-        won_exchange_rate: float, 
-        dividend_map: dict[tuple[str, date], float], 
-        asset: Asset
+        self, won_exchange_rate: float, dividend_map: dict[tuple[str, date], float], asset: Asset
     ) -> tuple[defaultdict[date, float], date | None]:
         result: defaultdict[date, float] = defaultdict(float)
         last_dividend_date: date | None = None
@@ -80,7 +74,6 @@ class DividendService:
 
         return result, last_dividend_date
 
-    
     async def get_dividend_map_temp(self, session: AsyncSession, assets: list[Asset]) -> dict[tuple[str, date], float]:
         stock_codes = [asset.asset_stock.stock.code for asset in assets]
         dividends: list[Dividend] = await DividendRepository.get_dividends(session, stock_codes)
@@ -91,7 +84,6 @@ class DividendService:
             if isinstance(dividend.date, date) and str(dividend.date) != "0000-00-00"
         }
 
-    
     async def get_recent_map_temp(self, session: AsyncSession, assets: list[Asset]) -> dict[str, float]:
         stock_codes = [asset.asset_stock.stock.code for asset in assets]
         dividends: list[Dividend] = await DividendRepository.get_dividends_recent(session, stock_codes)
@@ -102,12 +94,8 @@ class DividendService:
             if isinstance(dividend.date, date) and str(dividend.date) != "0000-00-00"
         }
 
-    
     def get_total_dividend_temp(
-        self,
-        assets: list[Asset], 
-        dividend_map: dict[str, float], 
-        exchange_rate_map: dict[str, float]
+        self, assets: list[Asset], dividend_map: dict[str, float], exchange_rate_map: dict[str, float]
     ) -> float:
         total_dividend_amount = 0.0
 
@@ -120,12 +108,8 @@ class DividendService:
 
         return total_dividend_amount
 
-    
-    
     ##################   staticmethod는 차츰 변경하겠습니다!   ##################
-    
-    
-    
+
     @staticmethod
     def get_closest_dividend(asset: Asset, dividend_map: dict[tuple[str, date], float]) -> date | None:
         asset_code: str = asset.asset_stock.stock.code
