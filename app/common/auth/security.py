@@ -2,7 +2,6 @@ from typing import Any
 
 from fastapi import HTTPException, Security, status
 from fastapi.security import OAuth2PasswordBearer
-
 from app.module.auth.jwt import JWTBuilder
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token")
