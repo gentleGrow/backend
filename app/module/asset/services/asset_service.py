@@ -60,7 +60,6 @@ class AssetService:
         return stock_assets
 
     def _get_apply_exchange_rate(self, asset: Asset, exchange_rate_map: dict) -> float:
-        # 한국 주식은 원화 입력만 가능, 해외 주식은 원화, 달러 입력 모두 가능
         asset_purchase_currency_type = asset.asset_stock.purchase_currency_type
 
         return (
