@@ -1,6 +1,5 @@
 from datetime import date, datetime, timedelta
 from statistics import mean
-
 from fastapi import APIRouter, Depends, Query
 from redis.asyncio import Redis
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -17,7 +16,7 @@ from app.module.asset.constant import (
     THREE_MONTH_DAY,
 )
 from app.module.asset.dependencies.asset_dependency import get_asset_service
-from app.module.asset.enum import AssetType, CurrencyType
+from app.module.asset.enum import AssetType, CurrencyType, StockAsset
 from app.module.asset.facades.asset_facade import AssetFacade
 from app.module.asset.facades.dividend_facade import DividendFacade
 from app.module.asset.model import Asset, StockDaily
@@ -616,11 +615,11 @@ async def get_sample_my_stock(
     return MyStockResponse(
         [
             MyStockResponseValue(
-                name=stock_asset["종목명"].value,
-                current_price=stock_asset["현재가"].value,
-                profit_rate=stock_asset["수익률"].value,
-                profit_amount=stock_asset["수익금"].value,
-                quantity=stock_asset["수량"].value,
+                name=stock_asset[StockAsset.STOCK_NAME.value]['value'],
+                current_price=stock_asset[StockAsset.CURRENT_PRICE.value]['value'],
+                profit_rate=stock_asset[StockAsset.PROFIT_RATE.value]['value'],
+                profit_amount=stock_asset[StockAsset.PROFIT_AMOUNT.value]['value'],
+                quantity=stock_asset[StockAsset.QUANTITY.value]['value'],
             )
             for stock_asset in stock_assets
         ]
@@ -645,11 +644,11 @@ async def get_my_stock(
     return MyStockResponse(
         [
             MyStockResponseValue(
-                name=stock_asset["종목명"].value.strip(),
-                current_price=stock_asset["현재가"].value,
-                profit_rate=stock_asset["수익률"].value,
-                profit_amount=stock_asset["수익금"].value,
-                quantity=stock_asset["수량"].value,
+                name=stock_asset[StockAsset.STOCK_NAME.value]['value'],
+                current_price=stock_asset[StockAsset.CURRENT_PRICE.value]['value'],
+                profit_rate=stock_asset[StockAsset.PROFIT_RATE.value]['value'],
+                profit_amount=stock_asset[StockAsset.PROFIT_AMOUNT.value]['value'],
+                quantity=stock_asset[StockAsset.QUANTITY.value]['value'],
             )
             for stock_asset in stock_assets
         ]
