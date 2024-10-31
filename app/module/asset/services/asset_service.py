@@ -63,34 +63,21 @@ class AssetService:
         # 한국 주식은 원화 입력만 가능, 해외 주식은 원화, 달러 입력 모두 가능
         asset_purchase_currency_type = asset.asset_stock.purchase_currency_type
         asset_country = asset.asset_stock.stock.country.upper().strip()
+        purchase_price = asset.asset_stock.purchase_price
 
-        if asset_purchase_currency_type == PurchaseCurrencyType.USA and asset_country != Country.KOREA:
-            return self.exchange_rate_service.get_won_exchange_rate_temp(asset, exchange_rate_map)
-        else:
+        if asset_country == Country.KOREA:
             return DEFAULT_EXCHANGE_RATE
-
-    def _get_matching_stock_daily(
-        self, asset: Asset, stock_daily_map: dict, lastest_stock_daily_map: dict, current_stock_price_map: dict
-    ) -> TodayTempStockDaily:
-        stock_daily = stock_daily_map.get((asset.asset_stock.stock.code, asset.asset_stock.purchase_date), None)
-        if stock_daily is None:
-            recent_stockdaily = lastest_stock_daily_map.get(asset.asset_stock.stock.code, None)
-            open_price = (
-                recent_stockdaily.adj_close_price
-                if recent_stockdaily
-                else current_stock_price_map.get(asset.asset_stock.stock.code, 1.0)
+        elif purchase_price:
+            if asset_purchase_currency_type == PurchaseCurrencyType.USA:
+                return ExchangeRateService.get_won_exchange_rate(asset, exchange_rate_map)
+            else:
+                return DEFAULT_EXCHANGE_RATE
+        else:
+            return (
+                ExchangeRateService.get_dollar_exchange_rate(asset, exchange_rate_map)
+                if asset_purchase_currency_type == PurchaseCurrencyType.USA
+                else ExchangeRateService.get_won_exchange_rate(asset, exchange_rate_map)
             )
-            stock_daily = TodayTempStockDaily(
-                adj_close_price=current_stock_price_map.get(asset.asset_stock.stock.code, 1.0),
-                highest_price=current_stock_price_map.get(asset.asset_stock.stock.code, 1.0),
-                lowest_price=current_stock_price_map.get(asset.asset_stock.stock.code, 1.0),
-                opening_price=open_price,
-                trade_volume=1,
-            )
-        return stock_daily
-
-    def _get_purchase_price(self, asset: Asset, stock_daily: TodayTempStockDaily) -> float:
-        return asset.asset_stock.purchase_price if asset.asset_stock.purchase_price else stock_daily.adj_close_price
 
     def _build_stock_asset(
         self,
@@ -128,21 +115,15 @@ class AssetService:
                 )
                 / (purchase_price * apply_exchange_rate)
                 * 100
-            )
-            if purchase_price
-            else None,
+            ),
             StockAsset.PROFIT_AMOUNT.value: (
                 (
                     current_stock_price_map.get(asset.asset_stock.stock.code, 1.0) * apply_exchange_rate
                     - purchase_price * apply_exchange_rate
                 )
                 * asset.asset_stock.quantity
-            )
-            if purchase_price
-            else None,
-            StockAsset.PURCHASE_AMOUNT.value: asset.asset_stock.purchase_price * asset.asset_stock.quantity
-            if asset.asset_stock.purchase_price
-            else None,
+            ),
+            StockAsset.PURCHASE_AMOUNT.value: purchase_price * asset.asset_stock.quantity * apply_exchange_rate,
             StockAsset.PURCHASE_PRICE.value: asset.asset_stock.purchase_price or None,
             StockAsset.PURCHASE_CURRENCY_TYPE.value: asset.asset_stock.purchase_currency_type or None,
             StockAsset.QUANTITY.value: asset.asset_stock.quantity,
@@ -150,6 +131,29 @@ class AssetService:
             StockAsset.STOCK_NAME.value: asset.asset_stock.stock.name_kr,
             StockAsset.STOCK_VOLUME.value: stock_daily.trade_volume if stock_daily.trade_volume else None,
         }
+
+    def _get_matching_stock_daily(
+        self, asset: Asset, stock_daily_map: dict, lastest_stock_daily_map: dict, current_stock_price_map: dict
+    ) -> TodayTempStockDaily:
+        stock_daily = stock_daily_map.get((asset.asset_stock.stock.code, asset.asset_stock.purchase_date), None)
+        if stock_daily is None:
+            recent_stockdaily = lastest_stock_daily_map.get(asset.asset_stock.stock.code, None)
+            open_price = (
+                recent_stockdaily.adj_close_price
+                if recent_stockdaily
+                else current_stock_price_map.get(asset.asset_stock.stock.code, 1.0)
+            )
+            stock_daily = TodayTempStockDaily(
+                adj_close_price=current_stock_price_map.get(asset.asset_stock.stock.code, 1.0),
+                highest_price=current_stock_price_map.get(asset.asset_stock.stock.code, 1.0),
+                lowest_price=current_stock_price_map.get(asset.asset_stock.stock.code, 1.0),
+                opening_price=open_price,
+                trade_volume=1,
+            )
+        return stock_daily
+
+    def _get_purchase_price(self, asset: Asset, stock_daily: TodayTempStockDaily) -> float:
+        return asset.asset_stock.purchase_price if asset.asset_stock.purchase_price else stock_daily.adj_close_price
 
     def _filter_stock_asset(self, stock_asset_data: dict, asset_fields: list) -> dict:
         result = {
