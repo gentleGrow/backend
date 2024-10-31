@@ -4,7 +4,7 @@ from statistics import mean
 from fastapi import APIRouter, Depends, Query
 from redis.asyncio import Redis
 from sqlalchemy.ext.asyncio import AsyncSession
-
+from app.module.asset.dependencies.asset_dependency import get_asset_service
 from app.common.auth.security import verify_jwt_token
 from app.common.util.time import get_now_date
 from app.module.asset.constant import (
@@ -15,6 +15,7 @@ from app.module.asset.constant import (
     THREE_MONTH,
     THREE_MONTH_DAY,
 )
+from app.module.asset.constant import ASSET_FIELD
 from app.module.asset.enum import AssetType, CurrencyType
 from app.module.asset.facades.asset_facade import AssetFacade
 from app.module.asset.facades.dividend_facade import DividendFacade
@@ -601,6 +602,7 @@ async def get_composition(
 async def get_sample_my_stock(
     session: AsyncSession = Depends(get_mysql_session_router),
     redis_client: Redis = Depends(get_redis_pool),
+    asset_service: AssetService = Depends(get_asset_service)
 ) -> MyStockResponse:
     assets: list[Asset] = await AssetRepository.get_eager(session, DUMMY_USER_ID, AssetType.STOCK)
     if len(assets) == 0:
@@ -608,17 +610,7 @@ async def get_sample_my_stock(
             [MyStockResponseValue(name="", current_price=0.0, profit_rate=0.0, profit_amount=0.0, quantity=0)]
         )
 
-    stock_daily_map = await StockDailyService.get_map_range(session, assets)
-    dividend_map = await DividendService.get_recent_map(session, assets)
-    lastest_stock_daily_map: dict[str, StockDaily] = await StockDailyService.get_latest_map(session, assets)
-    current_stock_price_map: dict[str, float] = await StockService.get_current_stock_price_by_code(
-        redis_client, lastest_stock_daily_map, [asset.asset_stock.stock.code for asset in assets]
-    )
-    exchange_rate_map: dict[str, float] = await ExchangeRateService.get_exchange_rate_map(redis_client)
-
-    stock_assets: list[dict] = AssetStockService.get_stock_assets_all_fields(
-        assets, stock_daily_map, current_stock_price_map, dividend_map, exchange_rate_map
-    )
+    stock_assets: list[dict] = await asset_service.get_stock_assets(session, redis_client, assets, ASSET_FIELD)
 
     return MyStockResponse(
         [
@@ -639,6 +631,7 @@ async def get_my_stock(
     token: AccessToken = Depends(verify_jwt_token),
     session: AsyncSession = Depends(get_mysql_session_router),
     redis_client: Redis = Depends(get_redis_pool),
+    asset_service: AssetService = Depends(get_asset_service)
 ) -> MyStockResponse:
     assets: list[Asset] = await AssetRepository.get_eager(session, token.get("user"), AssetType.STOCK)
     if len(assets) == 0:
@@ -646,16 +639,7 @@ async def get_my_stock(
             [MyStockResponseValue(name="", current_price=0.0, profit_rate=0.0, profit_amount=0.0, quantity=0)]
         )
 
-    stock_daily_map = await StockDailyService.get_map_range(session, assets)
-    dividend_map = await DividendService.get_recent_map(session, assets)
-    lastest_stock_daily_map = await StockDailyService.get_latest_map(session, assets)
-    current_stock_price_map = await StockService.get_current_stock_price_by_code(
-        redis_client, lastest_stock_daily_map, [asset.asset_stock.stock.code for asset in assets]
-    )
-    exchange_rate_map = await ExchangeRateService.get_exchange_rate_map(redis_client)
-    stock_assets: list[dict] = AssetStockService.get_stock_assets_all_fields(
-        assets, stock_daily_map, current_stock_price_map, dividend_map, exchange_rate_map
-    )
+    stock_assets: list[dict] = await asset_service.get_stock_assets(session, redis_client, assets, ASSET_FIELD)
 
     return MyStockResponse(
         [
