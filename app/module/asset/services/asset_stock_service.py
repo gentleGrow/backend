@@ -2,7 +2,7 @@ from datetime import date, datetime
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.module.asset.enum import AssetType, CurrencyType, PurchaseCurrencyType, StockAsset
+from app.module.asset.enum import AssetType, CurrencyType, PurchaseCurrencyType
 from app.module.asset.model import Asset, AssetStock, StockDaily
 from app.module.asset.repository.asset_repository import AssetRepository
 from app.module.asset.schema import AssetStockPostRequest

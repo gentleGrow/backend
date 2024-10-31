@@ -4,10 +4,11 @@ from statistics import mean
 from fastapi import APIRouter, Depends, Query
 from redis.asyncio import Redis
 from sqlalchemy.ext.asyncio import AsyncSession
-from app.module.asset.dependencies.asset_dependency import get_asset_service
+
 from app.common.auth.security import verify_jwt_token
 from app.common.util.time import get_now_date
 from app.module.asset.constant import (
+    ASSET_FIELD,
     ASSET_SAVE_TREND_YEAR,
     INFLATION_RATE,
     MARKET_INDEX_KR_MAPPING,
@@ -15,7 +16,7 @@ from app.module.asset.constant import (
     THREE_MONTH,
     THREE_MONTH_DAY,
 )
-from app.module.asset.constant import ASSET_FIELD
+from app.module.asset.dependencies.asset_dependency import get_asset_service
 from app.module.asset.enum import AssetType, CurrencyType
 from app.module.asset.facades.asset_facade import AssetFacade
 from app.module.asset.facades.dividend_facade import DividendFacade
@@ -602,7 +603,7 @@ async def get_composition(
 async def get_sample_my_stock(
     session: AsyncSession = Depends(get_mysql_session_router),
     redis_client: Redis = Depends(get_redis_pool),
-    asset_service: AssetService = Depends(get_asset_service)
+    asset_service: AssetService = Depends(get_asset_service),
 ) -> MyStockResponse:
     assets: list[Asset] = await AssetRepository.get_eager(session, DUMMY_USER_ID, AssetType.STOCK)
     if len(assets) == 0:
@@ -631,7 +632,7 @@ async def get_my_stock(
     token: AccessToken = Depends(verify_jwt_token),
     session: AsyncSession = Depends(get_mysql_session_router),
     redis_client: Redis = Depends(get_redis_pool),
-    asset_service: AssetService = Depends(get_asset_service)
+    asset_service: AssetService = Depends(get_asset_service),
 ) -> MyStockResponse:
     assets: list[Asset] = await AssetRepository.get_eager(session, token.get("user"), AssetType.STOCK)
     if len(assets) == 0:
