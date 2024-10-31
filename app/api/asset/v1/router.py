@@ -134,7 +134,7 @@ async def get_asset_stock(
     total_dividend_amount = await DividendFacade.get_total_dividend(session, redis_client, assets)
     dollar_exchange = await RedisExchangeRateRepository.get(redis_client, f"{CurrencyType.KOREA}_{CurrencyType.USA}")
     won_exchange = await RedisExchangeRateRepository.get(redis_client, f"{CurrencyType.USA}_{CurrencyType.KOREA}")
-
+    
     return AssetStockResponse.parse(
         stock_assets,
         asset_fields,

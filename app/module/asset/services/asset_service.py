@@ -6,8 +6,8 @@ from redis.asyncio import Redis
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.common.util.time import get_now_date
-from app.module.asset.constant import DEFAULT_EXCHANGE_RATE, REQUIRED_ASSET_FIELD
-from app.module.asset.enum import ASSETNAME, AmountUnit, Country, PurchaseCurrencyType, StockAsset
+from app.module.asset.constant import REQUIRED_ASSET_FIELD
+from app.module.asset.enum import ASSETNAME, AmountUnit, PurchaseCurrencyType, StockAsset
 from app.module.asset.model import Asset, Stock, StockDaily
 from app.module.asset.repository.asset_repository import AssetRepository
 from app.module.asset.schema import AssetStockPutRequest, TodayTempStockDaily
