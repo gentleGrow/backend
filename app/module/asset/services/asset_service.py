@@ -62,22 +62,60 @@ class AssetService:
     def _get_apply_exchange_rate(self, asset: Asset, exchange_rate_map: dict) -> float:
         # 한국 주식은 원화 입력만 가능, 해외 주식은 원화, 달러 입력 모두 가능
         asset_purchase_currency_type = asset.asset_stock.purchase_currency_type
-        asset_country = asset.asset_stock.stock.country.upper().strip()
-        purchase_price = asset.asset_stock.purchase_price
 
-        if asset_country == Country.KOREA:
-            return DEFAULT_EXCHANGE_RATE
-        elif purchase_price:
-            if asset_purchase_currency_type == PurchaseCurrencyType.USA:
-                return ExchangeRateService.get_won_exchange_rate(asset, exchange_rate_map)
-            else:
-                return DEFAULT_EXCHANGE_RATE
+        return (
+            ExchangeRateService.get_dollar_exchange_rate(asset, exchange_rate_map)
+            if asset_purchase_currency_type == PurchaseCurrencyType.USA
+            else ExchangeRateService.get_won_exchange_rate(asset, exchange_rate_map)
+        )
+
+    def _get_current_price(self, asset: Asset, current_stock_price_map: dict, apply_exchange_rate: float) -> float:
+        return current_stock_price_map.get(asset.asset_stock.stock.code, 1.0) * apply_exchange_rate
+
+    def _get_dividend(self, asset: Asset, dividend_map: dict, apply_exchange_rate: float) -> float:
+        return dividend_map.get(asset.asset_stock.stock.code, 1.0) * asset.asset_stock.quantity * apply_exchange_rate
+
+    def _get_profit_rate(
+        self, asset: Asset, current_stock_price_map: dict, purchase_price: float, apply_exchange_rate: float
+    ) -> float:
+        if asset.asset_stock.purchase_price:
+            return (
+                (
+                    (current_stock_price_map.get(asset.asset_stock.stock.code, 1.0) * apply_exchange_rate)
+                    - purchase_price
+                )
+                / purchase_price
+                * 100
+            )
+        else:
+            purchase_price_rated = purchase_price * apply_exchange_rate
+            return (
+                (
+                    (current_stock_price_map.get(asset.asset_stock.stock.code, 1.0) * apply_exchange_rate)
+                    - purchase_price_rated
+                )
+                / purchase_price_rated
+                * 100
+            )
+
+    def _get_purchase_amount(self, asset: Asset, purchase_price: float, apply_exchange_rate: float):
+        if asset.asset_stock.purchase_price:
+            purchase_price * asset.asset_stock.quantity
+        else:
+            purchase_price * asset.asset_stock.quantity * apply_exchange_rate
+
+    def _get_profit_amount(
+        self, asset: Asset, current_stock_price_map: dict, purchase_price: float, apply_exchange_rate: float
+    ):
+        if asset.asset_stock.purchase_price:
+            return (
+                (current_stock_price_map.get(asset.asset_stock.stock.code, 1.0) * apply_exchange_rate) - purchase_price
+            ) * asset.asset_stock.quantity
         else:
             return (
-                ExchangeRateService.get_dollar_exchange_rate(asset, exchange_rate_map)
-                if asset_purchase_currency_type == PurchaseCurrencyType.USA
-                else ExchangeRateService.get_won_exchange_rate(asset, exchange_rate_map)
-            )
+                current_stock_price_map.get(asset.asset_stock.stock.code, 1.0) * apply_exchange_rate
+                - purchase_price * apply_exchange_rate
+            ) * asset.asset_stock.quantity
 
     def _build_stock_asset(
         self,
@@ -88,16 +126,18 @@ class AssetService:
         dividend_map: dict,
         purchase_price: float,
     ) -> dict:
+        current_price = self._get_current_price(asset, current_stock_price_map, apply_exchange_rate)
+        dividend = self._get_dividend(asset, dividend_map, apply_exchange_rate)
+        profit_rate = self._get_profit_rate(asset, current_stock_price_map, purchase_price, apply_exchange_rate)
+        purchase_amount = self._get_purchase_amount(asset, purchase_price, apply_exchange_rate)
+        profit_amount = self._get_profit_amount(asset, current_stock_price_map, purchase_price, apply_exchange_rate)
 
         return {
             StockAsset.ID.value: asset.id,
             StockAsset.ACCOUNT_TYPE.value: asset.asset_stock.account_type or None,
             StockAsset.BUY_DATE.value: asset.asset_stock.purchase_date,
-            StockAsset.CURRENT_PRICE.value: current_stock_price_map.get(asset.asset_stock.stock.code, 1.0)
-            * apply_exchange_rate,
-            StockAsset.DIVIDEND.value: dividend_map.get(asset.asset_stock.stock.code, 1.0)
-            * asset.asset_stock.quantity
-            * apply_exchange_rate,
+            StockAsset.CURRENT_PRICE.value: current_price,
+            StockAsset.DIVIDEND.value: dividend,
             StockAsset.HIGHEST_PRICE.value: stock_daily.highest_price * apply_exchange_rate
             if stock_daily.highest_price
             else None,
@@ -108,22 +148,9 @@ class AssetService:
             StockAsset.OPENING_PRICE.value: stock_daily.opening_price * apply_exchange_rate
             if stock_daily.opening_price
             else None,
-            StockAsset.PROFIT_RATE.value: (
-                (
-                    current_stock_price_map.get(asset.asset_stock.stock.code, 1.0) * apply_exchange_rate
-                    - (purchase_price * apply_exchange_rate)
-                )
-                / (purchase_price * apply_exchange_rate)
-                * 100
-            ),
-            StockAsset.PROFIT_AMOUNT.value: (
-                (
-                    current_stock_price_map.get(asset.asset_stock.stock.code, 1.0) * apply_exchange_rate
-                    - purchase_price * apply_exchange_rate
-                )
-                * asset.asset_stock.quantity
-            ),
-            StockAsset.PURCHASE_AMOUNT.value: purchase_price * asset.asset_stock.quantity * apply_exchange_rate,
+            StockAsset.PROFIT_RATE.value: profit_rate,
+            StockAsset.PROFIT_AMOUNT.value: profit_amount,
+            StockAsset.PURCHASE_AMOUNT.value: purchase_amount,
             StockAsset.PURCHASE_PRICE.value: asset.asset_stock.purchase_price or None,
             StockAsset.PURCHASE_CURRENCY_TYPE.value: asset.asset_stock.purchase_currency_type or None,
             StockAsset.QUANTITY.value: asset.asset_stock.quantity,
