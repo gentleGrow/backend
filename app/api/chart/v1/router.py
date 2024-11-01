@@ -1,5 +1,6 @@
 from datetime import date, datetime, timedelta
 from statistics import mean
+
 from fastapi import APIRouter, Depends, Query
 from redis.asyncio import Redis
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -96,84 +97,85 @@ async def get_people_portfolio():
             PeoplePortfolioValue(
                 name="배당주 포트폴리오",
                 data=[
-                    PortfolioStockData(name="KO", percent_ratio=10.5),
-                    PortfolioStockData(name="PEP", percent_ratio=8.4),
-                    PortfolioStockData(name="JNJ", percent_ratio=7.2),
-                    PortfolioStockData(name="PG", percent_ratio=6.3),
-                    PortfolioStockData(name="MCD", percent_ratio=5.7),
-                    PortfolioStockData(name="PFE", percent_ratio=4.9),
-                    PortfolioStockData(name="MRK", percent_ratio=4.3),
-                    PortfolioStockData(name="T", percent_ratio=3.8),
-                    PortfolioStockData(name="VZ", percent_ratio=3.2),
+                    PortfolioStockData(name="코카콜라", percent_ratio=10.5),
+                    PortfolioStockData(name="펩시코", percent_ratio=8.4),
+                    PortfolioStockData(name="존슨앤존슨", percent_ratio=7.2),
+                    PortfolioStockData(name="프록터 앤 갬블", percent_ratio=6.3),
+                    PortfolioStockData(name="맥도날드", percent_ratio=5.7),
+                    PortfolioStockData(name="화이자", percent_ratio=4.9),
+                    PortfolioStockData(name="머크", percent_ratio=4.3),
+                    PortfolioStockData(name="AT&T", percent_ratio=3.8),
+                    PortfolioStockData(name="버라이즌", percent_ratio=3.2),
                     PortfolioStockData(name="IBM", percent_ratio=2.9),
                 ],
             ),
             PeoplePortfolioValue(
                 name="성장주 포트폴리오",
                 data=[
-                    PortfolioStockData(name="AAPL", percent_ratio=20.1),
-                    PortfolioStockData(name="AMZN", percent_ratio=18.3),
-                    PortfolioStockData(name="GOOG", percent_ratio=17.2),
-                    PortfolioStockData(name="MSFT", percent_ratio=15.5),
-                    PortfolioStockData(name="NVDA", percent_ratio=12.3),
-                    PortfolioStockData(name="TSLA", percent_ratio=8.9),
-                    PortfolioStockData(name="META", percent_ratio=5.0),
-                    PortfolioStockData(name="NFLX", percent_ratio=2.7),
+                    PortfolioStockData(name="애플", percent_ratio=20.1),
+                    PortfolioStockData(name="아마존", percent_ratio=18.3),
+                    PortfolioStockData(name="구글", percent_ratio=17.2),
+                    PortfolioStockData(name="마이크로소프트", percent_ratio=15.5),
+                    PortfolioStockData(name="엔비디아", percent_ratio=12.3),
+                    PortfolioStockData(name="테슬라", percent_ratio=8.9),
+                    PortfolioStockData(name="메타", percent_ratio=5.0),
+                    PortfolioStockData(name="넷플릭스", percent_ratio=2.7),
                 ],
             ),
             PeoplePortfolioValue(
                 name="국내 포트폴리오",
                 data=[
-                    PortfolioStockData(name="005930", percent_ratio=25.6),
-                    PortfolioStockData(name="000660", percent_ratio=19.8),
-                    PortfolioStockData(name="051910", percent_ratio=12.4),
-                    PortfolioStockData(name="035420", percent_ratio=9.3),
-                    PortfolioStockData(name="035720", percent_ratio=8.7),
-                    PortfolioStockData(name="068270", percent_ratio=7.4),
-                    PortfolioStockData(name="005380", percent_ratio=6.2),
-                    PortfolioStockData(name="207940", percent_ratio=5.1),
+                    PortfolioStockData(name="삼성전자", percent_ratio=25.6),
+                    PortfolioStockData(name="SK하이닉스", percent_ratio=19.8),
+                    PortfolioStockData(name="LG화학", percent_ratio=12.4),
+                    PortfolioStockData(name="NAVER", percent_ratio=9.3),
+                    PortfolioStockData(name="카카오", percent_ratio=8.7),
+                    PortfolioStockData(name="셀트리온", percent_ratio=7.4),
+                    PortfolioStockData(name="현대차", percent_ratio=6.2),
+                    PortfolioStockData(name="삼성SDI", percent_ratio=5.1),
                 ],
             ),
             PeoplePortfolioValue(
                 name="안전자산 포트폴리오",
                 data=[
-                    PortfolioStockData(name="GLD", percent_ratio=35.0),
-                    PortfolioStockData(name="BND", percent_ratio=25.0),
-                    PortfolioStockData(name="VNQ", percent_ratio=15.0),
-                    PortfolioStockData(name="TIP", percent_ratio=10.0),
-                    PortfolioStockData(name="AGG", percent_ratio=8.0),
-                    PortfolioStockData(name="IEF", percent_ratio=7.0),
+                    PortfolioStockData(name="SPDR 골드 트러스트", percent_ratio=35.0),
+                    PortfolioStockData(name="바클레이즈 미국 채권", percent_ratio=25.0),
+                    PortfolioStockData(name="뱅가드 리츠", percent_ratio=15.0),
+                    PortfolioStockData(name="팁스 (물가연동채)", percent_ratio=10.0),
+                    PortfolioStockData(name="애그리게이트 채권", percent_ratio=8.0),
+                    PortfolioStockData(name="중기채권 (IEF)", percent_ratio=7.0),
                 ],
             ),
             PeoplePortfolioValue(
                 name="소형주 포트폴리오",
                 data=[
-                    PortfolioStockData(name="RGEN", percent_ratio=14.7),
-                    PortfolioStockData(name="BLD", percent_ratio=13.4),
-                    PortfolioStockData(name="CDXS", percent_ratio=11.9),
-                    PortfolioStockData(name="KTOS", percent_ratio=10.5),
-                    PortfolioStockData(name="NMIH", percent_ratio=9.1),
-                    PortfolioStockData(name="TMDX", percent_ratio=8.8),
-                    PortfolioStockData(name="VRM", percent_ratio=8.4),
-                    PortfolioStockData(name="CSIQ", percent_ratio=7.6),
-                    PortfolioStockData(name="IMMU", percent_ratio=6.5),
-                    PortfolioStockData(name="RPD", percent_ratio=5.1),
+                    PortfolioStockData(name="리제네론", percent_ratio=14.7),
+                    PortfolioStockData(name="빌드", percent_ratio=13.4),
+                    PortfolioStockData(name="코덱스시스", percent_ratio=11.9),
+                    PortfolioStockData(name="크라토스", percent_ratio=10.5),
+                    PortfolioStockData(name="NMI 홀딩스", percent_ratio=9.1),
+                    PortfolioStockData(name="트랜스메딕스", percent_ratio=8.8),
+                    PortfolioStockData(name="브룸", percent_ratio=8.4),
+                    PortfolioStockData(name="캐네디언솔라", percent_ratio=7.6),
+                    PortfolioStockData(name="이뮤노메딕스", percent_ratio=6.5),
+                    PortfolioStockData(name="래피드7", percent_ratio=5.1),
                 ],
             ),
             PeoplePortfolioValue(
                 name="테크주 포트폴리오",
                 data=[
-                    PortfolioStockData(name="AAPL", percent_ratio=22.0),
-                    PortfolioStockData(name="MSFT", percent_ratio=18.3),
-                    PortfolioStockData(name="GOOG", percent_ratio=16.1),
-                    PortfolioStockData(name="AMZN", percent_ratio=15.5),
-                    PortfolioStockData(name="NVDA", percent_ratio=12.2),
-                    PortfolioStockData(name="TSLA", percent_ratio=9.8),
-                    PortfolioStockData(name="META", percent_ratio=6.1),
+                    PortfolioStockData(name="애플", percent_ratio=22.0),
+                    PortfolioStockData(name="마이크로소프트", percent_ratio=18.3),
+                    PortfolioStockData(name="구글", percent_ratio=16.1),
+                    PortfolioStockData(name="아마존", percent_ratio=15.5),
+                    PortfolioStockData(name="엔비디아", percent_ratio=12.2),
+                    PortfolioStockData(name="테슬라", percent_ratio=9.8),
+                    PortfolioStockData(name="메타", percent_ratio=6.1),
                 ],
             ),
         ]
     )
+
 
 
 @chart_router.get("/sample/asset-save-trend", summary="자산적립 추이", response_model=AssetSaveTrendResponse)
@@ -615,11 +617,11 @@ async def get_sample_my_stock(
     return MyStockResponse(
         [
             MyStockResponseValue(
-                name=stock_asset[StockAsset.STOCK_NAME.value]['value'],
-                current_price=stock_asset[StockAsset.CURRENT_PRICE.value]['value'],
-                profit_rate=stock_asset[StockAsset.PROFIT_RATE.value]['value'],
-                profit_amount=stock_asset[StockAsset.PROFIT_AMOUNT.value]['value'],
-                quantity=stock_asset[StockAsset.QUANTITY.value]['value'],
+                name=stock_asset[StockAsset.STOCK_NAME.value]["value"],
+                current_price=stock_asset[StockAsset.CURRENT_PRICE.value]["value"],
+                profit_rate=stock_asset[StockAsset.PROFIT_RATE.value]["value"],
+                profit_amount=stock_asset[StockAsset.PROFIT_AMOUNT.value]["value"],
+                quantity=stock_asset[StockAsset.QUANTITY.value]["value"],
             )
             for stock_asset in stock_assets
         ]
@@ -644,11 +646,11 @@ async def get_my_stock(
     return MyStockResponse(
         [
             MyStockResponseValue(
-                name=stock_asset[StockAsset.STOCK_NAME.value]['value'],
-                current_price=stock_asset[StockAsset.CURRENT_PRICE.value]['value'],
-                profit_rate=stock_asset[StockAsset.PROFIT_RATE.value]['value'],
-                profit_amount=stock_asset[StockAsset.PROFIT_AMOUNT.value]['value'],
-                quantity=stock_asset[StockAsset.QUANTITY.value]['value'],
+                name=stock_asset[StockAsset.STOCK_NAME.value]["value"],
+                current_price=stock_asset[StockAsset.CURRENT_PRICE.value]["value"],
+                profit_rate=stock_asset[StockAsset.PROFIT_RATE.value]["value"],
+                profit_amount=stock_asset[StockAsset.PROFIT_AMOUNT.value]["value"],
+                quantity=stock_asset[StockAsset.QUANTITY.value]["value"],
             )
             for stock_asset in stock_assets
         ]
