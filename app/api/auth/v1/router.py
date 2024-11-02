@@ -36,7 +36,7 @@ async def delete_user(
     if user is None:
         return DeleteResponse(status_code=status.HTTP_404_NOT_FOUND, content="유저 정보가 없습니다.")
     else:
-        await UserRepository.delete_user_and_related_data(session, user.id)
+        await UserRepository.delete(session, user.id)
         return DeleteResponse(status_code=status.HTTP_200_OK, content="성공적으로 삭제하였습니다.")
 
 

@@ -21,7 +21,7 @@ class AssetField(TimestampMixin, MySQLBase):
     __tablename__ = "asset_field"
 
     id = Column(BigInteger, primary_key=True, autoincrement=True)
-    user_id = Column(BigInteger, ForeignKey("user.id"), nullable=False, unique=True)
+    user_id = Column(BigInteger, ForeignKey("user.id", ondelete="CASCADE"), nullable=False, unique=True)
     field_preference = Column(JSON, nullable=False, default=list)
 
 
@@ -49,7 +49,7 @@ class AssetStock(TimestampMixin, MySQLBase):
     quantity = Column(Integer, nullable=False, info={"description": "구매수량"})
 
     stock_id = Column(BigInteger, ForeignKey("stock.id"), primary_key=True)
-    asset_id = Column(BigInteger, ForeignKey("asset.id"), primary_key=True)
+    asset_id = Column(BigInteger, ForeignKey("asset.id", ondelete="CASCADE"), primary_key=True)
     asset = relationship("Asset", back_populates="asset_stock", uselist=False, overlaps="stock,asset", lazy="selectin")
     stock = relationship("Stock", back_populates="asset_stock", overlaps="asset,stock", lazy="selectin")
 
@@ -60,7 +60,7 @@ class Asset(TimestampMixin, MySQLBase):
     id = Column(BigInteger, primary_key=True, autoincrement=True)
     asset_type = Column(String(255), nullable=False, info={"description": "자산 종류"})
 
-    user_id = Column(BigInteger, ForeignKey("user.id"), nullable=False)
+    user_id = Column(BigInteger, ForeignKey("user.id", ondelete="CASCADE"), nullable=False)
 
     stock = relationship(
         "Stock", secondary="asset_stock", back_populates="asset", overlaps="asset_stock", lazy="selectin"
