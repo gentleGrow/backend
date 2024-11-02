@@ -177,7 +177,6 @@ async def get_people_portfolio():
     )
 
 
-
 @chart_router.get("/sample/asset-save-trend", summary="자산적립 추이", response_model=AssetSaveTrendResponse)
 async def get_sample_asset_save_trend(
     session: AsyncSession = Depends(get_mysql_session_router), redis_client: Redis = Depends(get_redis_pool)
