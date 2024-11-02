@@ -17,9 +17,9 @@ class UserRepository:
         asset_ids = [asset.id for asset in assets]
 
         await session.execute(delete(AssetStock).where(AssetStock.asset_id.in_(asset_ids)))
-
+        await session.flush()
+        
         await session.execute(delete(Asset).where(Asset.user_id == user_id))
-
         await session.execute(delete(User).where(User.id == user_id))
 
         await session.commit()
