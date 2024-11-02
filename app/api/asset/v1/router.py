@@ -167,7 +167,6 @@ async def create_asset_stock(
             field=StockAsset.BUY_DATE,
         )
 
-
     await AssetStockService.save_asset_stock_by_post(session, request_data, stock.id, token.get("user"))
     return AssetPostResponse(status_code=status.HTTP_201_CREATED, content="주식 자산 성공적으로 등록 했습니다.", field="")
 
