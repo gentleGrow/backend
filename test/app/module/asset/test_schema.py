@@ -2,7 +2,8 @@ import pytest
 from fastapi import HTTPException
 from redis.asyncio import Redis
 from sqlalchemy.ext.asyncio import AsyncSession
-from app.module.asset.constant import CurrencyType
+
+from app.module.asset.constant import REQUIRED_ASSET_FIELD, CurrencyType
 from app.module.asset.enum import AssetType
 from app.module.asset.facades.asset_facade import AssetFacade
 from app.module.asset.facades.dividend_facade import DividendFacade
@@ -12,7 +13,7 @@ from app.module.asset.repository.asset_repository import AssetRepository
 from app.module.asset.schema import AssetStockResponse, UpdateAssetFieldRequest
 from app.module.asset.services.asset_field_service import AssetFieldService
 from app.module.auth.constant import DUMMY_USER_ID
-from app.module.asset.constant import REQUIRED_ASSET_FIELD
+
 
 class TestUpdateAssetFieldRequest:
     def test_validate_request_data_missing_required_fields(self):

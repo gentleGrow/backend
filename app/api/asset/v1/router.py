@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from redis.asyncio import Redis
 from sqlalchemy.ext.asyncio import AsyncSession
-
+from app.module.asset.dependencies.dividend_dependency import get_dividend_service
 from app.common.auth.security import verify_jwt_token
 from app.common.schema.common_schema import DeleteResponse, PutResponse
 from app.module.asset.constant import CurrencyType
@@ -27,6 +27,7 @@ from app.module.asset.schema import (
     UpdateAssetFieldRequest,
 )
 from app.module.asset.services.asset_field_service import AssetFieldService
+from app.module.asset.services.dividend_service import DividendService
 from app.module.asset.services.asset_service import AssetService
 from app.module.asset.services.asset_stock_service import AssetStockService
 from app.module.asset.services.stock_service import StockService
@@ -83,6 +84,7 @@ async def get_sample_asset_stock(
     session: AsyncSession = Depends(get_mysql_session_router),
     redis_client: Redis = Depends(get_redis_pool),
     asset_service: AssetService = Depends(get_asset_service),
+    dividend_service: DividendService = Depends(get_dividend_service),
 ) -> AssetStockResponse:
     assets: list[Asset] = await AssetRepository.get_eager(session, DUMMY_USER_ID, AssetType.STOCK)
     asset_fields: list[str] = await AssetFieldService.get_asset_field(session, DUMMY_USER_ID)
@@ -96,7 +98,7 @@ async def get_sample_asset_stock(
 
     total_asset_amount = await AssetFacade.get_total_asset_amount(session, redis_client, assets)
     total_invest_amount = await AssetFacade.get_total_investment_amount(session, redis_client, assets)
-    total_dividend_amount = await DividendFacade.get_total_dividend(session, redis_client, assets)
+    total_dividend_amount = await dividend_service.get_total_dividend(session, redis_client, assets)
 
     dollar_exchange = await RedisExchangeRateRepository.get(redis_client, f"{CurrencyType.KOREA}_{CurrencyType.USA}")
     won_exchange = await RedisExchangeRateRepository.get(redis_client, f"{CurrencyType.USA}_{CurrencyType.KOREA}")
@@ -118,19 +120,22 @@ async def get_asset_stock(
     redis_client: Redis = Depends(get_redis_pool),
     session: AsyncSession = Depends(get_mysql_session_router),
     asset_service: AssetService = Depends(get_asset_service),
+    dividend_service: DividendService = Depends(get_dividend_service),
 ) -> AssetStockResponse:
     assets: list[Asset] = await AssetRepository.get_eager(session, token.get("user"), AssetType.STOCK)
-    asset_fields: list[str] = await AssetFieldService.get_asset_field(session, token.get("user"))
+    asset_fields: list[str] = await AssetFieldService.get_asset_field(session, DUMMY_USER_ID)
 
     no_asset_response = AssetStockResponse.validate_assets(assets, asset_fields)
     if no_asset_response:
         return no_asset_response
 
+    asset_fields = await AssetFieldService.get_asset_field(session, DUMMY_USER_ID)
     stock_assets: list[dict] = await asset_service.get_stock_assets(session, redis_client, assets, asset_fields)
 
     total_asset_amount = await AssetFacade.get_total_asset_amount(session, redis_client, assets)
     total_invest_amount = await AssetFacade.get_total_investment_amount(session, redis_client, assets)
-    total_dividend_amount = await DividendFacade.get_total_dividend(session, redis_client, assets)
+    total_dividend_amount = await dividend_service.get_total_dividend(session, redis_client, assets)
+
     dollar_exchange = await RedisExchangeRateRepository.get(redis_client, f"{CurrencyType.KOREA}_{CurrencyType.USA}")
     won_exchange = await RedisExchangeRateRepository.get(redis_client, f"{CurrencyType.USA}_{CurrencyType.KOREA}")
 

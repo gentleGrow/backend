@@ -29,6 +29,75 @@ class AssetService:
         self.exchange_rate_service = exchange_rate_service
         self.stock_service = stock_service
         self.dividend_service = dividend_service
+        
+        
+    async def filter_required_assets(self, assets: list[Asset]) -> list[Asset]:
+        return [
+                asset for asset in assets if await self._check_required_field(asset)
+            ]
+
+    async def get_total_investment_amount(
+        self, 
+        session: AsyncSession, 
+        redis_client: Redis, 
+        assets: list[Asset]
+    ) -> float:
+        stock_daily_map = await self.stock_daily_service.get_map_range(session, assets)
+        exchange_rate_map = await self.exchange_rate_service.get_exchange_rate_map(redis_client)
+        lastest_stock_daily_map = await self.stock_daily_service.get_latest_map(session, assets)
+
+        result = 0.0
+
+        for asset in assets:
+            stock_daily = stock_daily_map.get((asset.asset_stock.stock.code, asset.asset_stock.purchase_date), None)
+            if stock_daily is None:
+                stock_daily = lastest_stock_daily_map.get(asset.asset_stock.stock.code, None)
+
+                if stock_daily is None:
+                    continue
+
+            invest_price = (
+                asset.asset_stock.purchase_price * self.exchange_rate_service.get_won_exchange_rate(asset, exchange_rate_map)
+                if asset.asset_stock.purchase_currency_type == PurchaseCurrencyType.USA
+                and asset.asset_stock.purchase_price
+                else asset.asset_stock.purchase_price
+                if asset.asset_stock.purchase_price
+                else stock_daily.adj_close_price * self.exchange_rate_service.get_won_exchange_rate(asset, exchange_rate_map)
+            )
+
+            result += invest_price * asset.asset_stock.quantity
+
+        return result
+
+
+    async def get_total_asset_amount(
+        self, 
+        session: AsyncSession, 
+        redis_client: Redis, 
+        assets: list[Asset]
+    ) -> float:
+        lastest_stock_daily_map = await self.stock_daily_service.get_latest_map(session, assets)
+        current_stock_price_map = await self.stock_service.get_current_stock_price(
+            redis_client, lastest_stock_daily_map, assets
+        )
+        exchange_rate_map = await self.exchange_rate_service.get_exchange_rate_map(redis_client)
+
+        result = 0.0
+
+        for asset in assets:
+            result += (
+                current_stock_price_map.get(asset.asset_stock.stock.code)
+                * asset.asset_stock.quantity
+                * self.exchange_rate_service.get_won_exchange_rate(asset, exchange_rate_map)
+            )
+        return result
+
+    async def _check_required_field(self, asset:Asset) -> bool:
+        return bool(
+            asset.asset_stock.purchase_date and
+            asset.asset_stock.quantity and
+            asset.stock.code
+        )
 
     async def get_stock_assets(
         self, session: AsyncSession, redis_client: Redis, assets: list[Asset], asset_fields: list

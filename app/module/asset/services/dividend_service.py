@@ -1,6 +1,6 @@
 from collections import defaultdict
 from datetime import date, timedelta
-
+from redis.asyncio import Redis
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.module.asset.model import Asset, Dividend
@@ -9,6 +9,29 @@ from app.module.asset.services.exchange_rate_service import ExchangeRateService
 
 
 class DividendService:
+    def __init__(
+        self,
+        exchange_rate_service: ExchangeRateService 
+    ):
+        self.exchange_rate_service = exchange_rate_service
+    
+    
+    async def get_total_dividend(self, session: AsyncSession, redis_client: Redis, assets: list[Asset]) -> float:
+        exchange_rate_map = await self.exchange_rate_service.get_exchange_rate_map(redis_client)
+        dividend_map: dict[str, float] = await self.get_recent_map_temp(session, assets)
+
+        result = 0.0
+
+        for asset in assets:
+            result += (
+                dividend_map.get(asset.asset_stock.stock.code, 0.0)
+                * asset.asset_stock.quantity
+                * self.exchange_rate_service.get_won_exchange_rate(asset, exchange_rate_map)
+            )
+
+        return result
+    
+    
     def get_closest_dividend_temp(self, asset: Asset, dividend_map: dict[tuple[str, date], float]) -> date | None:
         asset_code: str = asset.asset_stock.stock.code
         asset_date: date = asset.asset_stock.purchase_date
@@ -200,17 +223,3 @@ class DividendService:
             if isinstance(dividend.date, date) and str(dividend.date) != "0000-00-00"
         }
 
-    @staticmethod
-    def get_total_dividend(
-        assets: list[Asset], dividend_map: dict[str, float], exchange_rate_map: dict[str, float]
-    ) -> float:
-        total_dividend_amount = 0.0
-
-        for asset in assets:
-            total_dividend_amount += (
-                dividend_map.get(asset.asset_stock.stock.code, 0.0)
-                * asset.asset_stock.quantity
-                * ExchangeRateService.get_won_exchange_rate(asset, exchange_rate_map)
-            )
-
-        return total_dividend_amount
