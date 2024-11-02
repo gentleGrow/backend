@@ -1,10 +1,7 @@
 from sqlalchemy import delete, update
-from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
 
-from app.module.asset.model import Asset, AssetField, AssetStock
-from app.module.asset.repository.asset_repository import AssetRepository
 from app.module.auth.enum import ProviderEnum
 from app.module.auth.model import User
 
@@ -14,8 +11,7 @@ class UserRepository:
     async def delete(session: AsyncSession, user_id: int) -> None:
         await session.execute(delete(User).where(User.id == user_id))
         await session.commit()
-        
-        
+
     @staticmethod
     async def get_by_social_id(session: AsyncSession, social_id: str, provider: ProviderEnum) -> User | None:
         select_instance = select(User).where(User.social_id == social_id, User.provider == provider.value)
