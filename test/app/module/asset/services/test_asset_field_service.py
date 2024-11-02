@@ -1,6 +1,6 @@
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.module.asset.constant import ASSET_FIELD
+from app.module.asset.constant import REQUIRED_ASSET_FIELD
 from app.module.asset.services.asset_field_service import AssetFieldService
 from app.module.auth.constant import DUMMY_USER_ID
 
@@ -11,12 +11,10 @@ class TestAssetFieldService:
         setup_asset_field
 
         # When
-        fields_to_disable = ["stock_volume", "purchase_price", "purchase_amount"]
-        expected_fields = [field for field in ASSET_FIELD if field not in fields_to_disable]
         result = await AssetFieldService.get_asset_field(session, DUMMY_USER_ID)
 
         # Then
-        assert result == expected_fields
+        assert result == REQUIRED_ASSET_FIELD
 
     async def test_get_asset_field_create_new(self, session: AsyncSession, setup_user):
         # Given
@@ -26,7 +24,7 @@ class TestAssetFieldService:
         result = await AssetFieldService.get_asset_field(session, new_user_id)
 
         # Then
-        expected_fields = [field for field in ASSET_FIELD]
+        expected_fields = [field for field in REQUIRED_ASSET_FIELD]
         assert result == expected_fields
 
         # And

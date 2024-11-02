@@ -3,7 +3,6 @@ from typing import Optional
 
 from fastapi import HTTPException, status
 from pydantic import BaseModel, Field, RootModel
-
 from app.module.asset.constant import ASSET_FIELD, REQUIRED_ASSET_FIELD
 from app.module.asset.enum import AccountType, InvestmentBankType, PurchaseCurrencyType
 from app.module.asset.model import Asset

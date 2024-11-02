@@ -5,7 +5,7 @@ import pytest
 from redis.asyncio import Redis
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.module.asset.constant import ASSET_FIELD
+from app.module.asset.constant import REQUIRED_ASSET_FIELD
 from app.module.asset.enum import (
     AccountType,
     AssetType,
@@ -42,9 +42,7 @@ async def setup_asset_stock_field(session: AsyncSession, setup_user, setup_stock
 
 @pytest.fixture(scope="function")
 async def setup_asset_field(session: AsyncSession, setup_user, setup_stock):
-    fields_to_disable = ["stock_volume", "purchase_price", "purchase_amount"]
-    field_preference = [field for field in ASSET_FIELD if field not in fields_to_disable]
-    asset_field = AssetField(user_id=DUMMY_USER_ID, field_preference=field_preference)
+    asset_field = AssetField(user_id=DUMMY_USER_ID, field_preference=REQUIRED_ASSET_FIELD)
 
     session.add(asset_field)
     await session.commit()
