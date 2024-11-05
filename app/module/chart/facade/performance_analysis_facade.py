@@ -4,7 +4,7 @@ from math import floor
 
 from redis.asyncio import Redis
 from sqlalchemy.ext.asyncio import AsyncSession
-from icecream import ic
+
 from app.module.asset.enum import AssetType, MarketIndex
 from app.module.asset.facades.asset_facade import AssetFacade
 from app.module.asset.model import Asset, MarketIndexMinutely, StockDaily
@@ -164,7 +164,7 @@ class PerformanceAnalysisFacade:
         stock_datetime_price_map = await StockMinutelyService.get_datetime_interval_map(
             session, interval_start, interval_end, assets, interval.get_interval()
         )
-        
+
         assets_by_date: defaultdict = AssetService.asset_list_from_days(assets, interval.get_days())
         exchange_rate_map = await ExchangeRateService.get_exchange_rate_map(redis_client)
         stock_daily_map = await StockDailyService.get_map_range(session, assets)
@@ -230,10 +230,10 @@ class PerformanceAnalysisFacade:
         current_profit = 0.0
 
         while current_datetime <= interval_end:
-            if current_datetime.weekday() in [5, 6]:  
+            if current_datetime.weekday() in [5, 6]:
                 current_datetime += timedelta(minutes=interval.get_interval())
                 continue
-            
+
             naive_current_datetime = current_datetime.replace(tzinfo=None)
             if naive_current_datetime in market_index_minutely_map:
                 market_index = market_index_minutely_map[naive_current_datetime]

@@ -1,7 +1,7 @@
 from collections import defaultdict
 from datetime import date, datetime, timedelta
 from typing import Any
-
+from icecream import ic
 from redis.asyncio import Redis
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -62,6 +62,26 @@ class AssetService:
             )
 
             result += invest_price * asset.asset_stock.quantity
+
+        return result
+
+    async def get_total_asset_amount_with_date_temp(
+        self, session: AsyncSession, redis_client: Redis, assets: list[Asset], past_date: date
+    ) -> float:
+        result = 0.0
+
+        exchange_rate_map = await self.exchange_rate_service.get_exchange_rate_map(redis_client)
+        stock_daily_date_map = await self.stock_daily_service.get_date_map_temp(session, assets, past_date)
+
+        for asset in assets:
+            current_stock_daily = stock_daily_date_map.get((asset.asset_stock.stock.code, past_date), None)
+            current_value = current_stock_daily.adj_close_price if current_stock_daily else 1.0
+
+            result += (
+                current_value
+                * asset.asset_stock.quantity
+                * ExchangeRateService.get_won_exchange_rate(asset, exchange_rate_map)
+            )
 
         return result
 

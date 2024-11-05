@@ -34,7 +34,7 @@ class TestAssetStockService:
     ):
         # When
         actual_profit_rate = AssetStockService.get_total_profit_rate(
-            total_asset_amount=total_asset_amount, total_invest_amount=total_invest_amount
+            current_amount=total_asset_amount, past_amount=total_invest_amount
         )
 
         # Then

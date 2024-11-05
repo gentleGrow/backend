@@ -4,7 +4,7 @@ from statistics import mean
 from fastapi import APIRouter, Depends, Query
 from redis.asyncio import Redis
 from sqlalchemy.ext.asyncio import AsyncSession
-from icecream import ic
+
 from app.common.auth.security import verify_jwt_token
 from app.common.util.time import get_now_date
 from app.module.asset.constant import (
@@ -20,7 +20,7 @@ from app.module.asset.dependencies.asset_dependency import get_asset_service
 from app.module.asset.enum import AssetType, CurrencyType, StockAsset
 from app.module.asset.facades.asset_facade import AssetFacade
 from app.module.asset.facades.dividend_facade import DividendFacade
-from app.module.asset.model import Asset, StockDaily
+from app.module.asset.model import Asset
 from app.module.asset.repository.asset_repository import AssetRepository
 from app.module.asset.schema import MarketIndexData
 from app.module.asset.services.asset_service import AssetService
@@ -398,7 +398,7 @@ async def get_sample_performance_analysis(
         market_analysis_result_short: dict[datetime, float] = await PerformanceAnalysisFacade.get_market_analysis_short(
             session, redis_client, start_datetime, end_datetime, interval
         )
-        
+
         user_analysis_result_short: dict[datetime, float] = await PerformanceAnalysisFacade.get_user_analysis_short(
             session,
             redis_client,
@@ -662,6 +662,7 @@ async def get_summary(
     token: AccessToken = Depends(verify_jwt_token),
     session: AsyncSession = Depends(get_mysql_session_router),
     redis_client: Redis = Depends(get_redis_pool),
+    asset_service: AssetService = Depends(get_asset_service),
 ) -> SummaryResponse:
     assets: list[Asset] = await AssetRepository.get_eager(session, token.get("user"), AssetType.STOCK)
     if len(assets) == 0:
@@ -672,16 +673,10 @@ async def get_summary(
             profit=ProfitDetail(profit_amount=0.0, profit_rate=0.0),
         )
 
-    latest_stock_daily_map: dict[str, StockDaily] = await StockDailyService.get_latest_map(session, assets)
-    current_stock_price_map: dict[str, float] = await StockService.get_current_stock_price_by_code(
-        redis_client, latest_stock_daily_map, [asset.asset_stock.stock.code for asset in assets]
-    )
-    exchange_rate_map: dict[str, float] = await ExchangeRateService.get_exchange_rate_map(redis_client)
-
     total_asset_amount = await AssetFacade.get_total_asset_amount(session, redis_client, assets)
     total_investment_amount = await AssetFacade.get_total_investment_amount(session, redis_client, assets)
     today_review_rate: float = SummaryFacade.get_today_review_rate(
-        assets, total_asset_amount, current_stock_price_map, exchange_rate_map
+        session, redis_client, token.get("user"), asset_service
     )
 
     return SummaryResponse(
@@ -701,6 +696,7 @@ async def get_summary(
 async def get_sample_summary(
     session: AsyncSession = Depends(get_mysql_session_router),
     redis_client: Redis = Depends(get_redis_pool),
+    asset_service: AssetService = Depends(get_asset_service),
 ) -> SummaryResponse:
     assets: list[Asset] = await AssetRepository.get_eager(session, DUMMY_USER_ID, AssetType.STOCK)
     if len(assets) == 0:
@@ -711,17 +707,9 @@ async def get_sample_summary(
             profit=ProfitDetail(profit_amount=0.0, profit_rate=0.0),
         )
 
-    latest_stock_daily_map: dict[str, StockDaily] = await StockDailyService.get_latest_map(session, assets)
-    current_stock_price_map: dict[str, float] = await StockService.get_current_stock_price_by_code(
-        redis_client, latest_stock_daily_map, [asset.asset_stock.stock.code for asset in assets]
-    )
-    exchange_rate_map: dict[str, float] = await ExchangeRateService.get_exchange_rate_map(redis_client)
-
     total_asset_amount = await AssetFacade.get_total_asset_amount(session, redis_client, assets)
     total_investment_amount = await AssetFacade.get_total_investment_amount(session, redis_client, assets)
-    today_review_rate: float = SummaryFacade.get_today_review_rate(
-        assets, total_asset_amount, current_stock_price_map, exchange_rate_map
-    )
+    today_review_rate: float = SummaryFacade.get_today_review_rate(session, redis_client, DUMMY_USER_ID, asset_service)
 
     return SummaryResponse(
         today_review_rate=today_review_rate,

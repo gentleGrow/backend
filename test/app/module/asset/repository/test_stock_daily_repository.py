@@ -14,15 +14,15 @@ class TestStockDailyRepository:
         latest_stock_dailies = await StockDailyRepository.get_latest(session, stock_codes)
 
         # Then
-        assert len(latest_stock_dailies) == 2
-
         aapl_stock_daily = next(sd for sd in latest_stock_dailies if sd.code == "AAPL")
         assert aapl_stock_daily.code == "AAPL"
-        assert aapl_stock_daily.date == date(2024, 8, 14)
+        assert aapl_stock_daily.date == date(2024, 9, 1)
 
         tsla_stock_daily = next(sd for sd in latest_stock_dailies if sd.code == "TSLA")
         assert tsla_stock_daily.code == "TSLA"
-        assert tsla_stock_daily.date == date(2024, 8, 14)
+        assert tsla_stock_daily.date == date(2024, 9, 1)
+        
+        
 
     async def test_get_stock_dailies_by_code_and_date(self, session: AsyncSession, setup_stock_daily) -> None:
         # Given

@@ -5,6 +5,9 @@ REDIS_RICH_PICK_KEY = "richpick"
 REDIS_RICH_PICK_NAME_KEY = "richpickname"
 RICH_PICK_SECOND = 60 * 60
 DEFAULT_TIP = "자신이 사랑하는 일을 찾아 투자하세요."
+PAST_MONTH_DAY = 30
+FULL_PERCENTAGE_RATE = 100.0
+
 
 INVESTMENT_TIP = [
     {"id": 1, "tip": "초보 투자자는 분산 투자를 고려하세요."},

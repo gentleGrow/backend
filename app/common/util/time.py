@@ -1,7 +1,13 @@
 import calendar
 import time
-from datetime import datetime
+from datetime import datetime, timedelta
 from zoneinfo import ZoneInfo
+
+
+def get_date_past_day(days: int):
+    seoul_tz = ZoneInfo("Asia/Seoul")
+    now_in_seoul = datetime.now(seoul_tz)
+    return now_in_seoul.date() - timedelta(days=days)
 
 
 def check_weekend():

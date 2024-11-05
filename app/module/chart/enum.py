@@ -38,7 +38,7 @@ class IntervalType(StrEnum):
             if 5 in days_between:
                 start_datetime -= timedelta(days=1)
             if 6 in days_between:
-                start_datetime -= timedelta(days=1)            
+                start_datetime -= timedelta(days=1)
             return start_datetime, end_datetime
         elif self == IntervalType.ONEMONTH:
             end_date = get_now_date()

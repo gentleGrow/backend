@@ -12,12 +12,10 @@ from app.module.asset.services.exchange_rate_service import ExchangeRateService
 class AssetStockService:
     @staticmethod
     def get_total_profit_rate(
-        total_asset_amount: float,
-        total_invest_amount: float,
+        current_amount: float,
+        past_amount: float,
     ) -> float:
-        return (
-            ((total_asset_amount - total_invest_amount) / total_invest_amount) * 100 if total_invest_amount > 0 else 0.0
-        )
+        return ((current_amount - past_amount) / past_amount) * 100 if past_amount > 0 else 0.0
 
     @staticmethod
     def get_total_profit_rate_real(
@@ -44,10 +42,6 @@ class AssetStockService:
                 * ExchangeRateService.get_won_exchange_rate(asset, exchange_rate_map)
             )
         return result
-
-    @staticmethod
-    async def check_asset_stock_exist(session: AsyncSession, buy_date: date, stock_id: int):
-        pass
 
     @staticmethod
     async def save_asset_stock_by_post(
