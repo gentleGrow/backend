@@ -4,7 +4,7 @@ from statistics import mean
 from fastapi import APIRouter, Depends, Query
 from redis.asyncio import Redis
 from sqlalchemy.ext.asyncio import AsyncSession
-
+from icecream import ic
 from app.common.auth.security import verify_jwt_token
 from app.common.util.time import get_now_date
 from app.module.asset.constant import (
@@ -398,6 +398,7 @@ async def get_sample_performance_analysis(
         market_analysis_result_short: dict[datetime, float] = await PerformanceAnalysisFacade.get_market_analysis_short(
             session, redis_client, start_datetime, end_datetime, interval
         )
+        
         user_analysis_result_short: dict[datetime, float] = await PerformanceAnalysisFacade.get_user_analysis_short(
             session,
             redis_client,

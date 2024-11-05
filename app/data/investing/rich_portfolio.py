@@ -16,19 +16,18 @@ from selenium.webdriver.support.ui import WebDriverWait
 from sqlalchemy.ext.asyncio import AsyncSession
 from webdriver_manager.chrome import ChromeDriverManager
 
-from app.module.asset.services.stock_service import StockService
 from app.data.investing.sources.enum import RicePeople
 from app.module.asset.enum import AssetType, PurchaseCurrencyType
 from app.module.asset.model import Asset, AssetStock
 from app.module.asset.repository.asset_repository import AssetRepository
 from app.module.asset.repository.stock_repository import StockRepository
+from app.module.asset.services.stock_service import StockService
 from app.module.auth.enum import ProviderEnum
 from app.module.auth.model import User
 from app.module.auth.repository import UserRepository
 from app.module.chart.constant import TIP_EXPIRE_SECOND
 from app.module.chart.redis_repository import RedisRichPortfolioRepository
 from database.dependency import get_mysql_session, get_redis_pool
-
 
 load_dotenv()
 ENVIRONMENT = getenv("ENVIRONMENT", None)
@@ -55,7 +54,7 @@ async def fetch_rich_porfolio(redis_client: Redis, session: AsyncSession, person
 
     for row in rows:
         columns = row.find_elements(By.TAG_NAME, "td")
-              
+
         for index, column in enumerate(columns):
             try:
                 a_tag = column.find_element(By.TAG_NAME, "a")

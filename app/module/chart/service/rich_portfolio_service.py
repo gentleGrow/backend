@@ -19,5 +19,3 @@ class RichPortfolioService:
             for person, portfolio in zip(rich_people, rich_portfolios)
             if person and portfolio
         }
-
-
