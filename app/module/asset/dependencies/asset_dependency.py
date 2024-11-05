@@ -5,7 +5,7 @@ from app.module.asset.services.stock_daily_service import StockDailyService
 from app.module.asset.services.stock_service import StockService
 
 exchange_rate_service = ExchangeRateService()
-dividend_service = DividendService(exchange_rate_service = exchange_rate_service)
+dividend_service = DividendService(exchange_rate_service=exchange_rate_service)
 
 
 def get_asset_service() -> AssetService:

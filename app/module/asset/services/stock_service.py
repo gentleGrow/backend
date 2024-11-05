@@ -11,6 +11,11 @@ from app.module.asset.repository.stock_repository import StockRepository
 
 
 class StockService:
+    async def get_stock_name_map_by_codes(self, session: AsyncSession, stock_codes: list[str]) -> dict[str, str]:
+        stocks:list[Stock] = await StockRepository.get_by_codes(session, stock_codes)
+        return {stock.code: stock.name_kr for stock in stocks}
+    
+    
     async def get_stock_map_temp(self, session: AsyncSession, stock_code: str) -> dict[str, Stock] | None:
         stock = await StockRepository.get_by_code(session, stock_code)
         return {stock.code: stock} if stock else None

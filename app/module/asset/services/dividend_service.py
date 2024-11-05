@@ -1,5 +1,6 @@
 from collections import defaultdict
 from datetime import date, timedelta
+
 from redis.asyncio import Redis
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -9,13 +10,9 @@ from app.module.asset.services.exchange_rate_service import ExchangeRateService
 
 
 class DividendService:
-    def __init__(
-        self,
-        exchange_rate_service: ExchangeRateService 
-    ):
+    def __init__(self, exchange_rate_service: ExchangeRateService):
         self.exchange_rate_service = exchange_rate_service
-    
-    
+
     async def get_total_dividend(self, session: AsyncSession, redis_client: Redis, assets: list[Asset]) -> float:
         exchange_rate_map = await self.exchange_rate_service.get_exchange_rate_map(redis_client)
         dividend_map: dict[str, float] = await self.get_recent_map_temp(session, assets)
@@ -30,8 +27,7 @@ class DividendService:
             )
 
         return result
-    
-    
+
     def get_closest_dividend_temp(self, asset: Asset, dividend_map: dict[tuple[str, date], float]) -> date | None:
         asset_code: str = asset.asset_stock.stock.code
         asset_date: date = asset.asset_stock.purchase_date
@@ -222,4 +218,3 @@ class DividendService:
             for dividend in dividends
             if isinstance(dividend.date, date) and str(dividend.date) != "0000-00-00"
         }
-

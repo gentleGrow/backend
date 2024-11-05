@@ -1,14 +1,14 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from redis.asyncio import Redis
 from sqlalchemy.ext.asyncio import AsyncSession
-from app.module.asset.dependencies.dividend_dependency import get_dividend_service
+
 from app.common.auth.security import verify_jwt_token
 from app.common.schema.common_schema import DeleteResponse, PutResponse
 from app.module.asset.constant import CurrencyType
 from app.module.asset.dependencies.asset_dependency import get_asset_service
+from app.module.asset.dependencies.dividend_dependency import get_dividend_service
 from app.module.asset.enum import AccountType, AssetType, InvestmentBankType, StockAsset
 from app.module.asset.facades.asset_facade import AssetFacade
-from app.module.asset.facades.dividend_facade import DividendFacade
 from app.module.asset.model import Asset, AssetField, Stock
 from app.module.asset.redis_repository import RedisExchangeRateRepository
 from app.module.asset.repository.asset_field_repository import AssetFieldRepository
@@ -27,9 +27,9 @@ from app.module.asset.schema import (
     UpdateAssetFieldRequest,
 )
 from app.module.asset.services.asset_field_service import AssetFieldService
-from app.module.asset.services.dividend_service import DividendService
 from app.module.asset.services.asset_service import AssetService
 from app.module.asset.services.asset_stock_service import AssetStockService
+from app.module.asset.services.dividend_service import DividendService
 from app.module.asset.services.stock_service import StockService
 from app.module.auth.constant import DUMMY_USER_ID
 from app.module.auth.schema import AccessToken

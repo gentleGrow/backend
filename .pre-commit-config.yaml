@@ -33,7 +33,7 @@ repos:
     hooks:
     -   id: pytest
         name: pytest
-        entry: sh -c 'poetry run pytest -n 0'
+        entry: sh -c 'ENVIRONMENT=test poetry run pytest -n 0'
         language: system
         types: [python]
         default_stages: [commit]

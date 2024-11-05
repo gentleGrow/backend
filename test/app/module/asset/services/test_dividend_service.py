@@ -5,6 +5,7 @@ from pytest import approx
 from redis.asyncio import Redis
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
+
 from app.module.asset.dependencies.dividend_dependency import get_dividend_service
 from app.module.asset.enum import AssetType
 from app.module.asset.model import Asset, AssetStock, Stock
@@ -169,9 +170,7 @@ class TestDividendService:
         # When
         dividend_service = get_dividend_service()
         total_dividend = await dividend_service.get_total_dividend(
-            session=session,
-            redis_client=redis_client,
-            assets=assets
+            session=session, redis_client=redis_client, assets=assets
         )
         expected_total_dividend = 0.0
         for asset in assets:

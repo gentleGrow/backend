@@ -16,6 +16,7 @@ from selenium.webdriver.support.ui import WebDriverWait
 from sqlalchemy.ext.asyncio import AsyncSession
 from webdriver_manager.chrome import ChromeDriverManager
 
+from app.module.asset.services.stock_service import StockService
 from app.data.investing.sources.enum import RicePeople
 from app.module.asset.enum import AssetType, PurchaseCurrencyType
 from app.module.asset.model import Asset, AssetStock
@@ -27,7 +28,7 @@ from app.module.auth.repository import UserRepository
 from app.module.chart.constant import TIP_EXPIRE_SECOND
 from app.module.chart.redis_repository import RedisRichPortfolioRepository
 from database.dependency import get_mysql_session, get_redis_pool
-from database.enum import EnvironmentType
+
 
 load_dotenv()
 ENVIRONMENT = getenv("ENVIRONMENT", None)
@@ -39,11 +40,7 @@ async def fetch_rich_porfolio(redis_client: Redis, session: AsyncSession, person
     chrome_options.add_argument("--no-sandbox")
     chrome_options.add_argument("--disable-dev-shm-usage")
 
-    if ENVIRONMENT == EnvironmentType.DEV:
-        driver = webdriver.Chrome(service=Service(ChromeDriverManager().install()), options=chrome_options)
-    else:
-        driver = webdriver.Chrome(service=Service("/usr/bin/chromedriver"), options=chrome_options)
-
+    driver = webdriver.Chrome(service=Service(ChromeDriverManager().install()), options=chrome_options)
     driver.get(f"https://kr.investing.com/pro/ideas/{person}")
 
     WebDriverWait(driver, 30).until(
@@ -58,7 +55,7 @@ async def fetch_rich_porfolio(redis_client: Redis, session: AsyncSession, person
 
     for row in rows:
         columns = row.find_elements(By.TAG_NAME, "td")
-
+              
         for index, column in enumerate(columns):
             try:
                 a_tag = column.find_element(By.TAG_NAME, "a")
@@ -69,14 +66,23 @@ async def fetch_rich_porfolio(redis_client: Redis, session: AsyncSession, person
                     elif index == 3:
                         percentage = a_tag.get_attribute("textContent")
                         percentages[code] = percentage
-            except Exception as err:
-                ic(err)
+            except Exception:
                 continue
 
-    await RedisRichPortfolioRepository.save(redis_client, person, json.dumps(percentages), TIP_EXPIRE_SECOND)
+    stock_service = StockService()
+    stock_name_map = await stock_service.get_stock_name_map_by_codes(session, stock_codes)
+
+    name_percentage = {}
+
+    for code, percentage in percentages.items():
+        stock_name = stock_name_map.get(code)
+        if stock_name:
+            name_percentage[stock_name] = percentages[code]
+
+    await RedisRichPortfolioRepository.save(redis_client, person, json.dumps(name_percentage), TIP_EXPIRE_SECOND)
 
     user = await UserRepository.get_by_name(session, person)
-    ic(user)
+
     if user is None:
         person_user = User(social_id=f"{person}_id", provider=ProviderEnum.GOOGLE, nickname=person)
         user = await UserRepository.create(session, person_user)
