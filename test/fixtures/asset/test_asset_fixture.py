@@ -182,7 +182,7 @@ async def setup_stock_daily(session: AsyncSession, setup_user, setup_stock):
         opening_price=71500.0,
         trade_volume=1500,
     )
-    
+
     stock_daily_7 = StockDaily(
         adj_close_price=150.0,
         close_price=149.0,
@@ -193,7 +193,7 @@ async def setup_stock_daily(session: AsyncSession, setup_user, setup_stock):
         opening_price=150.0,
         trade_volume=1050000,
     )
-    
+
     stock_daily_8 = StockDaily(
         adj_close_price=700.0,
         close_price=720.0,
@@ -204,7 +204,7 @@ async def setup_stock_daily(session: AsyncSession, setup_user, setup_stock):
         opening_price=725.0,
         trade_volume=1600000,
     )
-    
+
     stock_daily_9 = StockDaily(
         adj_close_price=70000.0,
         close_price=72000.0,
@@ -216,17 +216,19 @@ async def setup_stock_daily(session: AsyncSession, setup_user, setup_stock):
         trade_volume=1500,
     )
 
-    session.add_all([
-            stock_daily_1, 
-            stock_daily_2, 
-            stock_daily_3, 
-            stock_daily_4, 
-            stock_daily_5, 
+    session.add_all(
+        [
+            stock_daily_1,
+            stock_daily_2,
+            stock_daily_3,
+            stock_daily_4,
+            stock_daily_5,
             stock_daily_6,
             stock_daily_7,
             stock_daily_8,
             stock_daily_9,
-        ])
+        ]
+    )
     await session.commit()
 
 

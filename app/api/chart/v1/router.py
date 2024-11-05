@@ -675,7 +675,7 @@ async def get_summary(
 
     total_asset_amount = await AssetFacade.get_total_asset_amount(session, redis_client, assets)
     total_investment_amount = await AssetFacade.get_total_investment_amount(session, redis_client, assets)
-    today_review_rate: float = SummaryFacade.get_today_review_rate(
+    today_review_rate: float = await SummaryFacade.get_today_review_rate(
         session, redis_client, token.get("user"), asset_service
     )
 
@@ -709,7 +709,9 @@ async def get_sample_summary(
 
     total_asset_amount = await AssetFacade.get_total_asset_amount(session, redis_client, assets)
     total_investment_amount = await AssetFacade.get_total_investment_amount(session, redis_client, assets)
-    today_review_rate: float = SummaryFacade.get_today_review_rate(session, redis_client, DUMMY_USER_ID, asset_service)
+    today_review_rate: float = await SummaryFacade.get_today_review_rate(
+        session, redis_client, DUMMY_USER_ID, asset_service
+    )
 
     return SummaryResponse(
         today_review_rate=today_review_rate,
