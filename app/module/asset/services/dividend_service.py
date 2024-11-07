@@ -126,3 +126,60 @@ class DividendService:
             )
 
         return total_dividend_amount
+
+
+    async def get_composition(
+        self,
+        assets: list[Asset],
+        exchange_rate_map: dict[str, float],
+        dividend_map: dict[str, float],
+    ) -> list[tuple[str, float, float]]:
+        if len(assets) == 0:
+            return []
+
+        total_dividend: defaultdict[str, float] = defaultdict(float)
+        total_dividend_sum = 0.0
+
+        for asset in assets:
+            won_exchange_rate: float = self.exchange_rate_service.get_won_exchange_rate(asset, exchange_rate_map)
+
+            dividend = dividend_map.get(asset.asset_stock.stock.code)
+
+            if dividend is None:
+                continue
+
+            total_dividend[asset.asset_stock.stock.code] += dividend * won_exchange_rate * asset.asset_stock.quantity
+            total_dividend_sum += dividend * won_exchange_rate * asset.asset_stock.quantity
+
+        return sorted(
+            [
+                (stock_code, dividend, (dividend / total_dividend_sum) * 100 if total_dividend_sum > 0 else 0.0)
+                for stock_code, dividend in total_dividend.items()
+                if dividend > 0
+            ],
+            key=lambda x: x[1],
+            reverse=True,
+        )
+
+
+    def get_full_month_estimate_dividend(
+        self, 
+        assets: list[Asset], 
+        exchange_rate_map: dict[str, float], 
+        dividend_map: dict[tuple[str, date], float]
+    ) -> defaultdict[date, float]:
+        result: defaultdict[date, float] = defaultdict(float)
+
+        for asset in assets:
+            won_exchange_rate: float = self.exchange_rate_service.get_won_exchange_rate(asset, exchange_rate_map)
+            closest_dividend_date: date | None = self.get_closest_dividend(asset, dividend_map)
+            if closest_dividend_date is None:
+                continue
+
+            for (code, current_date), dividend_amount in sorted(dividend_map.items()):
+                if code == asset.asset_stock.stock.code and current_date >= closest_dividend_date:
+                    result[current_date] += dividend_amount * won_exchange_rate
+
+        return result
+    
+    

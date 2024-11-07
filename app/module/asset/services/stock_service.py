@@ -15,11 +15,11 @@ class StockService:
         stocks: list[Stock] = await StockRepository.get_by_codes(session, stock_codes)
         return {stock.code: stock.name_kr for stock in stocks}
 
-    async def get_stock_map_temp(self, session: AsyncSession, stock_code: str) -> dict[str, Stock] | None:
+    async def get_stock_map(self, session: AsyncSession, stock_code: str) -> dict[str, Stock] | None:
         stock = await StockRepository.get_by_code(session, stock_code)
         return {stock.code: stock} if stock else None
 
-    async def check_stock_exist_temp(self, session: AsyncSession, stock_code: str, buy_date: date) -> bool:
+    async def check_stock_exist(self, session: AsyncSession, stock_code: str, buy_date: date) -> bool:
         today = get_now_date()
         if buy_date == today:
             return True
@@ -27,7 +27,7 @@ class StockService:
         stock = await StockDailyRepository.get_stock_daily(session, stock_code, buy_date)
         return True if stock else False
 
-    async def get_current_stock_price_temp(
+    async def get_current_stock_price(
         self, redis_client: Redis, lastest_stock_daily_map: dict[str, StockDaily], assets: list[Asset]
     ) -> dict[str, float]:
         stock_codes = [asset.asset_stock.stock.code for asset in assets]
@@ -43,7 +43,7 @@ class StockService:
             result[stock_code] = float(current_price)
         return result
 
-    async def get_current_stock_price_by_code_temp(
+    async def get_current_stock_price_by_code(
         self, redis_client: Redis, lastest_stock_daily_map: dict[str, StockDaily], stock_codes: list[str]
     ) -> dict[str, float]:
         current_prices = await RedisRealTimeStockRepository.bulk_get(redis_client, stock_codes)
@@ -58,7 +58,7 @@ class StockService:
             result[stock_code] = float(current_price)
         return result
 
-    def get_daily_profit_temp(
+    def get_daily_profit(
         self,
         lastest_stock_daily_map: dict[str, StockDaily],
         current_stock_price_map: dict[str, float],

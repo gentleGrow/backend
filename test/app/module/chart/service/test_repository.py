@@ -1,7 +1,6 @@
 from app.module.chart.constant import INVESTMENT_TIP
 from app.module.chart.repository import TipRepository
 
-
 class TestTipRespository:
     async def test_get_valid_tip(self, session, setup_tip):
         # Given

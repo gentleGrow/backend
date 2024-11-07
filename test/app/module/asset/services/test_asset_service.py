@@ -13,11 +13,19 @@ from app.module.asset.services.exchange_rate_service import ExchangeRateService
 from app.module.asset.services.stock_daily_service import StockDailyService
 from app.module.auth.constant import DUMMY_USER_ID
 
+from app.module.asset.dependencies.asset_dependency import get_asset_service
+from app.module.asset.dependencies.exchange_rate_dependency import get_exchange_rate_service
+from app.module.asset.dependencies.stock_daily_dependency import get_stock_daily_service
+
 
 class TestAssetService:
     async def test_get_total_asset_amount_with_datetime(self, redis_client: Redis, session: AsyncSession, setup_all):
         # Given
-        exchange_rate_map: dict[str, float] = await ExchangeRateService.get_exchange_rate_map(redis_client)
+        exchange_rate_service: ExchangeRateService = get_exchange_rate_service()
+        stock_daily_service: StockDailyService = get_stock_daily_service()
+        asset_service: AssetService = get_asset_service()
+        
+        exchange_rate_map: dict[str, float] = await exchange_rate_service.get_exchange_rate_map(redis_client)
 
         stock_datetime_price_map = {
             "AAPL_2024-08-13 10:30:00": 150.0,
@@ -28,10 +36,10 @@ class TestAssetService:
 
         current_datetime = datetime(2024, 8, 13, 10, 30)
         assets = await AssetRepository.get_eager(session, DUMMY_USER_ID, AssetType.STOCK)
-        stock_daily_map = await StockDailyService.get_map_range(session, assets)
+        stock_daily_map = await stock_daily_service.get_map_range(session, assets)
 
         # When
-        total_amount = AssetService.get_total_asset_amount_with_datetime(
+        total_amount = asset_service.get_total_asset_amount_with_datetime(
             assets=assets,
             exchange_rate_map=exchange_rate_map,
             stock_datetime_price_map=stock_datetime_price_map,
@@ -39,19 +47,20 @@ class TestAssetService:
             stock_daily_map=stock_daily_map,
         )
 
-        # Then
         expected_amount = 150.0 * 1 * 1300.0 + 720.0 * 2 * 1300.0 + 72000 * 1 * 1
 
+        # Then
         assert total_amount == expected_amount
 
     @freeze_time("2024-08-15")
     async def test_asset_list_from_days(self, session: AsyncSession, setup_all):
         # Given
+        asset_service: AssetService = get_asset_service()
         days = 5
         assets = await AssetRepository.get_eager(session, DUMMY_USER_ID, AssetType.STOCK)
 
         # When
-        result = AssetService.asset_list_from_days(assets, days)
+        result = asset_service.asset_list_from_days(assets, days)
 
         # Then
         assert isinstance(result, dict)
@@ -63,10 +72,11 @@ class TestAssetService:
         setup_asset,
     ):
         # Given
+        asset_service: AssetService = get_asset_service()
         asset_id = 1
 
         # When
-        result = await AssetService.get_asset_map(session, asset_id)
+        result = await asset_service.get_asset_map(session, asset_id)
 
         # Then
         assert result is not None
@@ -77,6 +87,7 @@ class TestAssetService:
 
     async def test_update_asset_stock(self, session: AsyncSession, setup_all):
         # Given
+        asset_service: AssetService = get_asset_service()
         asset_id = 1
         asset: Asset = await AssetRepository.get_asset_by_id(session, asset_id)
 
@@ -94,7 +105,7 @@ class TestAssetService:
         stock = None
 
         # When
-        await AssetService.save_asset_by_put(session, request_data, asset, stock)
+        await asset_service.save_asset_by_put(session, request_data, asset, stock)
         updated_asset = await AssetRepository.get_asset_by_id(session, asset_id)
 
         # Then

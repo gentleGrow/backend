@@ -14,6 +14,11 @@ from app.module.asset.services.stock_daily_service import StockDailyService
 from app.module.asset.services.stock_service import StockService
 from app.module.auth.constant import DUMMY_USER_ID
 
+from app.module.asset.dependencies.asset_stock_dependency import get_asset_stock_service
+from app.module.asset.dependencies.stock_dependency import get_stock_service
+from app.module.asset.dependencies.exchange_rate_dependency import get_exchange_rate_service
+from app.module.asset.dependencies.stock_daily_dependency import get_stock_daily_service
+
 
 class TestAssetStockService:
     @pytest.mark.parametrize(
@@ -32,8 +37,11 @@ class TestAssetStockService:
         total_invest_amount,
         expected_profit_rate,
     ):
+        # Given
+        asset_stock_service: AssetStockService = get_asset_stock_service()
+        
         # When
-        actual_profit_rate = AssetStockService.get_total_profit_rate(
+        actual_profit_rate = asset_stock_service.get_total_profit_rate(
             current_amount=total_asset_amount, past_amount=total_invest_amount
         )
 
@@ -57,8 +65,11 @@ class TestAssetStockService:
         real_value_rate,
         expected_real_profit_rate,
     ):
+        # Given
+        asset_stock_service: AssetStockService = get_asset_stock_service()
+        
         # When
-        actual_real_profit_rate = AssetStockService.get_total_profit_rate_real(
+        actual_real_profit_rate = asset_stock_service.get_total_profit_rate_real(
             total_asset_amount=total_asset_amount,
             total_invest_amount=total_invest_amount,
             real_value_rate=real_value_rate,
@@ -69,6 +80,7 @@ class TestAssetStockService:
 
     async def test_save_asset_stock_by_post(self, session: AsyncSession, setup_stock, setup_stock_daily, setup_user):
         # Given
+        asset_stock_service: AssetStockService = get_asset_stock_service()
         stock_id = 1
 
         request_data = AssetStockPostRequest(
@@ -82,23 +94,28 @@ class TestAssetStockService:
         )
 
         # When
-        await AssetStockService.save_asset_stock_by_post(session, request_data, stock_id, DUMMY_USER_ID)
+        await asset_stock_service.save_asset_stock_by_post(session, request_data, stock_id, DUMMY_USER_ID)
         saved_assets = await AssetRepository.get_eager(session, DUMMY_USER_ID, AssetType.STOCK)
 
         # Then
         assert len(saved_assets) == 1
         assert saved_assets[0].asset_stock.stock_id == stock_id
 
+
     async def test_get_total_investment_amount(
         self, session: AsyncSession, redis_client: Redis, setup_asset, setup_exchange_rate, setup_stock_daily
     ):
         # Given
+        exchange_rate_service: ExchangeRateService = get_exchange_rate_service()
+        asset_stock_service: AssetStockService = get_asset_stock_service()
+        stock_daily_service: StockDailyService = get_stock_daily_service()
+        
         assets: list[Asset] = await AssetRepository.get_eager(session, DUMMY_USER_ID, AssetType.STOCK)
-        exchange_rate_map = await ExchangeRateService.get_exchange_rate_map(redis_client)
-        stock_daily_map = await StockDailyService.get_map_range(session, assets)
+        exchange_rate_map = await exchange_rate_service.get_exchange_rate_map(redis_client)
+        stock_daily_map = await stock_daily_service.get_map_range(session, assets)
 
         # When
-        total_investment_amount = AssetStockService.get_total_investment_amount(
+        total_investment_amount = asset_stock_service.get_total_investment_amount(
             assets=assets,
             stock_daily_map=stock_daily_map,
             exchange_rate_map=exchange_rate_map,
@@ -113,10 +130,10 @@ class TestAssetStockService:
             if asset.asset_stock.purchase_currency_type == PurchaseCurrencyType.USA:
                 invest_price = (
                     asset.asset_stock.purchase_price
-                    * ExchangeRateService.get_won_exchange_rate(asset, exchange_rate_map)
+                    * exchange_rate_service.get_won_exchange_rate(asset, exchange_rate_map)
                     if asset.asset_stock.purchase_price
                     else stock_daily.adj_close_price
-                    * ExchangeRateService.get_won_exchange_rate(asset, exchange_rate_map)
+                    * exchange_rate_service.get_won_exchange_rate(asset, exchange_rate_map)
                 )
             else:
                 invest_price = (
@@ -139,15 +156,20 @@ class TestAssetStockService:
         setup_exchange_rate,
     ):
         # Given
+        stock_daily_service: StockDailyService = get_stock_daily_service()
+        stock_service: StockService = get_stock_service()
+        exchange_rate_service: ExchangeRateService = get_exchange_rate_service()
+        asset_stock_service: AssetStockService = get_asset_stock_service()
+        
         assets: list[Asset] = await AssetRepository.get_eager(session, DUMMY_USER_ID, AssetType.STOCK)
-        lastest_stock_daily_map = await StockDailyService.get_latest_map(session, assets)
-        current_stock_price_map = await StockService.get_current_stock_price(
+        lastest_stock_daily_map = await stock_daily_service.get_latest_map(session, assets)
+        current_stock_price_map = await stock_service.get_current_stock_price(
             redis_client, lastest_stock_daily_map, assets
         )
-        exchange_rate_map = await ExchangeRateService.get_exchange_rate_map(redis_client)
+        exchange_rate_map = await exchange_rate_service.get_exchange_rate_map(redis_client)
 
         # When
-        total_asset_amount = AssetStockService.get_total_asset_amount(
+        total_asset_amount = asset_stock_service.get_total_asset_amount(
             assets=assets,
             current_stock_price_map=current_stock_price_map,
             exchange_rate_map=exchange_rate_map,
@@ -157,7 +179,7 @@ class TestAssetStockService:
         expected_total_asset_amount = 0.0
         for asset in assets:
             current_price = current_stock_price_map.get(asset.asset_stock.stock.code)
-            exchange_rate = ExchangeRateService.get_won_exchange_rate(asset, exchange_rate_map)
+            exchange_rate = exchange_rate_service.get_won_exchange_rate(asset, exchange_rate_map)
             expected_total_asset_amount += current_price * asset.asset_stock.quantity * exchange_rate
 
         assert total_asset_amount == pytest.approx(expected_total_asset_amount)

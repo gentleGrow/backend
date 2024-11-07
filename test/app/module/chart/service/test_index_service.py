@@ -4,12 +4,15 @@ from redis.asyncio import Redis
 
 from app.module.asset.enum import Country, MarketIndex
 from app.module.asset.schema import MarketIndexData
-from app.module.chart.services.index_service import IndexService
+from app.module.asset.services.realtime_index_service import RealtimeIndexService
+from app.module.asset.dependencies.realtime_index_dependency import get_realtime_index_service
 
 
 class TestIndexService:
     async def test_get_current_market_index_value(self, redis_client: Redis, setup_all):
         # Given
+        realtime_index_service: RealtimeIndexService = get_realtime_index_service()
+        
         expected_market_index_data = MarketIndexData(
             country=Country.KOREA,
             name=MarketIndex.KOSPI,
@@ -34,7 +37,7 @@ class TestIndexService:
         )
 
         # When
-        result = await IndexService.get_current_market_index_value(redis_client)
+        result = await realtime_index_service.get_current_market_index_value(redis_client)
 
         # Then
         assert isinstance(result[0], MarketIndexData)
