@@ -30,6 +30,149 @@ class AssetService:
         self.stock_service = stock_service
         self.dividend_service = dividend_service
 
+    def asset_list_from_days(self, assets: list[Asset], days: int) -> dict:
+        assets_by_date = defaultdict(list)
+
+        current_date = get_now_date()
+        for day_offset in range(days):
+            target_date = current_date - timedelta(days=day_offset)
+
+            for asset in assets:
+                purchase_date = asset.asset_stock.purchase_date
+
+                if purchase_date <= target_date:
+                    assets_by_date[target_date].append(asset)
+
+        return assets_by_date
+
+    def calculate_trend_values(
+        self,
+        total_asset_amount: float,
+        increase_invest_year: float,
+        total_profit_rate: float,
+        total_profit_rate_real: float,
+        years: int,
+    ) -> tuple[dict[str, list[float]], dict[str, list[float]], str]:
+        values1: dict[str, Any] = {"values": [], "name": ASSETNAME.ESTIMATE_ASSET}
+        values2: dict[str, Any] = {"values": [], "name": ASSETNAME.REAL_ASSET}
+
+        current_value1 = total_asset_amount
+        current_value2 = total_asset_amount
+
+        for _ in range(years):
+            current_value1 += increase_invest_year
+            current_value1 *= 1 + total_profit_rate / 100
+            values1["values"].append(current_value1)
+
+            current_value2 += increase_invest_year
+            current_value2 *= 1 + total_profit_rate_real / 100
+            values2["values"].append(current_value2)
+
+        if total_asset_amount >= 100000000:
+            values1["values"] = [v / 100000000 for v in values1["values"]]
+            values2["values"] = [v / 100000000 for v in values2["values"]]
+            unit = AmountUnit.BILLION_WON
+        else:
+            values1["values"] = [v / 10000 for v in values1["values"]]
+            values2["values"] = [v / 10000 for v in values2["values"]]
+            unit = AmountUnit.MILLION_WON
+
+        return values1, values2, unit
+
+
+    async def get_asset_map(self, session: AsyncSession, asset_id: int) -> dict[int, Asset] | None:
+        asset = await AssetRepository.get_asset_by_id(session, asset_id)
+        return {asset.id: asset} if asset else None
+
+
+    async def save_asset_by_put(
+        self,
+        session: AsyncSession, 
+        request_data: AssetStockPutRequest, 
+        asset: Asset, 
+        stock: Stock | None
+    ):
+        if request_data.account_type is not None:
+            asset.asset_stock.account_type = request_data.account_type
+
+        if request_data.investment_bank is not None:
+            asset.asset_stock.investment_bank = request_data.investment_bank
+
+        if request_data.purchase_currency_type is not None:
+            asset.asset_stock.purchase_currency_type = request_data.purchase_currency_type
+
+        if request_data.buy_date is not None:
+            asset.asset_stock.purchase_date = request_data.buy_date
+
+        if request_data.purchase_price is not None:
+            asset.asset_stock.purchase_price = request_data.purchase_price
+
+        if request_data.quantity is not None:
+            asset.asset_stock.quantity = request_data.quantity
+
+        if stock is not None:
+            asset.asset_stock.stock_id = stock.id
+
+        await AssetRepository.save(session, asset)
+
+
+    def get_total_asset_amount_with_datetime(
+        self,
+        assets: list[Asset],
+        exchange_rate_map: dict[str, float],
+        stock_datetime_price_map: dict[str, float],
+        current_datetime: datetime,
+        stock_daily_map: dict[tuple[str, date], StockDaily],
+    ):
+        result = 0.0
+
+        for asset in assets:
+            current_value = stock_datetime_price_map.get(f"{asset.asset_stock.stock.code}_{current_datetime}", None)
+
+            if current_value is None:
+                current_stock_daily = stock_daily_map.get(
+                    (asset.asset_stock.stock.code, asset.asset_stock.purchase_date), None
+                )
+                current_value = current_stock_daily.adj_close_price if current_stock_daily is not None else 1.0
+
+            result += (
+                current_value
+                * asset.asset_stock.quantity
+                * self.exchange_rate_service.get_won_exchange_rate(asset, exchange_rate_map)
+            )
+
+        return result
+
+
+    def find_closest_stock_daily(
+        self,
+        stock_code: str, 
+        purchase_date: date, 
+        stock_daily_map: dict[tuple[str, date], StockDaily]
+    ) -> StockDaily | None:
+        available_dates = [date for (code, date) in stock_daily_map.keys() if code == stock_code]
+        if not available_dates:
+            return None
+        closest_date = max([d for d in available_dates if d <= purchase_date], default=None)
+
+        return stock_daily_map.get((stock_code, closest_date), None) if closest_date else None
+
+
+    def get_average_investment_with_dividend_year(
+        self,
+        total_invest_amount: float, 
+        total_dividend_amount: float, 
+        months: float
+    ) -> float:
+        average_invest_amount_month = total_invest_amount / months if total_invest_amount > 0.0 else 0.0
+        average_dividend_month = total_dividend_amount / months if total_dividend_amount > 0.0 else 0.0
+        return (
+            (average_invest_amount_month + average_dividend_month) * 12
+            if average_invest_amount_month + average_dividend_month > 0
+            else 0.0
+        )
+
+
     async def filter_required_assets(self, assets: list[Asset]) -> list[Asset]:
         return [asset for asset in assets if await self._check_required_field(asset)]
 
@@ -65,8 +208,12 @@ class AssetService:
 
         return result
 
-    async def get_total_asset_amount_with_date_temp(
-        self, session: AsyncSession, redis_client: Redis, assets: list[Asset], past_date: date
+    async def get_total_asset_amount_with_date(
+        self, 
+        session: AsyncSession, 
+        redis_client: Redis, 
+        assets: list[Asset], 
+        past_date: date
     ) -> float:
         result = 0.0
 
@@ -80,12 +227,17 @@ class AssetService:
             result += (
                 current_value
                 * asset.asset_stock.quantity
-                * ExchangeRateService.get_won_exchange_rate(asset, exchange_rate_map)
+                * self.exchange_rate_service.get_won_exchange_rate(asset, exchange_rate_map)
             )
 
         return result
 
-    async def get_total_asset_amount(self, session: AsyncSession, redis_client: Redis, assets: list[Asset]) -> float:
+    async def get_total_asset_amount(
+        self, 
+        session: AsyncSession, 
+        redis_client: Redis, 
+        assets: list[Asset]
+    ) -> float:
         lastest_stock_daily_map = await self.stock_daily_service.get_latest_map(session, assets)
         current_stock_price_map = await self.stock_service.get_current_stock_price(
             redis_client, lastest_stock_daily_map, assets
@@ -106,7 +258,11 @@ class AssetService:
         return bool(asset.asset_stock.purchase_date and asset.asset_stock.quantity and asset.stock.code)
 
     async def get_stock_assets(
-        self, session: AsyncSession, redis_client: Redis, assets: list[Asset], asset_fields: list
+        self, 
+        session: AsyncSession, 
+        redis_client: Redis, 
+        assets: list[Asset], 
+        asset_fields: list
     ) -> list[dict]:
         stock_daily_map = await self.stock_daily_service.get_map_range_temp(session, assets)
         lastest_stock_daily_map = await self.stock_daily_service.get_latest_map_temp(session, assets)
@@ -138,9 +294,9 @@ class AssetService:
         asset_purchase_currency_type = asset.asset_stock.purchase_currency_type
 
         return (
-            ExchangeRateService.get_dollar_exchange_rate(asset, exchange_rate_map)
+            self.exchange_rate_service.get_dollar_exchange_rate(asset, exchange_rate_map)
             if asset_purchase_currency_type == PurchaseCurrencyType.USA
-            else ExchangeRateService.get_won_exchange_rate(asset, exchange_rate_map)
+            else self.exchange_rate_service.get_won_exchange_rate(asset, exchange_rate_map)
         )
 
     def _get_current_price(self, asset: Asset, current_stock_price_map: dict, apply_exchange_rate: float) -> float:
@@ -266,165 +422,3 @@ class AssetService:
         result[StockAsset.ID.value] = stock_asset_data[StockAsset.ID.value]
         result[StockAsset.PURCHASE_CURRENCY_TYPE.value] = stock_asset_data[StockAsset.PURCHASE_CURRENCY_TYPE.value]
         return result
-
-    ##################   staticmethod는 차츰 변경하겠습니다!   ##################
-
-    @staticmethod
-    def asset_list_from_days(assets: list[Asset], days: int) -> defaultdict:
-        assets_by_date = defaultdict(list)
-
-        current_date = get_now_date()
-        for day_offset in range(days):
-            target_date = current_date - timedelta(days=day_offset)
-
-            for asset in assets:
-                purchase_date = asset.asset_stock.purchase_date
-
-                if purchase_date <= target_date:
-                    assets_by_date[target_date].append(asset)
-
-        return assets_by_date
-
-    @staticmethod
-    def get_average_investment_with_dividend_year(
-        total_invest_amount: float, total_dividend_amount: float, months: float
-    ) -> float:
-        average_invest_amount_month = total_invest_amount / months if total_invest_amount > 0.0 else 0.0
-        average_dividend_month = total_dividend_amount / months if total_dividend_amount > 0.0 else 0.0
-        return (
-            (average_invest_amount_month + average_dividend_month) * 12
-            if average_invest_amount_month + average_dividend_month > 0
-            else 0.0
-        )
-
-    @staticmethod
-    def calculate_trend_values(
-        total_asset_amount: float,
-        increase_invest_year: float,
-        total_profit_rate: float,
-        total_profit_rate_real: float,
-        years: int,
-    ) -> tuple[dict[str, list[float]], dict[str, list[float]], str]:
-        values1: dict[str, Any] = {"values": [], "name": ASSETNAME.ESTIMATE_ASSET}
-        values2: dict[str, Any] = {"values": [], "name": ASSETNAME.REAL_ASSET}
-
-        current_value1 = total_asset_amount
-        current_value2 = total_asset_amount
-
-        for _ in range(years):
-            current_value1 += increase_invest_year
-            current_value1 *= 1 + total_profit_rate / 100
-            values1["values"].append(current_value1)
-
-            current_value2 += increase_invest_year
-            current_value2 *= 1 + total_profit_rate_real / 100
-            values2["values"].append(current_value2)
-
-        if total_asset_amount >= 100000000:
-            values1["values"] = [v / 100000000 for v in values1["values"]]
-            values2["values"] = [v / 100000000 for v in values2["values"]]
-            unit = AmountUnit.BILLION_WON
-        else:
-            values1["values"] = [v / 10000 for v in values1["values"]]
-            values2["values"] = [v / 10000 for v in values2["values"]]
-            unit = AmountUnit.MILLION_WON
-
-        return values1, values2, unit
-
-    @staticmethod
-    async def get_asset_map(session: AsyncSession, asset_id: int) -> dict[int, Asset] | None:
-        asset = await AssetRepository.get_asset_by_id(session, asset_id)
-        return {asset.id: asset} if asset else None
-
-    @staticmethod
-    async def save_asset_by_put(
-        session: AsyncSession, request_data: AssetStockPutRequest, asset: Asset, stock: Stock | None
-    ) -> None:
-        if request_data.account_type is not None:
-            asset.asset_stock.account_type = request_data.account_type
-
-        if request_data.investment_bank is not None:
-            asset.asset_stock.investment_bank = request_data.investment_bank
-
-        if request_data.purchase_currency_type is not None:
-            asset.asset_stock.purchase_currency_type = request_data.purchase_currency_type
-
-        if request_data.buy_date is not None:
-            asset.asset_stock.purchase_date = request_data.buy_date
-
-        if request_data.purchase_price is not None:
-            asset.asset_stock.purchase_price = request_data.purchase_price
-
-        if request_data.quantity is not None:
-            asset.asset_stock.quantity = request_data.quantity
-
-        if stock is not None:
-            asset.asset_stock.stock_id = stock.id
-
-        await AssetRepository.save(session, asset)
-
-    @staticmethod
-    def get_total_asset_amount_with_datetime(
-        assets: list[Asset],
-        exchange_rate_map: dict[str, float],
-        stock_datetime_price_map: dict[str, float],
-        current_datetime: datetime,
-        stock_daily_map: dict[tuple[str, date], StockDaily],
-    ) -> float:
-        result = 0.0
-
-        for asset in assets:
-            current_value = stock_datetime_price_map.get(f"{asset.asset_stock.stock.code}_{current_datetime}", None)
-
-            if current_value is None:
-                current_stock_daily = stock_daily_map.get(
-                    (asset.asset_stock.stock.code, asset.asset_stock.purchase_date), None
-                )
-                current_value = current_stock_daily.adj_close_price if current_stock_daily is not None else 1.0
-
-            result += (
-                current_value
-                * asset.asset_stock.quantity
-                * ExchangeRateService.get_won_exchange_rate(asset, exchange_rate_map)
-            )
-
-        return result
-
-    @staticmethod
-    def get_total_asset_amount_with_date(
-        assets: list[Asset],
-        exchange_rate_map: dict[str, float],
-        stock_daily_date_map: dict[tuple[str, date], StockDaily],
-        market_date: date,
-    ) -> float:
-        result = 0.0
-
-        for asset in assets:
-            current_stock_daily = stock_daily_date_map.get((asset.asset_stock.stock.code, market_date), None)
-
-            if current_stock_daily is None:
-                current_stock_daily = AssetService.find_closest_stock_daily(
-                    asset.asset_stock.stock.code, market_date, stock_daily_date_map
-                )
-                current_value = current_stock_daily.close_price if current_stock_daily else 1.0
-            else:
-                current_value = current_stock_daily.adj_close_price
-
-            result += (
-                current_value
-                * asset.asset_stock.quantity
-                * ExchangeRateService.get_won_exchange_rate(asset, exchange_rate_map)
-            )
-
-        return result
-
-    @staticmethod
-    def find_closest_stock_daily(
-        stock_code: str, purchase_date: date, stock_daily_map: dict[tuple[str, date], StockDaily]
-    ) -> StockDaily | None:
-        available_dates = [date for (code, date) in stock_daily_map.keys() if code == stock_code]
-        if not available_dates:
-            return None
-        closest_date = max([d for d in available_dates if d <= purchase_date], default=None)
-
-        return stock_daily_map.get((stock_code, closest_date), None) if closest_date else None

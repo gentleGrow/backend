@@ -1,7 +1,7 @@
 from redis.asyncio import Redis
 
 from app.module.asset.enum import MarketIndex
-from app.module.asset.services.current_index_service import CurrentIndexService
+from app.module.asset.services.realtime_index_service import CurrentIndexService
 
 
 class TestCurrentIndexService:

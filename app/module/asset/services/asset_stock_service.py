@@ -10,16 +10,23 @@ from app.module.asset.services.exchange_rate_service import ExchangeRateService
 
 
 class AssetStockService:
-    @staticmethod
+    def __init__(self, exchange_rate_service:ExchangeRateService):
+        self.exchange_rate_service = exchange_rate_service
+
+
     def get_total_profit_rate(
+        self,
         current_amount: float,
         past_amount: float,
     ) -> float:
         return ((current_amount - past_amount) / past_amount) * 100 if past_amount > 0 else 0.0
 
-    @staticmethod
+
     def get_total_profit_rate_real(
-        total_asset_amount: float, total_invest_amount: float, real_value_rate: float
+        self,
+        total_asset_amount: float, 
+        total_invest_amount: float, 
+        real_value_rate: float
     ) -> float:
         return (
             (((total_asset_amount - total_invest_amount) / total_invest_amount) * 100) - real_value_rate
@@ -27,8 +34,9 @@ class AssetStockService:
             else 0.0
         )
 
-    @staticmethod
+
     def get_total_asset_amount(
+        self,
         assets: list[Asset],
         current_stock_price_map: dict[str, float],
         exchange_rate_map: dict[str, float],
@@ -39,13 +47,16 @@ class AssetStockService:
             result += (
                 current_stock_price_map.get(asset.asset_stock.stock.code)
                 * asset.asset_stock.quantity
-                * ExchangeRateService.get_won_exchange_rate(asset, exchange_rate_map)
+                * self.exchange_rate_service.get_won_exchange_rate(asset, exchange_rate_map)
             )
         return result
 
-    @staticmethod
     async def save_asset_stock_by_post(
-        session: AsyncSession, request_data: AssetStockPostRequest, stock_id: int, user_id: int
+        self,
+        session: AsyncSession,
+        request_data: AssetStockPostRequest,
+        stock_id: int,
+        user_id: int
     ) -> None:
         result = []
 
@@ -66,8 +77,9 @@ class AssetStockService:
 
         await AssetRepository.save_assets(session, result)
 
-    @staticmethod
+
     def get_total_asset_amount_minute(
+        self,
         assets: list[Asset],
         stock_interval_date_price_map: dict[str, float],
         exchange_rate_map: dict[str, float],
@@ -83,7 +95,7 @@ class AssetStockService:
 
             source_country = asset.asset_stock.stock.country.upper().strip()
             source_currency = CurrencyType[source_country]
-            won_exchange_rate = ExchangeRateService.get_exchange_rate(
+            won_exchange_rate = self.exchange_rate_service.get_exchange_rate(
                 source_currency, CurrencyType.KOREA, exchange_rate_map
             )
 
@@ -91,8 +103,9 @@ class AssetStockService:
             result += current_price * asset.asset_stock.quantity
         return result
 
-    @staticmethod
+
     def get_total_investment_amount(
+        self,
         assets: list[Asset],
         stock_daily_map: dict[tuple[str, date], StockDaily],
         exchange_rate_map: dict[str, float],
@@ -105,14 +118,15 @@ class AssetStockService:
                 continue
 
             invest_price = (
-                asset.asset_stock.purchase_price * ExchangeRateService.get_won_exchange_rate(asset, exchange_rate_map)
+                asset.asset_stock.purchase_price * self.exchange_rate_service.get_won_exchange_rate(asset, exchange_rate_map)
                 if asset.asset_stock.purchase_currency_type == PurchaseCurrencyType.USA
                 and asset.asset_stock.purchase_price
                 else asset.asset_stock.purchase_price
                 if asset.asset_stock.purchase_price
-                else stock_daily.adj_close_price * ExchangeRateService.get_won_exchange_rate(asset, exchange_rate_map)
+                else stock_daily.adj_close_price * self.exchange_rate_service.get_won_exchange_rate(asset, exchange_rate_map)
             )
 
             total_invest_amount += invest_price * asset.asset_stock.quantity
 
         return total_invest_amount
+

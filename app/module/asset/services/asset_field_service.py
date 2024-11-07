@@ -6,8 +6,7 @@ from app.module.asset.repository.asset_field_repository import AssetFieldReposit
 
 
 class AssetFieldService:
-    @staticmethod
-    async def get_asset_field(session: AsyncSession, user_id: int) -> list[str]:
+    async def get_asset_field(self, session: AsyncSession, user_id: int) -> list[str]:
         asset_field: AssetField = await AssetFieldRepository.get(session, user_id)
 
         if asset_field is None:

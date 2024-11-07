@@ -3,7 +3,7 @@ from datetime import date
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.module.asset.enum import MarketIndex
-from app.module.asset.services.market_index_daily_service import MarketIndexDailyService
+from app.module.asset.services.index_daily_service import MarketIndexDailyService
 
 
 class TestMarketIndexDailyService:

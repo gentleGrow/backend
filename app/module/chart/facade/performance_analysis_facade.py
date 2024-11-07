@@ -11,10 +11,10 @@ from app.module.asset.model import Asset, MarketIndexMinutely, StockDaily
 from app.module.asset.repository.asset_repository import AssetRepository
 from app.module.asset.services.asset_service import AssetService
 from app.module.asset.services.asset_stock_service import AssetStockService
-from app.module.asset.services.current_index_service import CurrentIndexService
+from app.module.asset.services.realtime_index_service import CurrentIndexService
 from app.module.asset.services.exchange_rate_service import ExchangeRateService
-from app.module.asset.services.market_index_daily_service import MarketIndexDailyService
-from app.module.asset.services.market_index_minutely_service import MarketIndexMinutelyService
+from app.module.asset.services.index_daily_service import MarketIndexDailyService
+from app.module.asset.services.index_minutely_service import MarketIndexMinutelyService
 from app.module.asset.services.stock_daily_service import StockDailyService
 from app.module.asset.services.stock_minutely_service import StockMinutelyService
 from app.module.asset.services.stock_service import StockService

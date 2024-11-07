@@ -8,8 +8,7 @@ from app.module.asset.repository.market_index_minutely_repository import MarketI
 from app.module.chart.enum import IntervalType
 
 
-class MarketIndexMinutelyService:
-    @staticmethod
+class IndexMinutelyService:
     async def get_index_range_interval_map(
         session: AsyncSession, market_type: MarketIndex, duration: tuple[datetime, datetime], interval: IntervalType
     ) -> dict[datetime, MarketIndexMinutely]:
@@ -17,3 +16,4 @@ class MarketIndexMinutelyService:
             session, duration, market_type, interval.get_interval()
         )
         return {market_index.datetime: market_index for market_index in market_data}
+

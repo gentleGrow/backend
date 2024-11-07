@@ -5,7 +5,7 @@ from app.module.asset.schema import MarketIndexData
 from app.module.chart.redis_repository import RedisMarketIndiceRepository
 
 
-class CurrentIndexService:
+class RealtimeIndexService:
     @staticmethod
     async def get_current_index_price(redis_client: Redis, market_type: MarketIndex) -> float:
         curent_index: MarketIndexData | None = await RedisMarketIndiceRepository.get(redis_client, market_type)

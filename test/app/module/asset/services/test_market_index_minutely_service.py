@@ -4,7 +4,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.module.asset.enum import MarketIndex
 from app.module.asset.model import MarketIndexMinutely
-from app.module.asset.services.market_index_minutely_service import MarketIndexMinutelyService
+from app.module.asset.services.index_minutely_service import MarketIndexMinutelyService
 from app.module.chart.enum import IntervalType
 
 
