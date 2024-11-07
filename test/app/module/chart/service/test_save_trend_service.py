@@ -1,5 +1,5 @@
 from app.common.util.time import get_now_datetime
-from app.module.chart.service.save_trend_service import SaveTrendService
+from app.module.chart.services.save_trend_service import SaveTrendService
 
 
 class TestSaveTrendService:

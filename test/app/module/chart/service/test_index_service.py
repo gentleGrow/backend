@@ -4,7 +4,7 @@ from redis.asyncio import Redis
 
 from app.module.asset.enum import Country, MarketIndex
 from app.module.asset.schema import MarketIndexData
-from app.module.chart.service.index_service import IndexService
+from app.module.chart.services.index_service import IndexService
 
 
 class TestIndexService:

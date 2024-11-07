@@ -7,9 +7,8 @@ from app.module.chart.redis_repository import RedisRichPortfolioRepository
 
 
 class RichPortfolioService:
-    @staticmethod
     async def get_rich_porfolio_map(
-        redis_client: Redis,
+        self, redis_client: Redis,
     ) -> dict[str, dict]:
         rich_people = [person.value for person in RicePeople]
         rich_portfolios: list[str | None] = await RedisRichPortfolioRepository.gets(redis_client, rich_people)

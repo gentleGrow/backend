@@ -5,7 +5,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.module.asset.dependencies.asset_dependency import get_asset_service
 from app.module.auth.constant import DUMMY_USER_ID
 from app.module.chart.constant import FULL_PERCENTAGE_RATE
-from app.module.chart.facade.summary_facade import SummaryFacade
+from app.module.chart.services.summary_service import SummaryFacade
 
 
 class TestSummaryFacade:

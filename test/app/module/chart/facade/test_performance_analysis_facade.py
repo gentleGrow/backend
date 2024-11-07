@@ -4,7 +4,7 @@ from redis.asyncio import Redis
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.module.chart.enum import IntervalType
-from app.module.chart.facade.performance_analysis_facade import PerformanceAnalysisFacade
+from app.module.chart.services.performance_analysis_service import PerformanceAnalysisFacade
 
 
 class TestPerformanceAnalysisFacade:

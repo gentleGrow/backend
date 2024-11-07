@@ -7,7 +7,7 @@ from app.module.asset.model import Asset
 from app.module.asset.repository.asset_repository import AssetRepository
 from app.module.asset.services.exchange_rate_service import ExchangeRateService
 from app.module.auth.constant import DUMMY_USER_ID
-from app.module.chart.facade.composition_facade import CompositionFacade
+from app.module.chart.services.composition_service import CompositionFacade
 
 
 class TestCompositionFacade:

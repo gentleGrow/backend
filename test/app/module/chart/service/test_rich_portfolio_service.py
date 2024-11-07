@@ -1,7 +1,7 @@
 from redis.asyncio import Redis
 
 from app.data.investing.sources.enum import RicePeople
-from app.module.chart.service.rich_portfolio_service import RichPortfolioService
+from app.module.chart.services.rich_portfolio_service import RichPortfolioService
 
 
 class TestRichPortfolioService:

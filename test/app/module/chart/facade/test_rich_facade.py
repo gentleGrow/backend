@@ -1,7 +1,7 @@
 from redis.asyncio import Redis
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.module.chart.facade.rich_facade import RichFacade
+from app.module.chart.services.rich_service import RichFacade
 
 
 class TestRichFacade:

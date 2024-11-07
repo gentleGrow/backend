@@ -33,10 +33,10 @@ from app.module.auth.constant import DUMMY_USER_ID
 from app.module.auth.schema import AccessToken
 from app.module.chart.constant import DEFAULT_TIP, TIP_TODAY_ID_REDIS_KEY
 from app.module.chart.enum import CompositionType, EstimateDividendType, IntervalType
-from app.module.chart.facade.composition_facade import CompositionFacade
-from app.module.chart.facade.performance_analysis_facade import PerformanceAnalysisFacade
-from app.module.chart.facade.rich_facade import RichFacade
-from app.module.chart.facade.summary_facade import SummaryFacade
+from app.module.chart.services.composition_service import CompositionFacade
+from app.module.chart.services.performance_analysis_service import PerformanceAnalysisFacade
+from app.module.chart.services.rich_service import RichFacade
+from app.module.chart.services.summary_service import SummaryFacade
 from app.module.chart.redis_repository import RedisTipRepository
 from app.module.chart.repository import TipRepository
 from app.module.chart.schema import (
@@ -63,9 +63,9 @@ from app.module.chart.schema import (
     RichPortfolioValue,
     SummaryResponse,
 )
-from app.module.chart.service.index_service import IndexService
-from app.module.chart.service.rich_portfolio_service import RichPortfolioService
-from app.module.chart.service.save_trend_service import SaveTrendService
+from app.module.chart.services.index_service import IndexService
+from app.module.chart.services.rich_portfolio_service import RichPortfolioService
+from app.module.chart.services.save_trend_service import SaveTrendService
 from database.dependency import get_mysql_session_router, get_redis_pool
 
 chart_router = APIRouter(prefix="/v1")

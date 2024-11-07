@@ -12,11 +12,10 @@ from app.module.chart.constant import REDIS_RICH_PICK_KEY, REDIS_RICH_PICK_NAME_
 from app.module.chart.redis_repository import RedisRichPickRepository
 
 
-class RichFacade:
-    @staticmethod
-    async def get_rich_top_10_pick(session: AsyncSession, redis_client: Redis) -> tuple[list[str], dict[str, str]]:
-        top_10_stock_codes: list[str] | None = await RedisRichPickRepository.get(redis_client, REDIS_RICH_PICK_KEY)  # type: ignore
-        stock_name_map: dict[str, str] | None = await RedisRichPickRepository.get(  # type: ignore
+class RichService:
+    async def get_rich_top_10_pick(self, session: AsyncSession, redis_client: Redis) -> tuple[list[str], dict[str, str]]:
+        top_10_stock_codes: list[str] | None = await RedisRichPickRepository.get(redis_client, REDIS_RICH_PICK_KEY) 
+        stock_name_map: dict[str, str] | None = await RedisRichPickRepository.get( 
             redis_client, REDIS_RICH_PICK_NAME_KEY
         )
 

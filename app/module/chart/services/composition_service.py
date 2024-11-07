@@ -5,10 +5,15 @@ from app.module.asset.services.exchange_rate_service import ExchangeRateService
 from app.module.chart.constant import NONE_ACCOUNT
 
 
-class CompositionFacade:
-    @staticmethod
+class CompositionService:
+    def __init__(self, exchange_rate_service: ExchangeRateService):
+        self.exchange_rate_service = exchange_rate_service
+
     def get_asset_stock_composition(
-        assets: list[Asset], current_stock_price_map: dict[str, float], exchange_rate_map: dict[str, float]
+        self,
+        assets: list[Asset], 
+        current_stock_price_map: dict[str, float], 
+        exchange_rate_map: dict[str, float]
     ) -> list[dict]:
         total_portfolio_value = 0.0
         stock_composition: defaultdict = defaultdict(lambda: {"name": "", "total_value": 0.0, "total_shares": 0})
@@ -18,7 +23,7 @@ class CompositionFacade:
             stock_name = asset.asset_stock.stock.name_kr
             quantity = asset.asset_stock.quantity
             current_price = current_stock_price_map.get(stock_code, 1.0)
-            won_exchange_rate: float = ExchangeRateService.get_won_exchange_rate(asset, exchange_rate_map)
+            won_exchange_rate: float = self.exchange_rate_service.get_won_exchange_rate(asset, exchange_rate_map)
             stock_value = quantity * won_exchange_rate * current_price
 
             stock_composition[stock_code]["name"] = stock_name
@@ -36,15 +41,19 @@ class CompositionFacade:
             )
         return sorted(result, key=lambda x: x["percent_rate"], reverse=True)
 
-    @staticmethod
+
+
     def get_asset_stock_account(
-        assets: list[Asset], current_stock_price_map: dict[str, float], exchange_rate_map: dict[str, float]
+        self,
+        assets: list[Asset], 
+        current_stock_price_map: dict[str, float], 
+        exchange_rate_map: dict[str, float]
     ) -> list[dict]:
         total_portfolio_value = 0.0
         account_composition: defaultdict = defaultdict(float)
 
         for asset in assets:
-            won_exchange_rate: float = ExchangeRateService.get_won_exchange_rate(asset, exchange_rate_map)
+            won_exchange_rate: float = self.exchange_rate_service.get_won_exchange_rate(asset, exchange_rate_map)
             stock_value = (
                 asset.asset_stock.quantity
                 * won_exchange_rate
@@ -61,3 +70,5 @@ class CompositionFacade:
             result.append({"name": account_name, "percent_rate": proportion, "current_amount": account_value})
 
         return sorted(result, key=lambda x: x["percent_rate"], reverse=True)
+
+
