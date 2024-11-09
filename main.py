@@ -9,6 +9,7 @@ from starlette.middleware.sessions import SessionMiddleware
 from app.api.asset.v1.router import asset_stock_router
 from app.api.auth.v1.router import auth_router
 from app.api.chart.v1.router import chart_router
+from app.api.asset.v2.router import asset_stock_router_v2
 from app.common.middleware.request_timeout import TimeoutMiddleware
 
 app = FastAPI()
@@ -34,6 +35,7 @@ app.add_middleware(TimeoutMiddleware)
 app.include_router(auth_router, prefix="/api/auth", tags=["auth"])
 app.include_router(chart_router, prefix="/api/chart", tags=["chart"])
 app.include_router(asset_stock_router, prefix="/api", tags=["asset"])
+app.include_router(asset_stock_router_v2, prefix="/api", tags=["asset_v2"])
 
 Instrumentator().instrument(app).expose(app, include_in_schema=False, endpoint="/metrics")
 

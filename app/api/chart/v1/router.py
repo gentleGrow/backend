@@ -16,6 +16,13 @@ from app.module.asset.constant import (
     THREE_MONTH,
     THREE_MONTH_DAY,
 )
+from app.module.asset.dependencies.asset_dependency import get_asset_service
+from app.module.asset.dependencies.asset_stock_dependency import get_asset_stock_service
+from app.module.asset.dependencies.dividend_dependency import get_dividend_service
+from app.module.asset.dependencies.exchange_rate_dependency import get_exchange_rate_service
+from app.module.asset.dependencies.realtime_index_dependency import get_realtime_index_service
+from app.module.asset.dependencies.stock_daily_dependency import get_stock_daily_service
+from app.module.asset.dependencies.stock_dependency import get_stock_service
 from app.module.asset.enum import AssetType, CurrencyType, StockAsset
 from app.module.asset.model import Asset
 from app.module.asset.repository.asset_repository import AssetRepository
@@ -24,11 +31,18 @@ from app.module.asset.services.asset_service import AssetService
 from app.module.asset.services.asset_stock_service import AssetStockService
 from app.module.asset.services.dividend_service import DividendService
 from app.module.asset.services.exchange_rate_service import ExchangeRateService
+from app.module.asset.services.realtime_index_service import RealtimeIndexService
 from app.module.asset.services.stock_daily_service import StockDailyService
 from app.module.asset.services.stock_service import StockService
 from app.module.auth.constant import DUMMY_USER_ID
 from app.module.auth.schema import AccessToken
 from app.module.chart.constant import DEFAULT_TIP, TIP_TODAY_ID_REDIS_KEY
+from app.module.chart.dependencies.composition_dependency import get_composition_service
+from app.module.chart.dependencies.performance_analysis_dependency import get_performance_analysis_service
+from app.module.chart.dependencies.rich_dependency import get_rich_service
+from app.module.chart.dependencies.rich_portfolio_dependency import get_rich_portfolio_service
+from app.module.chart.dependencies.save_trend_dependency import get_save_trend_service
+from app.module.chart.dependencies.summary_dependency import get_summary_service
 from app.module.chart.enum import CompositionType, EstimateDividendType, IntervalType
 from app.module.chart.redis_repository import RedisTipRepository
 from app.module.chart.repository import TipRepository
@@ -57,28 +71,12 @@ from app.module.chart.schema import (
     SummaryResponse,
 )
 from app.module.chart.services.composition_service import CompositionService
-from app.module.chart.services.rich_portfolio_service import RichPortfolioService
-from app.module.chart.services.save_trend_service import SaveTrendService
-from database.dependency import get_mysql_session_router, get_redis_pool
 from app.module.chart.services.performance_analysis_service import PerformanceAnalysisService
-from app.module.chart.services.summary_service import SummaryService
-from app.module.asset.services.realtime_index_service import RealtimeIndexService
+from app.module.chart.services.rich_portfolio_service import RichPortfolioService
 from app.module.chart.services.rich_service import RichService
-
-from app.module.asset.dependencies.asset_dependency import get_asset_service
-from app.module.chart.dependencies.rich_portfolio_dependency import get_rich_portfolio_service
-from app.module.asset.dependencies.dividend_dependency import get_dividend_service
-from app.module.asset.dependencies.asset_stock_dependency import get_asset_stock_service
-from app.module.chart.dependencies.save_trend_dependency import get_save_trend_service
-from app.module.asset.dependencies.exchange_rate_dependency import get_exchange_rate_service
-from app.module.chart.dependencies.performance_analysis_dependency import get_performance_analysis_service
-from app.module.chart.dependencies.composition_dependency import get_composition_service
-from app.module.asset.dependencies.stock_daily_dependency import get_stock_daily_service
-from app.module.asset.dependencies.stock_dependency import get_stock_service
-from app.module.chart.dependencies.summary_dependency import get_summary_service
-from app.module.asset.dependencies.realtime_index_dependency import get_realtime_index_service
-from app.module.chart.dependencies.rich_dependency import get_rich_service
-
+from app.module.chart.services.save_trend_service import SaveTrendService
+from app.module.chart.services.summary_service import SummaryService
+from database.dependency import get_mysql_session_router, get_redis_pool
 
 chart_router = APIRouter(prefix="/v1")
 
@@ -86,7 +84,7 @@ chart_router = APIRouter(prefix="/v1")
 @chart_router.get("/rich-portfolio", summary="부자들의 포트폴리오", response_model=RichPortfolioResponse)
 async def get_rich_portfolio(
     redis_client: Redis = Depends(get_redis_pool),
-    rich_portfolio_service: RichPortfolioService = Depends(get_rich_portfolio_service)
+    rich_portfolio_service: RichPortfolioService = Depends(get_rich_portfolio_service),
 ) -> RichPortfolioResponse:
     rich_portfolio_map: dict = await rich_portfolio_service.get_rich_porfolio_map(redis_client)
 
@@ -194,12 +192,12 @@ async def get_people_portfolio():
 
 @chart_router.get("/sample/asset-save-trend", summary="자산적립 추이", response_model=AssetSaveTrendResponse)
 async def get_sample_asset_save_trend(
-    session: AsyncSession = Depends(get_mysql_session_router), 
+    session: AsyncSession = Depends(get_mysql_session_router),
     redis_client: Redis = Depends(get_redis_pool),
     asset_service: AssetService = Depends(get_asset_service),
     dividend_service: DividendService = Depends(get_dividend_service),
     asset_stock_service: AssetStockService = Depends(get_asset_stock_service),
-    save_trend_service: SaveTrendService = Depends(get_save_trend_service)
+    save_trend_service: SaveTrendService = Depends(get_save_trend_service),
 ) -> AssetSaveTrendResponse:
     asset_all: list = await AssetRepository.get_eager(session, DUMMY_USER_ID, AssetType.STOCK)
     if len(asset_all) == 0:
@@ -246,7 +244,7 @@ async def get_asset_save_trend(
     asset_service: AssetService = Depends(get_asset_service),
     dividend_service: DividendService = Depends(get_dividend_service),
     asset_stock_service: AssetStockService = Depends(get_asset_stock_service),
-    save_trend_service: SaveTrendService = Depends(get_save_trend_service)
+    save_trend_service: SaveTrendService = Depends(get_save_trend_service),
 ) -> AssetSaveTrendResponse:
     asset_all: list = await AssetRepository.get_eager(session, token.get("user"), AssetType.STOCK)
     if len(asset_all) == 0:
@@ -424,15 +422,17 @@ async def get_sample_performance_analysis(
     elif interval in IntervalType.FIVEDAY:
         start_datetime, end_datetime = interval.get_start_end_time()
 
-        market_analysis_result_short: dict[datetime, float] = await performance_analysis_service.get_market_analysis_short(
-            session, redis_client, start_datetime, end_datetime, interval
+        market_analysis_result_short: dict[
+            datetime, float
+        ] = await performance_analysis_service.get_market_analysis_short(
+            session, redis_client, start_datetime, end_datetime, interval  # type: ignore # interval가 date 혹은 datetime 반환
         )
 
         user_analysis_result_short: dict[datetime, float] = await performance_analysis_service.get_user_analysis_short(
             session,
             redis_client,
-            start_datetime,
-            end_datetime,
+            start_datetime,  # type: ignore # interval가 date 혹은 datetime 반환
+            end_datetime,  # type: ignore # interval가 date 혹은 datetime 반환
             DUMMY_USER_ID,
             interval,
             market_analysis_result_short,
@@ -499,14 +499,16 @@ async def get_performance_analysis(
     elif interval in IntervalType.FIVEDAY:
         start_datetime, end_datetime = interval.get_start_end_time()
 
-        market_analysis_result_short: dict[datetime, float] = await performance_analysis_service.get_market_analysis_short(
-            session, redis_client, start_datetime, end_datetime, interval
+        market_analysis_result_short: dict[
+            datetime, float
+        ] = await performance_analysis_service.get_market_analysis_short(
+            session, redis_client, start_datetime, end_datetime, interval  # type: ignore # interval가 date 혹은 datetime 반환
         )
         user_analysis_result_short: dict[datetime, float] = await performance_analysis_service.get_user_analysis_short(
             session,
             redis_client,
-            start_datetime,
-            end_datetime,
+            start_datetime,  # type: ignore # interval가 date 혹은 datetime 반환
+            end_datetime,  # type: ignore # interval가 date 혹은 datetime 반환
             token.get("user"),
             interval,
             market_analysis_result_short,
@@ -714,9 +716,7 @@ async def get_summary(
 
     total_asset_amount = await asset_service.get_total_asset_amount(session, redis_client, assets)
     total_investment_amount = await asset_service.get_total_investment_amount(session, redis_client, assets)
-    today_review_rate: float = await summary_service.get_today_review_rate(
-        session, redis_client, token.get("user"), asset_service
-    )
+    today_review_rate: float = await summary_service.get_today_review_rate(session, redis_client, token.get("user"))
 
     return SummaryResponse(
         today_review_rate=today_review_rate,
@@ -749,9 +749,7 @@ async def get_sample_summary(
 
     total_asset_amount = await asset_service.get_total_asset_amount(session, redis_client, assets)
     total_investment_amount = await asset_service.get_total_investment_amount(session, redis_client, assets)
-    today_review_rate: float = await summary_service.get_today_review_rate(
-        session, redis_client, DUMMY_USER_ID, asset_service
-    )
+    today_review_rate: float = await summary_service.get_today_review_rate(session, redis_client, DUMMY_USER_ID)
 
     return SummaryResponse(
         today_review_rate=today_review_rate,
@@ -789,7 +787,9 @@ async def get_market_index(
     redis_client: Redis = Depends(get_redis_pool),
     realtime_index_service: RealtimeIndexService = Depends(get_realtime_index_service),
 ) -> MarketIndiceResponse:
-    market_index_values: list[MarketIndexData] = await realtime_index_service.get_current_market_index_value(redis_client)
+    market_index_values: list[MarketIndexData] = await realtime_index_service.get_current_market_index_value(
+        redis_client
+    )
 
     return MarketIndiceResponse(
         [
@@ -807,7 +807,7 @@ async def get_market_index(
 
 @chart_router.get("/rich-pick", summary="미국 부자들이 선택한 종목 TOP10", response_model=RichPickResponse)
 async def get_rich_pick(
-    session: AsyncSession = Depends(get_mysql_session_router), 
+    session: AsyncSession = Depends(get_mysql_session_router),
     redis_client: Redis = Depends(get_redis_pool),
     rich_service: RichService = Depends(get_rich_service),
     stock_daily_service: StockDailyService = Depends(get_stock_daily_service),

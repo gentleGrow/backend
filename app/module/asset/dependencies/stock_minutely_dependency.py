@@ -1,4 +1,4 @@
-from app.module.asset.dependencies.stock_minutely_dependency import StockMinutelyService
+from app.module.asset.services.stock_minutely_service import StockMinutelyService
 
 
 def get_stock_minutely_service() -> StockMinutelyService:

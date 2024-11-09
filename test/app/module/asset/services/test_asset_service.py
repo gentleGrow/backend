@@ -4,6 +4,9 @@ from freezegun import freeze_time
 from redis.asyncio import Redis
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.module.asset.dependencies.asset_dependency import get_asset_service
+from app.module.asset.dependencies.exchange_rate_dependency import get_exchange_rate_service
+from app.module.asset.dependencies.stock_daily_dependency import get_stock_daily_service
 from app.module.asset.enum import AccountType, AssetType, InvestmentBankType, PurchaseCurrencyType
 from app.module.asset.model import Asset
 from app.module.asset.repository.asset_repository import AssetRepository
@@ -13,10 +16,6 @@ from app.module.asset.services.exchange_rate_service import ExchangeRateService
 from app.module.asset.services.stock_daily_service import StockDailyService
 from app.module.auth.constant import DUMMY_USER_ID
 
-from app.module.asset.dependencies.asset_dependency import get_asset_service
-from app.module.asset.dependencies.exchange_rate_dependency import get_exchange_rate_service
-from app.module.asset.dependencies.stock_daily_dependency import get_stock_daily_service
-
 
 class TestAssetService:
     async def test_get_total_asset_amount_with_datetime(self, redis_client: Redis, session: AsyncSession, setup_all):
@@ -24,7 +23,7 @@ class TestAssetService:
         exchange_rate_service: ExchangeRateService = get_exchange_rate_service()
         stock_daily_service: StockDailyService = get_stock_daily_service()
         asset_service: AssetService = get_asset_service()
-        
+
         exchange_rate_map: dict[str, float] = await exchange_rate_service.get_exchange_rate_map(redis_client)
 
         stock_datetime_price_map = {

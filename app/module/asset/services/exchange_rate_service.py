@@ -37,8 +37,3 @@ class ExchangeRateService:
         if source == target:
             return 1.0
         return float(exchange_rate_map.get(f"{source}_{target}", 0.0))
-
-
-
-      
-    

@@ -13,11 +13,9 @@ from app.module.chart.redis_repository import RedisRichPickRepository
 
 
 class RichService:
-    async def get_rich_top_10_pick(self, session: AsyncSession, redis_client: Redis) -> tuple[list[str], dict[str, str]]:
-        top_10_stock_codes: list[str] | None = await RedisRichPickRepository.get(redis_client, REDIS_RICH_PICK_KEY) 
-        stock_name_map: dict[str, str] | None = await RedisRichPickRepository.get( 
-            redis_client, REDIS_RICH_PICK_NAME_KEY
-        )
+    async def get_rich_top_10_pick(self, session: AsyncSession, redis_client: Redis) -> tuple:
+        top_10_stock_codes = await RedisRichPickRepository.get(redis_client, REDIS_RICH_PICK_KEY)
+        stock_name_map = await RedisRichPickRepository.get(redis_client, REDIS_RICH_PICK_NAME_KEY)
 
         if top_10_stock_codes is None or stock_name_map is None:
             stock_count: defaultdict = defaultdict(int)

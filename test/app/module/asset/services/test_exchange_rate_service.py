@@ -1,12 +1,12 @@
 import pytest
 from redis.asyncio import Redis
 
+from app.module.asset.dependencies.exchange_rate_dependency import get_exchange_rate_service
 from app.module.asset.enum import AssetType, CurrencyType
 from app.module.asset.model import Asset
 from app.module.asset.repository.asset_repository import AssetRepository
 from app.module.asset.services.exchange_rate_service import ExchangeRateService
 from app.module.auth.constant import DUMMY_USER_ID
-from app.module.asset.dependencies.exchange_rate_dependency import get_exchange_rate_service
 
 
 class TestExchangeRateService:
@@ -16,7 +16,7 @@ class TestExchangeRateService:
     ):
         # Given
         exchange_rate_service: ExchangeRateService = get_exchange_rate_service()
-        
+
         assets: list[Asset] = await AssetRepository.get_eager(session, DUMMY_USER_ID, AssetType.STOCK)
         exchange_rate_map = await exchange_rate_service.get_exchange_rate_map(redis_client)
 
@@ -39,7 +39,7 @@ class TestExchangeRateService:
         # Given
         exchange_rate_service: ExchangeRateService = get_exchange_rate_service()
         assets: list[Asset] = await AssetRepository.get_eager(session, DUMMY_USER_ID, AssetType.STOCK)
-        exchange_rate_map = await ExchangeRateService.get_exchange_rate_map(redis_client)
+        exchange_rate_map = await exchange_rate_service.get_exchange_rate_map(redis_client)
 
         usa_assets = [asset for asset in assets if asset.asset_stock.stock.country.upper().strip() == "USA"]
         test_asset = usa_assets[0]

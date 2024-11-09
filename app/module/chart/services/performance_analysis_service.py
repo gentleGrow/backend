@@ -10,10 +10,10 @@ from app.module.asset.model import Asset, MarketIndexMinutely, StockDaily
 from app.module.asset.repository.asset_repository import AssetRepository
 from app.module.asset.services.asset_service import AssetService
 from app.module.asset.services.asset_stock_service import AssetStockService
-from app.module.asset.services.realtime_index_service import RealtimeIndexService
 from app.module.asset.services.exchange_rate_service import ExchangeRateService
 from app.module.asset.services.index_daily_service import IndexDailyService
 from app.module.asset.services.index_minutely_service import IndexMinutelyService
+from app.module.asset.services.realtime_index_service import RealtimeIndexService
 from app.module.asset.services.stock_daily_service import StockDailyService
 from app.module.asset.services.stock_minutely_service import StockMinutelyService
 from app.module.asset.services.stock_service import StockService
@@ -22,7 +22,7 @@ from app.module.chart.enum import IntervalType
 
 class PerformanceAnalysisService:
     def __init__(
-        self, 
+        self,
         exchange_rate_service: ExchangeRateService,
         realtime_index_service: RealtimeIndexService,
         index_daily_service: IndexDailyService,
@@ -31,7 +31,7 @@ class PerformanceAnalysisService:
         stock_daily_service: StockDailyService,
         stock_minutely_service: StockMinutelyService,
         asset_service: AssetService,
-        asset_stock_service: AssetStockService
+        asset_stock_service: AssetStockService,
     ):
         self.exchange_rate_service = exchange_rate_service
         self.realtime_index_service = realtime_index_service
@@ -44,14 +44,10 @@ class PerformanceAnalysisService:
         self.asset_stock_service = asset_stock_service
 
     async def get_market_analysis(
-        self,
-        session: AsyncSession, 
-        redis_client: Redis, 
-        start_date: date, 
-        end_date: date
+        self, session: AsyncSession, redis_client: Redis, start_date: date, end_date: date
     ) -> dict[date, float]:
         adjusted_start_date = start_date - timedelta(days=7)
-        market_index_date_map = await self.index_minutely_service.get_market_index_date_map(
+        market_index_date_map = await self.index_daily_service.get_market_index_date_map(
             session, (adjusted_start_date, end_date), MarketIndex.KOSPI
         )
         current_kospi_price = await self.realtime_index_service.get_current_index_price(redis_client, MarketIndex.KOSPI)
@@ -69,7 +65,6 @@ class PerformanceAnalysisService:
             current_date += timedelta(days=1)
 
         return result
-
 
     async def get_user_analysis(
         self,
@@ -129,7 +124,6 @@ class PerformanceAnalysisService:
 
         return result
 
-
     async def get_user_analysis_single_month(
         self,
         session: AsyncSession,
@@ -139,7 +133,7 @@ class PerformanceAnalysisService:
         market_analysis_result: dict[date, float],
     ) -> dict[date, float]:
         assets: list[Asset] = await AssetRepository.get_eager(session, user_id, AssetType.STOCK)
-        assets_by_date: defaultdict = self.asset_service.asset_list_from_days(assets, interval.get_days())
+        assets_by_date: dict = self.asset_service.asset_list_from_days(assets, interval.get_days())
         exchange_rate_map = await self.exchange_rate_service.get_exchange_rate_map(redis_client)
 
         # 7일 정도 더 date을 추가해야만, 주말과 긴 공휴일이 있는 날에 데이터가 없는 경우인 상황을 회피합니다.
@@ -151,7 +145,7 @@ class PerformanceAnalysisService:
 
         sorted_dates = sorted(dates)
 
-        stock_daily_date_map = await self.stock_daily_service.get_date_map(session, assets, sorted_dates)
+        stock_daily_date_map = await self.stock_daily_service.get_date_map_dates(session, assets, sorted_dates)
 
         result = {}
 
@@ -166,7 +160,7 @@ class PerformanceAnalysisService:
                 result[market_date] = 0.0
                 continue
 
-            currnet_total_amount = self.asset_service.get_total_asset_amount_with_date(
+            currnet_total_amount = self.asset_service.get_total_asset_amount_with_date_with_map(
                 current_assets, exchange_rate_map, stock_daily_date_map, market_date
             )
 
@@ -175,7 +169,6 @@ class PerformanceAnalysisService:
             result[market_date] = current_profit_rate
 
         return result
-
 
     async def get_user_analysis_short(
         self,
@@ -192,7 +185,7 @@ class PerformanceAnalysisService:
             session, interval_start, interval_end, assets, interval.get_interval()
         )
 
-        assets_by_date: defaultdict = self.asset_service.asset_list_from_days(assets, interval.get_days())
+        assets_by_date: dict = self.asset_service.asset_list_from_days(assets, interval.get_days())
         exchange_rate_map = await self.exchange_rate_service.get_exchange_rate_map(redis_client)
         stock_daily_map = await self.stock_daily_service.get_map_range(session, assets)
 
@@ -228,7 +221,6 @@ class PerformanceAnalysisService:
             result[market_datetime] = current_profit_rate
 
         return result
-
 
     async def get_market_analysis_short(
         self,
@@ -271,4 +263,3 @@ class PerformanceAnalysisService:
             current_datetime += timedelta(minutes=interval.get_interval())
 
         return result
-

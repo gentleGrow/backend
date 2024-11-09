@@ -1,16 +1,14 @@
 from redis.asyncio import Redis
 
 from app.data.investing.sources.enum import RicePeople
-from app.module.chart.services import rich_portfolio_service
-from app.module.chart.services.rich_portfolio_service import RichPortfolioService
 from app.module.chart.dependencies.rich_portfolio_dependency import get_rich_portfolio_service
 
 
 class TestRichPortfolioService:
     async def test_get_rich_porfolio_map_success(self, redis_client: Redis, setup_rich_portfolio):
         # Given
-        rich_portfolio_service: RichPortfolioService = get_rich_portfolio_service()
-        
+        rich_portfolio_service = get_rich_portfolio_service()
+
         expected_rich_people = [person.value for person in RicePeople]
         expected_portfolio = setup_rich_portfolio
 
@@ -25,8 +23,8 @@ class TestRichPortfolioService:
 
     async def test_get_rich_porfolio_map_fail(self, redis_client: Redis):
         # Given
-        rich_portfolio_service: RichPortfolioService = get_rich_portfolio_service()
-        
+        rich_portfolio_service = get_rich_portfolio_service()
+
         expected_rich_people = ["warren-buffett"]
         expected_portfolio = [{"AAPL": "30.1%", "BAC": "14.7%"}]
 

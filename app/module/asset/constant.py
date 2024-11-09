@@ -9,6 +9,9 @@ from app.module.asset.enum import (
     PurchaseCurrencyType,
 )
 
+ASSET_PARENT_FIELD = ["수익률", "수익금", "배당금"]
+ASSET_AGGREGATE_FIELD = "종목명"
+
 DEFAULT_EXCHANGE_RATE = 1.0
 ASSET_SAVE_TREND_YEAR = 15
 INFLATION_RATE = 3.0

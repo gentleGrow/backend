@@ -7,21 +7,20 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
 
 from app.module.asset.dependencies.dividend_dependency import get_dividend_service
+from app.module.asset.dependencies.exchange_rate_dependency import get_exchange_rate_service
 from app.module.asset.enum import AssetType
 from app.module.asset.model import Asset, AssetStock, Stock
 from app.module.asset.repository.asset_repository import AssetRepository
 from app.module.asset.services.dividend_service import DividendService
 from app.module.asset.services.exchange_rate_service import ExchangeRateService
 from app.module.auth.constant import DUMMY_USER_ID
-from app.module.asset.dependencies.dividend_dependency import get_dividend_service
-from app.module.asset.dependencies.exchange_rate_dependency import get_exchange_rate_service
 
 
 class TestDividendService:
     def test_process_dividends_by_year_month(self, setup_all):
         # Given
-        dividend_service:DividendService = get_dividend_service()
-        
+        dividend_service: DividendService = get_dividend_service()
+
         total_dividends = {
             date(2024, 1, 15): 100.0,
             date(2024, 3, 20): 200.0,
@@ -69,7 +68,7 @@ class TestDividendService:
 
     async def test_get_last_year_dividends(self, setup_all, session: AsyncSession):
         # Given
-        dividend_service:DividendService = get_dividend_service()
+        dividend_service: DividendService = get_dividend_service()
         assets = await AssetRepository.get_assets(session, DUMMY_USER_ID)
         asset = assets[0]
 
@@ -106,7 +105,7 @@ class TestDividendService:
         setup_all,
     ):
         # Given
-        dividend_service:DividendService = get_dividend_service()
+        dividend_service: DividendService = get_dividend_service()
         asset = Asset(asset_stock=AssetStock(purchase_date=date(2024, 8, 13), stock=Stock(code="AAPL"), quantity=10))
 
         won_exchange_rate = 1300.0
@@ -173,7 +172,7 @@ class TestDividendService:
         # Given
         dividend_service: DividendService = get_dividend_service()
         exchange_rate_service: ExchangeRateService = get_exchange_rate_service()
-        
+
         assets: list[Asset] = await AssetRepository.get_eager(session, DUMMY_USER_ID, AssetType.STOCK)
         dividend_map = await dividend_service.get_recent_map(session, assets)
         exchange_rate_map = await exchange_rate_service.get_exchange_rate_map(redis_client)

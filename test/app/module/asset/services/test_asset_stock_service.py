@@ -4,6 +4,10 @@ import pytest
 from redis.asyncio import Redis
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.module.asset.dependencies.asset_stock_dependency import get_asset_stock_service
+from app.module.asset.dependencies.exchange_rate_dependency import get_exchange_rate_service
+from app.module.asset.dependencies.stock_daily_dependency import get_stock_daily_service
+from app.module.asset.dependencies.stock_dependency import get_stock_service
 from app.module.asset.enum import AccountType, AssetType, InvestmentBankType, PurchaseCurrencyType
 from app.module.asset.model import Asset
 from app.module.asset.repository.asset_repository import AssetRepository
@@ -13,11 +17,6 @@ from app.module.asset.services.exchange_rate_service import ExchangeRateService
 from app.module.asset.services.stock_daily_service import StockDailyService
 from app.module.asset.services.stock_service import StockService
 from app.module.auth.constant import DUMMY_USER_ID
-
-from app.module.asset.dependencies.asset_stock_dependency import get_asset_stock_service
-from app.module.asset.dependencies.stock_dependency import get_stock_service
-from app.module.asset.dependencies.exchange_rate_dependency import get_exchange_rate_service
-from app.module.asset.dependencies.stock_daily_dependency import get_stock_daily_service
 
 
 class TestAssetStockService:
@@ -39,7 +38,7 @@ class TestAssetStockService:
     ):
         # Given
         asset_stock_service: AssetStockService = get_asset_stock_service()
-        
+
         # When
         actual_profit_rate = asset_stock_service.get_total_profit_rate(
             current_amount=total_asset_amount, past_amount=total_invest_amount
@@ -67,7 +66,7 @@ class TestAssetStockService:
     ):
         # Given
         asset_stock_service: AssetStockService = get_asset_stock_service()
-        
+
         # When
         actual_real_profit_rate = asset_stock_service.get_total_profit_rate_real(
             total_asset_amount=total_asset_amount,
@@ -101,7 +100,6 @@ class TestAssetStockService:
         assert len(saved_assets) == 1
         assert saved_assets[0].asset_stock.stock_id == stock_id
 
-
     async def test_get_total_investment_amount(
         self, session: AsyncSession, redis_client: Redis, setup_asset, setup_exchange_rate, setup_stock_daily
     ):
@@ -109,7 +107,7 @@ class TestAssetStockService:
         exchange_rate_service: ExchangeRateService = get_exchange_rate_service()
         asset_stock_service: AssetStockService = get_asset_stock_service()
         stock_daily_service: StockDailyService = get_stock_daily_service()
-        
+
         assets: list[Asset] = await AssetRepository.get_eager(session, DUMMY_USER_ID, AssetType.STOCK)
         exchange_rate_map = await exchange_rate_service.get_exchange_rate_map(redis_client)
         stock_daily_map = await stock_daily_service.get_map_range(session, assets)
@@ -160,7 +158,7 @@ class TestAssetStockService:
         stock_service: StockService = get_stock_service()
         exchange_rate_service: ExchangeRateService = get_exchange_rate_service()
         asset_stock_service: AssetStockService = get_asset_stock_service()
-        
+
         assets: list[Asset] = await AssetRepository.get_eager(session, DUMMY_USER_ID, AssetType.STOCK)
         lastest_stock_daily_map = await stock_daily_service.get_latest_map(session, assets)
         current_stock_price_map = await stock_service.get_current_stock_price(

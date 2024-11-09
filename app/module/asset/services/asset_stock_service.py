@@ -10,9 +10,8 @@ from app.module.asset.services.exchange_rate_service import ExchangeRateService
 
 
 class AssetStockService:
-    def __init__(self, exchange_rate_service:ExchangeRateService):
+    def __init__(self, exchange_rate_service: ExchangeRateService):
         self.exchange_rate_service = exchange_rate_service
-
 
     def get_total_profit_rate(
         self,
@@ -21,19 +20,14 @@ class AssetStockService:
     ) -> float:
         return ((current_amount - past_amount) / past_amount) * 100 if past_amount > 0 else 0.0
 
-
     def get_total_profit_rate_real(
-        self,
-        total_asset_amount: float, 
-        total_invest_amount: float, 
-        real_value_rate: float
+        self, total_asset_amount: float, total_invest_amount: float, real_value_rate: float
     ) -> float:
         return (
             (((total_asset_amount - total_invest_amount) / total_invest_amount) * 100) - real_value_rate
             if total_invest_amount > 0
             else 0.0
         )
-
 
     def get_total_asset_amount(
         self,
@@ -52,11 +46,7 @@ class AssetStockService:
         return result
 
     async def save_asset_stock_by_post(
-        self,
-        session: AsyncSession,
-        request_data: AssetStockPostRequest,
-        stock_id: int,
-        user_id: int
+        self, session: AsyncSession, request_data: AssetStockPostRequest, stock_id: int, user_id: int
     ) -> None:
         result = []
 
@@ -76,7 +66,6 @@ class AssetStockService:
         result.append(new_asset)
 
         await AssetRepository.save_assets(session, result)
-
 
     def get_total_asset_amount_minute(
         self,
@@ -103,7 +92,6 @@ class AssetStockService:
             result += current_price * asset.asset_stock.quantity
         return result
 
-
     def get_total_investment_amount(
         self,
         assets: list[Asset],
@@ -118,15 +106,16 @@ class AssetStockService:
                 continue
 
             invest_price = (
-                asset.asset_stock.purchase_price * self.exchange_rate_service.get_won_exchange_rate(asset, exchange_rate_map)
+                asset.asset_stock.purchase_price
+                * self.exchange_rate_service.get_won_exchange_rate(asset, exchange_rate_map)
                 if asset.asset_stock.purchase_currency_type == PurchaseCurrencyType.USA
                 and asset.asset_stock.purchase_price
                 else asset.asset_stock.purchase_price
                 if asset.asset_stock.purchase_price
-                else stock_daily.adj_close_price * self.exchange_rate_service.get_won_exchange_rate(asset, exchange_rate_map)
+                else stock_daily.adj_close_price
+                * self.exchange_rate_service.get_won_exchange_rate(asset, exchange_rate_map)
             )
 
             total_invest_amount += invest_price * asset.asset_stock.quantity
 
         return total_invest_amount
-

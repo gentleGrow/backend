@@ -4,6 +4,8 @@ from redis.asyncio import Redis
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.common.util.time import get_now_date
+from app.module.asset.dependencies.stock_daily_dependency import get_stock_daily_service
+from app.module.asset.dependencies.stock_dependency import get_stock_service
 from app.module.asset.enum import AssetType
 from app.module.asset.repository.asset_repository import AssetRepository
 from app.module.asset.repository.stock_repository import StockRepository
@@ -11,15 +13,12 @@ from app.module.asset.services.stock_daily_service import StockDailyService
 from app.module.asset.services.stock_service import StockService
 from app.module.auth.constant import DUMMY_USER_ID
 
-from app.module.asset.dependencies.stock_dependency import get_stock_service
-from app.module.asset.dependencies.stock_daily_dependency import get_stock_daily_service
-
 
 class TestStockService:
     async def test_check_stock_exist(self, session: AsyncSession, setup_all):
         # Given
         stock_service: StockService = get_stock_service()
-        
+
         stock_code = "AAPL"
         buy_date = date(2024, 8, 13)
         nonexistent_date = date(2025, 1, 1)
@@ -41,7 +40,7 @@ class TestStockService:
     async def test_get_stock_map(self, session: AsyncSession, setup_asset, setup_stock, setup_user):
         # Given
         stock_service: StockService = get_stock_service()
-        
+
         stock_code = "AAPL"
 
         expected_stock = await StockRepository.get_by_code(session, stock_code)
@@ -69,7 +68,7 @@ class TestStockService:
         # Given
         stock_daily_service: StockDailyService = get_stock_daily_service()
         stock_service: StockService = get_stock_service()
-       
+
         assets = await AssetRepository.get_eager(session, DUMMY_USER_ID, AssetType.STOCK)
         lastest_stock_daily_map = await stock_daily_service.get_latest_map(session, assets)
 

@@ -10,10 +10,13 @@ from app.module.chart.enum import IntervalType
 
 class IndexMinutelyService:
     async def get_index_range_interval_map(
-        session: AsyncSession, market_type: MarketIndex, duration: tuple[datetime, datetime], interval: IntervalType
+        self,
+        session: AsyncSession,
+        market_type: MarketIndex,
+        duration: tuple[datetime, datetime],
+        interval: IntervalType,
     ) -> dict[datetime, MarketIndexMinutely]:
         market_data: list[MarketIndexMinutely] = await MarketIndexMinutelyRepository.get_by_range_interval_minute(
             session, duration, market_type, interval.get_interval()
         )
         return {market_index.datetime: market_index for market_index in market_data}
-

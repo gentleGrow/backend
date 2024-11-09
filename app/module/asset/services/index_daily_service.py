@@ -8,10 +8,11 @@ from app.module.asset.repository.market_index_daily_repository import MarketInde
 
 
 class IndexDailyService:
-    async def get_market_index_date_map(session: AsyncSession, duration: tuple[date, date], market_type: MarketIndex):
+    async def get_market_index_date_map(
+        self, session: AsyncSession, duration: tuple[date, date], market_type: MarketIndex
+    ):
         market_data: list[MarketIndexDaily] = await MarketIndexDailyRepository.get_by_range(
             session, duration, market_type
         )
 
         return {market_index.date: market_index for market_index in market_data}
-

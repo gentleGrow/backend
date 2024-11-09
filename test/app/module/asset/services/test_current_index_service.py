@@ -1,8 +1,9 @@
 from redis.asyncio import Redis
 
+from app.module.asset.dependencies.realtime_index_dependency import get_realtime_index_service
 from app.module.asset.enum import MarketIndex
 from app.module.asset.services.realtime_index_service import RealtimeIndexService
-from app.module.asset.dependencies.realtime_index_dependency import get_realtime_index_service
+
 
 class TestCurrentIndexService:
     async def test_get_current_index_price(
@@ -12,7 +13,7 @@ class TestCurrentIndexService:
     ):
         # Given
         realtime_index_service: RealtimeIndexService = get_realtime_index_service()
-        
+
         market_type = MarketIndex.KOSPI
 
         # When

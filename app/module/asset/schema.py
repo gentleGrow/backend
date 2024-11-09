@@ -8,18 +8,44 @@ from app.module.asset.constant import ASSET_FIELD, REQUIRED_ASSET_FIELD
 from app.module.asset.enum import AccountType, InvestmentBankType, PurchaseCurrencyType
 from app.module.asset.model import Asset
 
+class StockAssetField(BaseModel):
+    isRequired: bool
+    value: float
+    
+class StockAssetSchema(BaseModel):
+    id: int
+    계좌종류: StockAssetField
+    구매일자: StockAssetField
+    현재가: StockAssetField
+    배당금: StockAssetField
+    고가: StockAssetField
+    증권사: StockAssetField
+    저가: StockAssetField
+    시가: StockAssetField
+    수익률: StockAssetField
+    수익금: StockAssetField
+    매입금: StockAssetField
+    매입가: StockAssetField
+    수량: StockAssetField
+    종목명: StockAssetField
+    거래량: StockAssetField
+    주식통화: str
+    
+class AggregateStockAsset(BaseModel):
+    종목명: str
+    수익률: float
+    수익금: float
+    배당금: float
 
 class AssetPostResponse(BaseModel):
     status_code: int = Field(..., description="상태 코드")
     content: str
     field: str
 
-
 class AssetPutResponse(BaseModel):
     status_code: int = Field(..., description="상태 코드")
     content: str
     field: str
-
 
 class AssetStockPostRequest(BaseModel):
     buy_date: date = Field(..., description="구매일자")
@@ -31,7 +57,6 @@ class AssetStockPostRequest(BaseModel):
         None, description="증권사", example=f"{InvestmentBankType.TOSS} (Optional)"
     )
     purchase_price: float | None = Field(None, description="매입가", example=f"{62000} (Optional)")
-
 
 class UpdateAssetFieldRequest(RootModel[list[str]]):
     class Config:
@@ -101,6 +126,7 @@ class StockListResponse(RootModel[list[StockListValue]]):
 
 class AssetStockResponse(BaseModel):
     stock_assets: list[dict]
+    aggregate_stock_assets: list[AggregateStockAsset]
     asset_fields: list
     total_asset_amount: float
     total_invest_amount: float
@@ -114,6 +140,7 @@ class AssetStockResponse(BaseModel):
     def parse(
         cls,
         stock_assets: list[dict],
+        aggregate_stock_assets:list[AggregateStockAsset],
         asset_fields: list,
         total_asset_amount: float,
         total_invest_amount: float,
@@ -123,6 +150,7 @@ class AssetStockResponse(BaseModel):
     ) -> "AssetStockResponse":
         return cls(
             stock_assets=stock_assets,
+            aggregate_stock_assets=aggregate_stock_assets,
             asset_fields=asset_fields,
             total_asset_amount=total_asset_amount,
             total_invest_amount=total_invest_amount,
@@ -140,6 +168,7 @@ class AssetStockResponse(BaseModel):
         if len(assets) == 0:
             return AssetStockResponse(
                 stock_assets=[],
+                aggregate_stock_assets=[],
                 asset_fields=asset_fields,
                 total_asset_amount=0.0,
                 total_invest_amount=0.0,

@@ -10,10 +10,7 @@ class CompositionService:
         self.exchange_rate_service = exchange_rate_service
 
     def get_asset_stock_composition(
-        self,
-        assets: list[Asset], 
-        current_stock_price_map: dict[str, float], 
-        exchange_rate_map: dict[str, float]
+        self, assets: list[Asset], current_stock_price_map: dict[str, float], exchange_rate_map: dict[str, float]
     ) -> list[dict]:
         total_portfolio_value = 0.0
         stock_composition: defaultdict = defaultdict(lambda: {"name": "", "total_value": 0.0, "total_shares": 0})
@@ -41,13 +38,8 @@ class CompositionService:
             )
         return sorted(result, key=lambda x: x["percent_rate"], reverse=True)
 
-
-
     def get_asset_stock_account(
-        self,
-        assets: list[Asset], 
-        current_stock_price_map: dict[str, float], 
-        exchange_rate_map: dict[str, float]
+        self, assets: list[Asset], current_stock_price_map: dict[str, float], exchange_rate_map: dict[str, float]
     ) -> list[dict]:
         total_portfolio_value = 0.0
         account_composition: defaultdict = defaultdict(float)
@@ -70,5 +62,3 @@ class CompositionService:
             result.append({"name": account_name, "percent_rate": proportion, "current_amount": account_value})
 
         return sorted(result, key=lambda x: x["percent_rate"], reverse=True)
-
-

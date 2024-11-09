@@ -3,4 +3,3 @@ from app.module.chart.services.rich_portfolio_service import RichPortfolioServic
 
 def get_rich_portfolio_service() -> RichPortfolioService:
     return RichPortfolioService()
-

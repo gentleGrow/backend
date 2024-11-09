@@ -1,10 +1,15 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from redis.asyncio import Redis
 from sqlalchemy.ext.asyncio import AsyncSession
-
+from icecream import ic
 from app.common.auth.security import verify_jwt_token
 from app.common.schema.common_schema import DeleteResponse, PutResponse
 from app.module.asset.constant import CurrencyType
+from app.module.asset.dependencies.asset_dependency import get_asset_service
+from app.module.asset.dependencies.asset_field_dependency import get_asset_field_service
+from app.module.asset.dependencies.asset_stock_dependency import get_asset_stock_service
+from app.module.asset.dependencies.dividend_dependency import get_dividend_service
+from app.module.asset.dependencies.stock_dependency import get_stock_service
 from app.module.asset.enum import AccountType, AssetType, InvestmentBankType, StockAsset
 from app.module.asset.model import Asset, AssetField, Stock
 from app.module.asset.redis_repository import RedisExchangeRateRepository
@@ -22,6 +27,8 @@ from app.module.asset.schema import (
     StockListResponse,
     StockListValue,
     UpdateAssetFieldRequest,
+    StockAssetSchema,
+    AggregateStockAsset
 )
 from app.module.asset.services.asset_field_service import AssetFieldService
 from app.module.asset.services.asset_service import AssetService
@@ -32,13 +39,6 @@ from app.module.auth.constant import DUMMY_USER_ID
 from app.module.auth.schema import AccessToken
 from database.dependency import get_mysql_session_router, get_redis_pool
 
-from app.module.asset.dependencies.asset_dependency import get_asset_service
-from app.module.asset.dependencies.dividend_dependency import get_dividend_service
-from app.module.asset.dependencies.asset_field_dependency import get_asset_field_service
-from app.module.asset.dependencies.stock_dependency import get_stock_service
-from app.module.asset.dependencies.asset_stock_dependency import get_asset_stock_service
-
-
 asset_stock_router = APIRouter(prefix="/v1")
 
 
@@ -46,7 +46,7 @@ asset_stock_router = APIRouter(prefix="/v1")
 async def get_asset_field(
     token: AccessToken = Depends(verify_jwt_token),
     session: AsyncSession = Depends(get_mysql_session_router),
-    asset_field_service: AssetFieldService = Depends(get_asset_field_service)
+    asset_field_service: AssetFieldService = Depends(get_asset_field_service),
 ) -> AssetFieldResponse:
     asset_field: list[str] = await asset_field_service.get_asset_field(session, token.get("user"))
     return AssetFieldResponse(asset_field)
@@ -100,7 +100,8 @@ async def get_sample_asset_stock(
         return no_asset_response
 
     asset_fields = await asset_field_service.get_asset_field(session, DUMMY_USER_ID)
-    stock_assets: list[dict] = await asset_service.get_stock_assets(session, redis_client, assets, asset_fields)
+    stock_assets: list[StockAssetSchema] = await asset_service.get_stock_assets(session, redis_client, assets, asset_fields)
+    aggregate_stock_assets: list[AggregateStockAsset] = asset_service.aggregate_stock_assets(stock_assets)
 
     total_asset_amount = await asset_service.get_total_asset_amount(session, redis_client, assets)
     total_invest_amount = await asset_service.get_total_investment_amount(session, redis_client, assets)
@@ -111,6 +112,7 @@ async def get_sample_asset_stock(
 
     return AssetStockResponse.parse(
         stock_assets,
+        aggregate_stock_assets,
         asset_fields,
         total_asset_amount,
         total_invest_amount,
@@ -138,7 +140,8 @@ async def get_asset_stock(
 
     asset_fields = await asset_field_service.get_asset_field(session, DUMMY_USER_ID)
     stock_assets: list[dict] = await asset_service.get_stock_assets(session, redis_client, assets, asset_fields)
-
+    aggregate_stock_assets: list[AggregateStockAsset] = asset_service.aggregate_stock_assets(stock_assets)
+    
     total_asset_amount = await asset_service.get_total_asset_amount(session, redis_client, assets)
     total_invest_amount = await asset_service.get_total_investment_amount(session, redis_client, assets)
     total_dividend_amount = await dividend_service.get_total_dividend(session, redis_client, assets)
@@ -163,7 +166,7 @@ async def create_asset_stock(
     token: AccessToken = Depends(verify_jwt_token),
     session: AsyncSession = Depends(get_mysql_session_router),
     stock_service: StockService = Depends(get_stock_service),
-    asset_stock_service: AssetStockService = Depends(get_asset_stock_service)
+    asset_stock_service: AssetStockService = Depends(get_asset_stock_service),
 ) -> AssetPostResponse:
     stock = await StockRepository.get_by_code(session, request_data.stock_code)
     if stock is None:

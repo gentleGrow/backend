@@ -13,16 +13,11 @@ from app.module.chart.constant import FULL_PERCENTAGE_RATE, PAST_MONTH_DAY
 
 
 class SummaryService:
-    def __init__(self, asset_stock_service:AssetStockService, asset_service:AssetService):
+    def __init__(self, asset_stock_service: AssetStockService, asset_service: AssetService):
         self.asset_stock_service = asset_stock_service
         self.asset_service = asset_service
 
-    async def get_today_review_rate(
-        self,
-        session: AsyncSession, 
-        redis_client: Redis, 
-        user_id: int
-    ) -> float:
+    async def get_today_review_rate(self, session: AsyncSession, redis_client: Redis, user_id: int) -> float:
         assets: list[Asset] = await AssetRepository.get_eager(session, user_id, AssetType.STOCK)
         past_assets = [
             asset
@@ -35,7 +30,7 @@ class SummaryService:
 
         past_date = get_date_past_day(PAST_MONTH_DAY)
 
-        past_total_amount = await self.asset_service.get_total_asset_amount_with_date_temp(
+        past_total_amount = await self.asset_service.get_total_asset_amount_with_date(
             session, redis_client, past_assets, past_date
         )
 

@@ -1,11 +1,12 @@
 from app.common.util.time import get_now_datetime
-from app.module.chart.services.save_trend_service import SaveTrendService
 from app.module.chart.dependencies.save_trend_dependency import get_save_trend_service
+from app.module.chart.services.save_trend_service import SaveTrendService
+
 
 class TestSaveTrendService:
     def test_get_x_axises(self):
         # Given
-        save_trend_service:SaveTrendService = get_save_trend_service()
+        save_trend_service: SaveTrendService = get_save_trend_service()
         years = 5
         current_year_short = int(str(get_now_datetime().year)[-2:])
 
@@ -18,7 +19,7 @@ class TestSaveTrendService:
 
     def test_get_dates(self):
         # Given
-        save_trend_service:SaveTrendService = get_save_trend_service()
+        save_trend_service: SaveTrendService = get_save_trend_service()
         years = 5
 
         # When

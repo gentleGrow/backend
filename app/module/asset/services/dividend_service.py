@@ -127,7 +127,6 @@ class DividendService:
 
         return total_dividend_amount
 
-
     async def get_composition(
         self,
         assets: list[Asset],
@@ -161,12 +160,8 @@ class DividendService:
             reverse=True,
         )
 
-
     def get_full_month_estimate_dividend(
-        self, 
-        assets: list[Asset], 
-        exchange_rate_map: dict[str, float], 
-        dividend_map: dict[tuple[str, date], float]
+        self, assets: list[Asset], exchange_rate_map: dict[str, float], dividend_map: dict[tuple[str, date], float]
     ) -> defaultdict[date, float]:
         result: defaultdict[date, float] = defaultdict(float)
 
@@ -181,5 +176,3 @@ class DividendService:
                     result[current_date] += dividend_amount * won_exchange_rate
 
         return result
-    
-    
