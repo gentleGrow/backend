@@ -1,16 +1,17 @@
 from collections import defaultdict
 from datetime import date, datetime, timedelta
 from typing import Any
+from icecream import ic
 import pandas
 from redis.asyncio import Redis
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.common.util.time import get_now_date
-from app.module.asset.constant import REQUIRED_ASSET_FIELD, ASSET_PARENT_FIELD, ASSET_AGGREGATE_FIELD
+from app.module.asset.constant import REQUIRED_ASSET_FIELD
 from app.module.asset.enum import ASSETNAME, AmountUnit, PurchaseCurrencyType, StockAsset
 from app.module.asset.model import Asset, Stock, StockDaily
 from app.module.asset.repository.asset_repository import AssetRepository
-from app.module.asset.schema import AssetStockPutRequest, TodayTempStockDaily, StockAssetSchema, AggregateStockAsset
+from app.module.asset.schema import AggregateStockAsset, AssetStockPutRequest, StockAssetSchema, TodayTempStockDaily
 from app.module.asset.services.dividend_service import DividendService
 from app.module.asset.services.exchange_rate_service import ExchangeRateService
 from app.module.asset.services.stock_daily_service import StockDailyService
@@ -260,35 +261,27 @@ class AssetService:
     async def _check_required_field(self, asset: Asset) -> bool:
         return bool(asset.asset_stock.purchase_date and asset.asset_stock.quantity and asset.stock.code)
 
-    def aggregate_stock_assets(
-        stock_assets: list[StockAssetSchema]
-    ) -> list[AggregateStockAsset]:
+    def aggregate_stock_assets(self, stock_assets: list[StockAssetSchema]) -> list[AggregateStockAsset]:
         stock_asset_dataframe = pandas.DataFrame(
-                {
-                    "종목명": [stock_asset[stock_asset.종목명] for stock_asset in stock_assets],
-                    "수익률": [stock_asset[stock_asset.수익률][stock_asset.수익률.value] for stock_asset in stock_assets],
-                    "수익금": [stock_asset[stock_asset.수익금][stock_asset.수익금.value] for stock_asset in stock_assets],
-                    "배당금": [stock_asset[stock_asset.배당금][stock_asset.배당금.value] for stock_asset in stock_assets],
-                }
-            )
+            {
+                "stock_name": [stock_asset.종목명.value for stock_asset in stock_assets],
+                "profit_rate": [stock_asset.수익률.value for stock_asset in stock_assets],
+                "profit_amount": [stock_asset.수익금.value for stock_asset in stock_assets],
+                "dividend": [stock_asset.배당금.value for stock_asset in stock_assets],
+            }
+        )
 
-        aggregated_df = stock_asset_dataframe.groupby("종목명").agg(
-                평균수익률=("수익률", "mean"),
-                합계수익금=("수익금", "sum"),
-                합계배당금=("배당금", "sum")
-            ).reset_index()
-        
+        aggregated_df = (
+            stock_asset_dataframe.groupby("stock_name")
+            .agg(avg_profit_rate=("profit_rate", "mean"), total_profit_amount=("profit_amount", "sum"), total_dividend=("dividend", "sum"))
+            .reset_index()
+        )
+
         return [
-            AggregateStockAsset(
-                종목명=row["종목명"],
-                수익률=row["평균수익률"],
-                수익금=row["합계수익금"],
-                배당금=row["합계배당금"]
-            )
+            AggregateStockAsset(종목명=row["stock_name"], 수익률=row["avg_profit_rate"], 수익금=row["total_profit_amount"], 배당금=row["total_dividend"])
             for _, row in aggregated_df.iterrows()
         ]
 
-    
     async def get_stock_assets(
         self, session: AsyncSession, redis_client: Redis, assets: list[Asset], asset_fields: list
     ) -> list[StockAssetSchema]:
@@ -313,9 +306,10 @@ class AssetService:
                 asset, stock_daily, apply_exchange_rate, current_stock_price_map, dividend_map, purchase_price
             )
 
-            stock_asset_data_filter = self._filter_stock_asset(stock_asset_data, asset_fields)
-            stock_asset_schema = StockAssetSchema(**stock_asset_data_filter)
+            stock_asset_formatted_data = self._apply_require_sign(stock_asset_data, asset_fields)
             
+            stock_asset_schema = StockAssetSchema(**stock_asset_formatted_data)
+
             stock_assets.append(stock_asset_schema)
 
         return stock_assets
@@ -442,11 +436,10 @@ class AssetService:
     def _get_purchase_price(self, asset: Asset, stock_daily: TodayTempStockDaily) -> float:
         return asset.asset_stock.purchase_price if asset.asset_stock.purchase_price else stock_daily.adj_close_price
 
-    def _filter_stock_asset(self, stock_asset_data: dict, asset_fields: list) -> dict:
+    def _apply_require_sign(self, stock_asset_data: dict, asset_fields: list) -> dict:
         result = {
             field: {"isRequired": field in REQUIRED_ASSET_FIELD, "value": value}
             for field, value in stock_asset_data.items()
-            if field in asset_fields
         }
 
         result[StockAsset.ID.value] = stock_asset_data[StockAsset.ID.value]

@@ -26,7 +26,7 @@ from app.module.asset.dependencies.stock_dependency import get_stock_service
 from app.module.asset.enum import AssetType, CurrencyType, StockAsset
 from app.module.asset.model import Asset
 from app.module.asset.repository.asset_repository import AssetRepository
-from app.module.asset.schema import MarketIndexData
+from app.module.asset.schema import MarketIndexData, StockAssetSchema
 from app.module.asset.services.asset_service import AssetService
 from app.module.asset.services.asset_stock_service import AssetStockService
 from app.module.asset.services.dividend_service import DividendService
@@ -652,7 +652,9 @@ async def get_sample_my_stock(
             [MyStockResponseValue(name="", current_price=0.0, profit_rate=0.0, profit_amount=0.0, quantity=0)]
         )
 
-    stock_assets: list[dict] = await asset_service.get_stock_assets(session, redis_client, assets, ASSET_FIELD)
+    stock_assets: list[StockAssetSchema] = await asset_service.get_stock_assets(
+        session, redis_client, assets, ASSET_FIELD
+    )
 
     return MyStockResponse(
         [
@@ -681,7 +683,9 @@ async def get_my_stock(
             [MyStockResponseValue(name="", current_price=0.0, profit_rate=0.0, profit_amount=0.0, quantity=0)]
         )
 
-    stock_assets: list[dict] = await asset_service.get_stock_assets(session, redis_client, assets, ASSET_FIELD)
+    stock_assets: list[StockAssetSchema] = await asset_service.get_stock_assets(
+        session, redis_client, assets, ASSET_FIELD
+    )
 
     return MyStockResponse(
         [

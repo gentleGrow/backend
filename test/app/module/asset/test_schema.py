@@ -11,7 +11,7 @@ from app.module.asset.enum import AssetType
 from app.module.asset.model import Asset
 from app.module.asset.redis_repository import RedisExchangeRateRepository
 from app.module.asset.repository.asset_repository import AssetRepository
-from app.module.asset.schema import AssetStockResponse, UpdateAssetFieldRequest
+from app.module.asset.schema import AggregateStockAsset, AssetStockResponse, StockAssetSchema, UpdateAssetFieldRequest
 from app.module.auth.constant import DUMMY_USER_ID
 
 
@@ -75,6 +75,7 @@ class TestAssetStockResponse:
         # Then
         expected_response = AssetStockResponse(
             stock_assets=[],
+            aggregate_stock_assets=[],
             asset_fields=[],
             total_asset_amount=0.0,
             total_invest_amount=0.0,
@@ -106,9 +107,11 @@ class TestAssetStockResponse:
 
         assets: list[Asset] = await AssetRepository.get_eager(session, DUMMY_USER_ID, AssetType.STOCK)
         asset_fields = await asset_field_service.get_asset_field(session, DUMMY_USER_ID)
-        stock_assets: list[dict] = await asset_service.get_stock_assets(
+        stock_assets: list[StockAssetSchema] = await asset_service.get_stock_assets(
             session=session, redis_client=redis_client, assets=assets, asset_fields=asset_fields
         )
+        
+        aggregate_stock_assets: list[AggregateStockAsset] = asset_service.aggregate_stock_assets(stock_assets)
 
         total_asset_amount = await asset_service.get_total_asset_amount(session, redis_client, assets)
         total_invest_amount = await asset_service.get_total_investment_amount(session, redis_client, assets)
@@ -121,6 +124,7 @@ class TestAssetStockResponse:
         # When
         stock_asset_response = AssetStockResponse.parse(
             stock_assets=stock_assets,
+            aggregate_stock_assets=aggregate_stock_assets,
             asset_fields=asset_fields,
             total_asset_amount=total_asset_amount,
             total_invest_amount=total_invest_amount,

@@ -8,10 +8,12 @@ from app.module.asset.constant import ASSET_FIELD, REQUIRED_ASSET_FIELD
 from app.module.asset.enum import AccountType, InvestmentBankType, PurchaseCurrencyType
 from app.module.asset.model import Asset
 
+
 class StockAssetField(BaseModel):
     isRequired: bool
-    value: float
-    
+    value: float | str | date | None
+
+
 class StockAssetSchema(BaseModel):
     id: int
     계좌종류: StockAssetField
@@ -30,22 +32,26 @@ class StockAssetSchema(BaseModel):
     종목명: StockAssetField
     거래량: StockAssetField
     주식통화: str
-    
+
+
 class AggregateStockAsset(BaseModel):
     종목명: str
     수익률: float
     수익금: float
     배당금: float
 
+
 class AssetPostResponse(BaseModel):
     status_code: int = Field(..., description="상태 코드")
     content: str
     field: str
 
+
 class AssetPutResponse(BaseModel):
     status_code: int = Field(..., description="상태 코드")
     content: str
     field: str
+
 
 class AssetStockPostRequest(BaseModel):
     buy_date: date = Field(..., description="구매일자")
@@ -57,6 +63,7 @@ class AssetStockPostRequest(BaseModel):
         None, description="증권사", example=f"{InvestmentBankType.TOSS} (Optional)"
     )
     purchase_price: float | None = Field(None, description="매입가", example=f"{62000} (Optional)")
+
 
 class UpdateAssetFieldRequest(RootModel[list[str]]):
     class Config:
@@ -125,7 +132,7 @@ class StockListResponse(RootModel[list[StockListValue]]):
 
 
 class AssetStockResponse(BaseModel):
-    stock_assets: list[dict]
+    stock_assets: list[StockAssetSchema]
     aggregate_stock_assets: list[AggregateStockAsset]
     asset_fields: list
     total_asset_amount: float
@@ -139,8 +146,8 @@ class AssetStockResponse(BaseModel):
     @classmethod
     def parse(
         cls,
-        stock_assets: list[dict],
-        aggregate_stock_assets:list[AggregateStockAsset],
+        stock_assets: list[StockAssetSchema],
+        aggregate_stock_assets: list[AggregateStockAsset],
         asset_fields: list,
         total_asset_amount: float,
         total_invest_amount: float,
