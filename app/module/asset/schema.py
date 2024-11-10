@@ -131,10 +131,9 @@ class StockListResponse(RootModel[list[StockListValue]]):
     pass
 
 
-
 #### 임시 스키마로, 확인 후 삭제하겠습니다. ####
 class AssetStockResponse_v1(BaseModel):
-    stock_assets: list[StockAssetSchema]
+    stock_assets: list[dict]
     asset_fields: list
     total_asset_amount: float
     total_invest_amount: float
@@ -147,7 +146,7 @@ class AssetStockResponse_v1(BaseModel):
     @classmethod
     def parse(
         cls,
-        stock_assets: list[StockAssetSchema],
+        stock_assets: list[dict],
         asset_fields: list,
         total_asset_amount: float,
         total_invest_amount: float,
@@ -184,6 +183,8 @@ class AssetStockResponse_v1(BaseModel):
                 won_exchange=0.0,
             )
         return None
+
+
 ############################################
 
 

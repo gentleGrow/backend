@@ -291,10 +291,10 @@ class AssetService:
             for _, row in aggregated_df.iterrows()
         ]
 
-# 수정 확인 후 삭제하겠습니다 ####
+    # 수정 확인 후 삭제하겠습니다 ####
     async def get_stock_assets_v1(
         self, session: AsyncSession, redis_client: Redis, assets: list[Asset], asset_fields: list
-    ) -> list[StockAssetSchema]:
+    ) -> list[dict]:
         stock_daily_map = await self.stock_daily_service.get_map_range(session, assets)
         lastest_stock_daily_map = await self.stock_daily_service.get_latest_map(session, assets)
         dividend_map = await self.dividend_service.get_recent_map(session, assets)
@@ -303,7 +303,7 @@ class AssetService:
             redis_client, lastest_stock_daily_map, assets
         )
 
-        stock_assets = []
+        result = []
 
         for asset in assets:
             apply_exchange_rate = self._get_apply_exchange_rate(asset, exchange_rate_map)
@@ -318,10 +318,11 @@ class AssetService:
 
             stock_asset_formatted_data = self._apply_require_sign(stock_asset_data, asset_fields)
 
-            stock_assets.append(stock_asset_formatted_data)
+            result.append(stock_asset_formatted_data)
 
-        return stock_assets
-################
+        return result
+
+    ################
 
     async def get_stock_assets(
         self, session: AsyncSession, redis_client: Redis, assets: list[Asset], asset_fields: list

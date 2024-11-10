@@ -48,7 +48,6 @@ class ExchangeRateCollector:
         return self._is_running
 
 
-# local 테스트 용, 추후 삭제 예정입니다.
 async def main():
     collector = ExchangeRateCollector()
     await collector.collect()

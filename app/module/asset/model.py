@@ -47,6 +47,7 @@ class AssetStock(TimestampMixin, MySQLBase):
     purchase_date = Column(Date, nullable=False, info={"description": "구매일자"})
     purchase_price = Column(Float, nullable=True, info={"description": "매입가"})
     quantity = Column(Integer, nullable=False, info={"description": "구매수량"})
+    trade = Column(String(255), nullable=False, info={"description": "매매"})
 
     stock_id = Column(BigInteger, ForeignKey("stock.id"), primary_key=True)
     asset_id = Column(BigInteger, ForeignKey("asset.id", ondelete="CASCADE"), primary_key=True)
@@ -206,3 +207,4 @@ class MarketIndexMonthly(MySQLBase):
     volume = Column(BigInteger, nullable=False)
 
     __table_args__ = (UniqueConstraint("name", "date", name="uq_name_date"),)
+
