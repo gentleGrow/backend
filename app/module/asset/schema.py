@@ -131,6 +131,62 @@ class StockListResponse(RootModel[list[StockListValue]]):
     pass
 
 
+
+#### 임시 스키마로, 확인 후 삭제하겠습니다. ####
+class AssetStockResponse_v1(BaseModel):
+    stock_assets: list[StockAssetSchema]
+    asset_fields: list
+    total_asset_amount: float
+    total_invest_amount: float
+    total_profit_rate: float
+    total_profit_amount: float
+    total_dividend_amount: float
+    dollar_exchange: float
+    won_exchange: float
+
+    @classmethod
+    def parse(
+        cls,
+        stock_assets: list[StockAssetSchema],
+        asset_fields: list,
+        total_asset_amount: float,
+        total_invest_amount: float,
+        total_dividend_amount: float,
+        dollar_exchange: float,
+        won_exchange: float,
+    ) -> "AssetStockResponse_v1":
+        return cls(
+            stock_assets=stock_assets,
+            asset_fields=asset_fields,
+            total_asset_amount=total_asset_amount,
+            total_invest_amount=total_invest_amount,
+            total_profit_rate=((total_asset_amount - total_invest_amount) / total_invest_amount) * 100
+            if total_invest_amount > 0
+            else 0.0,
+            total_profit_amount=total_asset_amount - total_invest_amount,
+            total_dividend_amount=total_dividend_amount,
+            dollar_exchange=dollar_exchange if dollar_exchange else 1.0,
+            won_exchange=won_exchange if won_exchange else 1.0,
+        )
+
+    @staticmethod
+    def validate_assets(assets: list[Asset], asset_fields: list[str]) -> Optional["AssetStockResponse_v1"]:
+        if len(assets) == 0:
+            return AssetStockResponse_v1(
+                stock_assets=[],
+                asset_fields=asset_fields,
+                total_asset_amount=0.0,
+                total_invest_amount=0.0,
+                total_profit_rate=0.0,
+                total_profit_amount=0.0,
+                total_dividend_amount=0.0,
+                dollar_exchange=0.0,
+                won_exchange=0.0,
+            )
+        return None
+############################################
+
+
 class AssetStockResponse(BaseModel):
     stock_assets: list[StockAssetSchema]
     aggregate_stock_assets: list[AggregateStockAsset]

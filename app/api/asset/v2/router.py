@@ -29,7 +29,6 @@ from app.module.asset.schema import (
     StockListResponse,
     StockListValue,
     UpdateAssetFieldRequest,
-    AssetStockResponse_v1
 )
 from app.module.asset.services.asset_field_service import AssetFieldService
 from app.module.asset.services.asset_service import AssetService
@@ -40,10 +39,10 @@ from app.module.auth.constant import DUMMY_USER_ID
 from app.module.auth.schema import AccessToken
 from database.dependency import get_mysql_session_router, get_redis_pool
 
-asset_stock_router = APIRouter(prefix="/v1")
+asset_stock_router_v2 = APIRouter(prefix="/v2")
 
 
-@asset_stock_router.get("/asset-field", summary="자산 필드를 반환합니다.", response_model=AssetFieldResponse)
+@asset_stock_router_v2.get("/asset-field", summary="자산 필드를 반환합니다.", response_model=AssetFieldResponse)
 async def get_asset_field(
     token: AccessToken = Depends(verify_jwt_token),
     session: AsyncSession = Depends(get_mysql_session_router),
@@ -53,7 +52,7 @@ async def get_asset_field(
     return AssetFieldResponse(asset_field)
 
 
-@asset_stock_router.put("/asset-field", summary="자산 필드를 변경합니다.", response_model=PutResponse)
+@asset_stock_router_v2.put("/asset-field", summary="자산 필드를 변경합니다.", response_model=PutResponse)
 async def update_asset_field(
     request_data: UpdateAssetFieldRequest,
     session: AsyncSession = Depends(get_mysql_session_router),
@@ -68,7 +67,7 @@ async def update_asset_field(
     return PutResponse(status_code=status.HTTP_200_OK, content="자산관리 필드를 성공적으로 수정 하였습니다.")
 
 
-@asset_stock_router.get("/bank-accounts", summary="증권사와 계좌 리스트를 반환합니다.", response_model=BankAccountResponse)
+@asset_stock_router_v2.get("/bank-accounts", summary="증권사와 계좌 리스트를 반환합니다.", response_model=BankAccountResponse)
 async def get_bank_account_list() -> BankAccountResponse:
     investment_bank_list = [bank.value for bank in InvestmentBankType]
     account_list = [account.value for account in AccountType]
@@ -76,7 +75,7 @@ async def get_bank_account_list() -> BankAccountResponse:
     return BankAccountResponse(investment_bank_list=investment_bank_list, account_list=account_list)
 
 
-@asset_stock_router.get("/stocks", summary="주시 종목 코드를 반환합니다.", response_model=StockListResponse)
+@asset_stock_router_v2.get("/stocks", summary="주시 종목 코드를 반환합니다.", response_model=StockListResponse)
 async def get_stock_list(session: AsyncSession = Depends(get_mysql_session_router)) -> StockListResponse:
     stock_list: list[Stock] = await StockRepository.get_all(session)
 
@@ -85,25 +84,26 @@ async def get_stock_list(session: AsyncSession = Depends(get_mysql_session_route
     )
 
 
-@asset_stock_router.get("/sample/assetstock", summary="임시 자산 정보를 반환합니다.", response_model=AssetStockResponse_v1)
+@asset_stock_router_v2.get("/sample/assetstock", summary="임시 자산 정보를 반환합니다.", response_model=AssetStockResponse)
 async def get_sample_asset_stock(
     session: AsyncSession = Depends(get_mysql_session_router),
     redis_client: Redis = Depends(get_redis_pool),
     asset_service: AssetService = Depends(get_asset_service),
     dividend_service: DividendService = Depends(get_dividend_service),
     asset_field_service: AssetFieldService = Depends(get_asset_field_service),
-) -> AssetStockResponse_v1:
+) -> AssetStockResponse:
     assets: list[Asset] = await AssetRepository.get_eager(session, DUMMY_USER_ID, AssetType.STOCK)
     asset_fields: list[str] = await asset_field_service.get_asset_field(session, DUMMY_USER_ID)
 
-    no_asset_response = AssetStockResponse_v1.validate_assets(assets, asset_fields)
+    no_asset_response = AssetStockResponse.validate_assets(assets, asset_fields)
     if no_asset_response:
         return no_asset_response
 
     asset_fields = await asset_field_service.get_asset_field(session, DUMMY_USER_ID)
-    stock_assets: list[dict] = await asset_service.get_stock_assets_v1(
+    stock_assets: list[StockAssetSchema] = await asset_service.get_stock_assets(
         session, redis_client, assets, asset_fields
     )
+    aggregate_stock_assets: list[AggregateStockAsset] = asset_service.aggregate_stock_assets(stock_assets)
 
     total_asset_amount = await asset_service.get_total_asset_amount(session, redis_client, assets)
     total_invest_amount = await asset_service.get_total_investment_amount(session, redis_client, assets)
@@ -112,8 +112,9 @@ async def get_sample_asset_stock(
     dollar_exchange = await RedisExchangeRateRepository.get(redis_client, f"{CurrencyType.KOREA}_{CurrencyType.USA}")
     won_exchange = await RedisExchangeRateRepository.get(redis_client, f"{CurrencyType.USA}_{CurrencyType.KOREA}")
 
-    return AssetStockResponse_v1.parse(
+    return AssetStockResponse.parse(
         stock_assets,
+        aggregate_stock_assets,
         asset_fields,
         total_asset_amount,
         total_invest_amount,
@@ -123,7 +124,7 @@ async def get_sample_asset_stock(
     )
 
 
-@asset_stock_router.get("/assetstock", summary="사용자의 자산 정보를 반환합니다.", response_model=AssetStockResponse_v1)
+@asset_stock_router_v2.get("/assetstock", summary="사용자의 자산 정보를 반환합니다.", response_model=AssetStockResponse)
 async def get_asset_stock(
     token: AccessToken = Depends(verify_jwt_token),
     redis_client: Redis = Depends(get_redis_pool),
@@ -131,18 +132,19 @@ async def get_asset_stock(
     asset_service: AssetService = Depends(get_asset_service),
     dividend_service: DividendService = Depends(get_dividend_service),
     asset_field_service: AssetFieldService = Depends(get_asset_field_service),
-) -> AssetStockResponse_v1:
+) -> AssetStockResponse:
     assets: list[Asset] = await AssetRepository.get_eager(session, token.get("user"), AssetType.STOCK)
     asset_fields: list[str] = await asset_field_service.get_asset_field(session, DUMMY_USER_ID)
 
-    no_asset_response = AssetStockResponse_v1.validate_assets(assets, asset_fields)
+    no_asset_response = AssetStockResponse.validate_assets(assets, asset_fields)
     if no_asset_response:
         return no_asset_response
 
     asset_fields = await asset_field_service.get_asset_field(session, DUMMY_USER_ID)
-    stock_assets: list[dict] = await asset_service.get_stock_assets_v1(
+    stock_assets: list[StockAssetSchema] = await asset_service.get_stock_assets(
         session, redis_client, assets, asset_fields
     )
+    aggregate_stock_assets: list[AggregateStockAsset] = asset_service.aggregate_stock_assets(stock_assets)
 
     total_asset_amount = await asset_service.get_total_asset_amount(session, redis_client, assets)
     total_invest_amount = await asset_service.get_total_investment_amount(session, redis_client, assets)
@@ -151,8 +153,9 @@ async def get_asset_stock(
     dollar_exchange = await RedisExchangeRateRepository.get(redis_client, f"{CurrencyType.KOREA}_{CurrencyType.USA}")
     won_exchange = await RedisExchangeRateRepository.get(redis_client, f"{CurrencyType.USA}_{CurrencyType.KOREA}")
 
-    return AssetStockResponse_v1.parse(
+    return AssetStockResponse.parse(
         stock_assets,
+        aggregate_stock_assets,
         asset_fields,
         total_asset_amount,
         total_invest_amount,
@@ -162,7 +165,7 @@ async def get_asset_stock(
     )
 
 
-@asset_stock_router.post("/assetstock", summary="자산관리 정보를 등록합니다.", response_model=AssetPostResponse)
+@asset_stock_router_v2.post("/assetstock", summary="자산관리 정보를 등록합니다.", response_model=AssetPostResponse)
 async def create_asset_stock(
     request_data: AssetStockPostRequest,
     token: AccessToken = Depends(verify_jwt_token),
@@ -190,7 +193,7 @@ async def create_asset_stock(
     return AssetPostResponse(status_code=status.HTTP_201_CREATED, content="주식 자산 성공적으로 등록 했습니다.", field="")
 
 
-@asset_stock_router.patch("/assetstock", summary="주식 자산을 수정합니다.", response_model=AssetPutResponse)
+@asset_stock_router_v2.patch("/assetstock", summary="주식 자산을 수정합니다.", response_model=AssetPutResponse)
 async def update_asset_stock(
     request_data: AssetStockPutRequest,
     token: AccessToken = Depends(verify_jwt_token),
@@ -217,7 +220,7 @@ async def update_asset_stock(
     return AssetPutResponse(status_code=status.HTTP_200_OK, content="주식 자산을 성공적으로 수정 하였습니다.", field="")
 
 
-@asset_stock_router.delete("/assetstock/{asset_id}", summary="자산을 삭제합니다.", response_model=DeleteResponse)
+@asset_stock_router_v2.delete("/assetstock/{asset_id}", summary="자산을 삭제합니다.", response_model=DeleteResponse)
 async def delete_asset_stock(
     asset_id: int,
     token: AccessToken = Depends(verify_jwt_token),

@@ -1,7 +1,7 @@
 from collections import defaultdict
 from datetime import date, datetime, timedelta
 from typing import Any
-from icecream import ic
+
 import pandas
 from redis.asyncio import Redis
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -273,14 +273,55 @@ class AssetService:
 
         aggregated_df = (
             stock_asset_dataframe.groupby("stock_name")
-            .agg(avg_profit_rate=("profit_rate", "mean"), total_profit_amount=("profit_amount", "sum"), total_dividend=("dividend", "sum"))
+            .agg(
+                avg_profit_rate=("profit_rate", "mean"),
+                total_profit_amount=("profit_amount", "sum"),
+                total_dividend=("dividend", "sum"),
+            )
             .reset_index()
         )
 
         return [
-            AggregateStockAsset(종목명=row["stock_name"], 수익률=row["avg_profit_rate"], 수익금=row["total_profit_amount"], 배당금=row["total_dividend"])
+            AggregateStockAsset(
+                종목명=row["stock_name"],
+                수익률=row["avg_profit_rate"],
+                수익금=row["total_profit_amount"],
+                배당금=row["total_dividend"],
+            )
             for _, row in aggregated_df.iterrows()
         ]
+
+# 수정 확인 후 삭제하겠습니다 ####
+    async def get_stock_assets_v1(
+        self, session: AsyncSession, redis_client: Redis, assets: list[Asset], asset_fields: list
+    ) -> list[StockAssetSchema]:
+        stock_daily_map = await self.stock_daily_service.get_map_range(session, assets)
+        lastest_stock_daily_map = await self.stock_daily_service.get_latest_map(session, assets)
+        dividend_map = await self.dividend_service.get_recent_map(session, assets)
+        exchange_rate_map = await self.exchange_rate_service.get_exchange_rate_map(redis_client)
+        current_stock_price_map = await self.stock_service.get_current_stock_price(
+            redis_client, lastest_stock_daily_map, assets
+        )
+
+        stock_assets = []
+
+        for asset in assets:
+            apply_exchange_rate = self._get_apply_exchange_rate(asset, exchange_rate_map)
+            stock_daily = self._get_matching_stock_daily(
+                asset, stock_daily_map, lastest_stock_daily_map, current_stock_price_map
+            )
+            purchase_price = self._get_purchase_price(asset, stock_daily)
+
+            stock_asset_data = self._build_stock_asset(
+                asset, stock_daily, apply_exchange_rate, current_stock_price_map, dividend_map, purchase_price
+            )
+
+            stock_asset_formatted_data = self._apply_require_sign(stock_asset_data, asset_fields)
+
+            stock_assets.append(stock_asset_formatted_data)
+
+        return stock_assets
+################
 
     async def get_stock_assets(
         self, session: AsyncSession, redis_client: Redis, assets: list[Asset], asset_fields: list
@@ -307,7 +348,7 @@ class AssetService:
             )
 
             stock_asset_formatted_data = self._apply_require_sign(stock_asset_data, asset_fields)
-            
+
             stock_asset_schema = StockAssetSchema(**stock_asset_formatted_data)
 
             stock_assets.append(stock_asset_schema)

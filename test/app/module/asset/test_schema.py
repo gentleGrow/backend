@@ -110,7 +110,7 @@ class TestAssetStockResponse:
         stock_assets: list[StockAssetSchema] = await asset_service.get_stock_assets(
             session=session, redis_client=redis_client, assets=assets, asset_fields=asset_fields
         )
-        
+
         aggregate_stock_assets: list[AggregateStockAsset] = asset_service.aggregate_stock_assets(stock_assets)
 
         total_asset_amount = await asset_service.get_total_asset_amount(session, redis_client, assets)
