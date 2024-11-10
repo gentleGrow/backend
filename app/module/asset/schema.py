@@ -39,6 +39,10 @@ class AggregateStockAsset(BaseModel):
     수익률: float
     수익금: float
     배당금: float
+    
+class StockAssetGroup(BaseModel):
+    parent: AggregateStockAsset
+    sub: list[StockAssetSchema]
 
 
 class AssetPostResponse(BaseModel):
@@ -189,8 +193,7 @@ class AssetStockResponse_v1(BaseModel):
 
 
 class AssetStockResponse(BaseModel):
-    stock_assets: list[StockAssetSchema]
-    aggregate_stock_assets: list[AggregateStockAsset]
+    stock_assets: list[StockAssetGroup]
     asset_fields: list
     total_asset_amount: float
     total_invest_amount: float
@@ -203,8 +206,7 @@ class AssetStockResponse(BaseModel):
     @classmethod
     def parse(
         cls,
-        stock_assets: list[StockAssetSchema],
-        aggregate_stock_assets: list[AggregateStockAsset],
+        stock_assets: list[StockAssetGroup],
         asset_fields: list,
         total_asset_amount: float,
         total_invest_amount: float,
@@ -214,7 +216,6 @@ class AssetStockResponse(BaseModel):
     ) -> "AssetStockResponse":
         return cls(
             stock_assets=stock_assets,
-            aggregate_stock_assets=aggregate_stock_assets,
             asset_fields=asset_fields,
             total_asset_amount=total_asset_amount,
             total_invest_amount=total_invest_amount,
@@ -232,7 +233,6 @@ class AssetStockResponse(BaseModel):
         if len(assets) == 0:
             return AssetStockResponse(
                 stock_assets=[],
-                aggregate_stock_assets=[],
                 asset_fields=asset_fields,
                 total_asset_amount=0.0,
                 total_invest_amount=0.0,

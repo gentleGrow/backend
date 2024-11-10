@@ -84,6 +84,10 @@ class MarketIndex(StrEnum):
     NYSE = "NYSE"
 
 
+class TradeType(StrEnum):
+    BUY = "BUY"
+    SELL = "SELL"
+
 class PurchaseCurrencyType(StrEnum):
     KOREA = "KRW"
     USA = "USD"
