@@ -3,7 +3,7 @@ from os import getenv
 from dotenv import load_dotenv
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from prometheus_fastapi_instrumentator import Instrumentator
+# from prometheus_fastapi_instrumentator import Instrumentator
 from starlette.middleware.sessions import SessionMiddleware
 
 from app.api.asset.v1.router import asset_stock_router
@@ -38,7 +38,7 @@ app.include_router(asset_stock_router, prefix="/api", tags=["asset"])
 app.include_router(asset_stock_router_v2, prefix="/api/asset", tags=["asset_v2"])
 
 
-Instrumentator().instrument(app).expose(app, include_in_schema=False, endpoint="/metrics")
+# Instrumentator().instrument(app).expose(app, include_in_schema=False, endpoint="/metrics")
 
 
 @app.get("/health")

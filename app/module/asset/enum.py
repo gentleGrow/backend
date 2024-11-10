@@ -32,6 +32,8 @@ class StockAsset_v1(StrEnum):
     PURCHASE_PRICE = "매입가"
     STOCK_NAME = "종목명"
     STOCK_VOLUME = "거래량"
+
+
 #################################################################
 
 
@@ -39,7 +41,7 @@ class StockAsset(StrEnum):
     ID = "id"
     PURCHASE_CURRENCY_TYPE = "주식통화"
     STOCK_CODE = "주식코드"
-    PURCHASE_DATE = "매매일자"
+    TRADE_DATE = "매매일자"
     QUANTITY = "수량"
     TRADE = "매매"
     ACCOUNT_TYPE = "계좌종류"
@@ -51,8 +53,8 @@ class StockAsset(StrEnum):
     OPENING_PRICE = "시가"
     PROFIT_RATE = "수익률"
     PROFIT_AMOUNT = "수익금"
-    PURCHASE_AMOUNT = "거래금"
-    PURCHASE_PRICE = "거래가"
+    TRADE_AMOUNT = "거래금"
+    TRADE_PRICE = "거래가"
     STOCK_NAME = "종목명"
     STOCK_VOLUME = "거래량"
 

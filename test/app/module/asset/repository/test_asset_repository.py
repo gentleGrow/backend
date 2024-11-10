@@ -19,11 +19,11 @@ class TestAssetRepository:
         assert asset_1.user_id == DUMMY_USER_ID
         assert asset_1.asset_type == AssetType.STOCK
         assert asset_1.asset_stock.stock_id == 1
-        assert asset_1.asset_stock.purchase_price == 500.0
+        assert asset_1.asset_stock.trade_price == 500.0
         assert asset_1.asset_stock.quantity == 1
 
         assert asset_2.user_id == DUMMY_USER_ID
         assert asset_2.asset_type == AssetType.STOCK
         assert asset_2.asset_stock.stock_id == 2
-        assert asset_2.asset_stock.purchase_price == 1000.0
+        assert asset_2.asset_stock.trade_price == 1000.0
         assert asset_2.asset_stock.quantity == 2

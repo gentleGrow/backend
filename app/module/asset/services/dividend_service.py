@@ -30,7 +30,7 @@ class DividendService:
 
     def get_closest_dividend(self, asset: Asset, dividend_map: dict[tuple[str, date], float]) -> date | None:
         asset_code: str = asset.asset_stock.stock.code
-        asset_date: date = asset.asset_stock.purchase_date
+        asset_date: date = asset.asset_stock.trade_date
 
         filtered_dividends = sorted(
             (
@@ -86,7 +86,7 @@ class DividendService:
 
         for code_date_key, dividend_amount in dividend_map.items():
             dividend_code, dividend_date = code_date_key
-            if dividend_code == asset.asset_stock.stock.code and dividend_date >= asset.asset_stock.purchase_date:
+            if dividend_code == asset.asset_stock.stock.code and dividend_date >= asset.asset_stock.trade_date:
                 dividend_kr = dividend_amount * won_exchange_rate * asset.asset_stock.quantity
                 result[dividend_date] += dividend_kr
                 last_dividend_date = dividend_date

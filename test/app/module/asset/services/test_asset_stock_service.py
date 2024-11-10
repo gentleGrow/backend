@@ -83,13 +83,13 @@ class TestAssetStockService:
         stock_id = 1
 
         request_data = AssetStockPostRequest(
-            buy_date=date(2024, 8, 13),
+            trade_date=date(2024, 8, 13),
             purchase_currency_type=PurchaseCurrencyType.USA,
             quantity=10,
             stock_code="AAPL",
             account_type=AccountType.ISA,
             investment_bank=InvestmentBankType.KB,
-            purchase_price=500.0,
+            trade_price=500.0,
             trade=TradeType.BUY,
         )
 
@@ -122,23 +122,21 @@ class TestAssetStockService:
 
         expected_total_investment_amount = 0.0
         for asset in assets:
-            stock_daily = stock_daily_map.get((asset.asset_stock.stock.code, asset.asset_stock.purchase_date), None)
+            stock_daily = stock_daily_map.get((asset.asset_stock.stock.code, asset.asset_stock.trade_date), None)
             if stock_daily is None:
                 continue
 
             if asset.asset_stock.purchase_currency_type == PurchaseCurrencyType.USA:
                 invest_price = (
-                    asset.asset_stock.purchase_price
+                    asset.asset_stock.trade_price
                     * exchange_rate_service.get_won_exchange_rate(asset, exchange_rate_map)
-                    if asset.asset_stock.purchase_price
+                    if asset.asset_stock.trade_price
                     else stock_daily.adj_close_price
                     * exchange_rate_service.get_won_exchange_rate(asset, exchange_rate_map)
                 )
             else:
                 invest_price = (
-                    asset.asset_stock.purchase_price
-                    if asset.asset_stock.purchase_price
-                    else stock_daily.adj_close_price
+                    asset.asset_stock.trade_price if asset.asset_stock.trade_price else stock_daily.adj_close_price
                 )
 
             expected_total_investment_amount += invest_price * asset.asset_stock.quantity

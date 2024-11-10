@@ -5,7 +5,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.module.asset.enum import AssetType, CurrencyType, PurchaseCurrencyType, TradeType
 from app.module.asset.model import Asset, AssetStock, StockDaily
 from app.module.asset.repository.asset_repository import AssetRepository
-from app.module.asset.schema import AssetStockPostRequest
+from app.module.asset.schema import AssetStockPostRequest, AssetStockPostRequest_v1
 from app.module.asset.services.exchange_rate_service import ExchangeRateService
 
 
@@ -45,6 +45,32 @@ class AssetStockService:
             )
         return result
 
+    # 확인 후 수정하겠습니다.
+    async def save_asset_stock_by_post_v1(
+        self, session: AsyncSession, request_data: AssetStockPostRequest_v1, stock_id: int, user_id: int
+    ) -> None:
+        result = []
+
+        new_asset = Asset(
+            asset_type=AssetType.STOCK,
+            user_id=user_id,
+            asset_stock=AssetStock(
+                account_type=request_data.account_type,
+                investment_bank=request_data.investment_bank,
+                purchase_currency_type=request_data.purchase_currency_type,
+                trade_date=request_data.buy_date,
+                trade_price=request_data.purchase_price,
+                quantity=request_data.quantity,
+                trade=request_data.trade if request_data.trade else TradeType.BUY,
+                stock_id=stock_id,
+            ),
+        )
+        result.append(new_asset)
+
+        await AssetRepository.save_assets(session, result)
+
+    #############################
+
     async def save_asset_stock_by_post(
         self, session: AsyncSession, request_data: AssetStockPostRequest, stock_id: int, user_id: int
     ) -> None:
@@ -57,8 +83,8 @@ class AssetStockService:
                 account_type=request_data.account_type,
                 investment_bank=request_data.investment_bank,
                 purchase_currency_type=request_data.purchase_currency_type,
-                purchase_date=request_data.buy_date,
-                purchase_price=request_data.purchase_price,
+                trade_date=request_data.trade_date,
+                trade_price=request_data.trade_price,
                 quantity=request_data.quantity,
                 trade=request_data.trade if request_data.trade else TradeType.BUY,
                 stock_id=stock_id,
@@ -102,17 +128,17 @@ class AssetStockService:
         total_invest_amount = 0.0
 
         for asset in assets:
-            stock_daily = stock_daily_map.get((asset.asset_stock.stock.code, asset.asset_stock.purchase_date), None)
+            stock_daily = stock_daily_map.get((asset.asset_stock.stock.code, asset.asset_stock.trade_date), None)
             if stock_daily is None:
                 continue
 
             invest_price = (
-                asset.asset_stock.purchase_price
+                asset.asset_stock.trade_price
                 * self.exchange_rate_service.get_won_exchange_rate(asset, exchange_rate_map)
                 if asset.asset_stock.purchase_currency_type == PurchaseCurrencyType.USA
-                and asset.asset_stock.purchase_price
-                else asset.asset_stock.purchase_price
-                if asset.asset_stock.purchase_price
+                and asset.asset_stock.trade_price
+                else asset.asset_stock.trade_price
+                if asset.asset_stock.trade_price
                 else stock_daily.adj_close_price
                 * self.exchange_rate_service.get_won_exchange_rate(asset, exchange_rate_map)
             )

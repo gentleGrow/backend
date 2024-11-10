@@ -108,7 +108,7 @@ class TestDividendService:
         dividend_service: DividendService = get_dividend_service()
         asset = Asset(
             asset_stock=AssetStock(
-                purchase_date=date(2024, 8, 13), stock=Stock(code="AAPL"), quantity=10, trade=TradeType.BUY
+                trade_date=date(2024, 8, 13), stock=Stock(code="AAPL"), quantity=10, trade=TradeType.BUY
             )
         )
 

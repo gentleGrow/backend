@@ -17,7 +17,7 @@ class StockDailyService:
         return {daily.code: daily for daily in lastest_stock_dailies}
 
     async def get_map_range(self, session: AsyncSession, assets: list[Asset]) -> dict[tuple[str, date], StockDaily]:
-        stock_code_date_pairs = [(asset.asset_stock.stock.code, asset.asset_stock.purchase_date) for asset in assets]
+        stock_code_date_pairs = [(asset.asset_stock.stock.code, asset.asset_stock.trade_date) for asset in assets]
         stock_dailies: list[StockDaily] = await StockDailyRepository.get_stock_dailies_by_code_and_date(
             session, stock_code_date_pairs
         )

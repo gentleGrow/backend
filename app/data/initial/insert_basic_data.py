@@ -80,8 +80,8 @@ async def create_dummy_assets(session: AsyncSession):
         )
 
         AssetStock(
-            purchase_price=None,
-            purchase_date=PURCHASE_DATES[i],
+            trade_price=None,
+            trade_date=PURCHASE_DATES[i],
             purchase_currency_type=PURCHASE_CURRENCY_TYPES[i],
             quantity=STOCK_QUANTITIES[i],
             trade=TradeType.BUY,

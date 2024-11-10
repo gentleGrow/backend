@@ -14,6 +14,7 @@ from app.module.asset.repository.asset_repository import AssetRepository
 from app.module.asset.schema import (
     AggregateStockAsset,
     AssetStockPutRequest,
+    AssetStockPutRequest_v1,
     StockAssetGroup,
     StockAssetSchema,
     TodayTempStockDaily,
@@ -45,7 +46,7 @@ class AssetService:
             target_date = current_date - timedelta(days=day_offset)
 
             for asset in assets:
-                purchase_date = asset.asset_stock.purchase_date
+                purchase_date = asset.asset_stock.trade_date
 
                 if purchase_date <= target_date:
                     assets_by_date[target_date].append(asset)
@@ -90,6 +91,37 @@ class AssetService:
         asset = await AssetRepository.get_asset_by_id(session, asset_id)
         return {asset.id: asset} if asset else None
 
+    # 확인 후 삭제하겠습니다.
+    async def save_asset_by_put_v1(
+        self, session: AsyncSession, request_data: AssetStockPutRequest_v1, asset: Asset, stock: Stock | None
+    ):
+        if request_data.account_type is not None:
+            asset.asset_stock.account_type = request_data.account_type
+
+        if request_data.investment_bank is not None:
+            asset.asset_stock.investment_bank = request_data.investment_bank
+
+        if request_data.purchase_currency_type is not None:
+            asset.asset_stock.purchase_currency_type = request_data.purchase_currency_type
+
+        if request_data.buy_date is not None:
+            asset.asset_stock.trade_date = request_data.buy_date
+
+        if request_data.purchase_price is not None:
+            asset.asset_stock.trade_price = request_data.purchase_price
+
+        if request_data.quantity is not None:
+            asset.asset_stock.quantity = request_data.quantity
+
+        if stock is not None:
+            asset.asset_stock.stock_id = stock.id
+
+        asset.asset_stock.trade = request_data.trade if request_data.trade else TradeType.BUY
+
+        await AssetRepository.save(session, asset)
+
+    ###########################
+
     async def save_asset_by_put(
         self, session: AsyncSession, request_data: AssetStockPutRequest, asset: Asset, stock: Stock | None
     ):
@@ -102,18 +134,18 @@ class AssetService:
         if request_data.purchase_currency_type is not None:
             asset.asset_stock.purchase_currency_type = request_data.purchase_currency_type
 
-        if request_data.buy_date is not None:
-            asset.asset_stock.purchase_date = request_data.buy_date
+        if request_data.trade_date is not None:
+            asset.asset_stock.trade_date = request_data.trade_date
 
-        if request_data.purchase_price is not None:
-            asset.asset_stock.purchase_price = request_data.purchase_price
+        if request_data.trade_price is not None:
+            asset.asset_stock.trade_price = request_data.trade_price
 
         if request_data.quantity is not None:
             asset.asset_stock.quantity = request_data.quantity
 
         if stock is not None:
             asset.asset_stock.stock_id = stock.id
-            
+
         asset.asset_stock.trade = request_data.trade if request_data.trade else TradeType.BUY
 
         await AssetRepository.save(session, asset)
@@ -133,7 +165,7 @@ class AssetService:
 
             if current_value is None:
                 current_stock_daily = stock_daily_map.get(
-                    (asset.asset_stock.stock.code, asset.asset_stock.purchase_date), None
+                    (asset.asset_stock.stock.code, asset.asset_stock.trade_date), None
                 )
                 current_value = current_stock_daily.adj_close_price if current_stock_daily is not None else 1.0
 
@@ -179,7 +211,7 @@ class AssetService:
         result = 0.0
 
         for asset in assets:
-            stock_daily = stock_daily_map.get((asset.asset_stock.stock.code, asset.asset_stock.purchase_date), None)
+            stock_daily = stock_daily_map.get((asset.asset_stock.stock.code, asset.asset_stock.trade_date), None)
             if stock_daily is None:
                 stock_daily = lastest_stock_daily_map.get(asset.asset_stock.stock.code, None)
 
@@ -187,12 +219,12 @@ class AssetService:
                     continue
 
             invest_price = (
-                asset.asset_stock.purchase_price
+                asset.asset_stock.trade_price
                 * self.exchange_rate_service.get_won_exchange_rate(asset, exchange_rate_map)
                 if asset.asset_stock.purchase_currency_type == PurchaseCurrencyType.USA
-                and asset.asset_stock.purchase_price
-                else asset.asset_stock.purchase_price
-                if asset.asset_stock.purchase_price
+                and asset.asset_stock.trade_price
+                else asset.asset_stock.trade_price
+                if asset.asset_stock.trade_price
                 else stock_daily.adj_close_price
                 * self.exchange_rate_service.get_won_exchange_rate(asset, exchange_rate_map)
             )
@@ -267,7 +299,7 @@ class AssetService:
         return result
 
     async def _check_required_field(self, asset: Asset) -> bool:
-        return bool(asset.asset_stock.purchase_date and asset.asset_stock.quantity and asset.stock.code)
+        return bool(asset.asset_stock.trade_date and asset.asset_stock.quantity and asset.stock.code)
 
     def group_stock_assets(
         self, stock_asset_elements: list[StockAssetSchema], aggregate_stock_assets: list[AggregateStockAsset]
@@ -404,7 +436,7 @@ class AssetService:
     def _get_profit_rate(
         self, asset: Asset, current_stock_price_map: dict, purchase_price: float, apply_exchange_rate: float
     ) -> float:
-        if asset.asset_stock.purchase_price:
+        if asset.asset_stock.trade_price:
             return (
                 (
                     (current_stock_price_map.get(asset.asset_stock.stock.code, 1.0) * apply_exchange_rate)
@@ -425,7 +457,7 @@ class AssetService:
             )
 
     def _get_purchase_amount(self, asset: Asset, purchase_price: float, apply_exchange_rate: float) -> float:
-        if asset.asset_stock.purchase_price:
+        if asset.asset_stock.trade_price:
             return purchase_price * asset.asset_stock.quantity
         else:
             return purchase_price * asset.asset_stock.quantity * apply_exchange_rate
@@ -433,7 +465,7 @@ class AssetService:
     def _get_profit_amount(
         self, asset: Asset, current_stock_price_map: dict, purchase_price: float, apply_exchange_rate: float
     ):
-        if asset.asset_stock.purchase_price:
+        if asset.asset_stock.trade_price:
             return (
                 (current_stock_price_map.get(asset.asset_stock.stock.code, 1.0) * apply_exchange_rate) - purchase_price
             ) * asset.asset_stock.quantity
@@ -462,7 +494,7 @@ class AssetService:
         return {
             StockAsset_v1.ID.value: asset.id,
             StockAsset_v1.ACCOUNT_TYPE.value: asset.asset_stock.account_type or None,
-            StockAsset_v1.BUY_DATE.value: asset.asset_stock.purchase_date,
+            StockAsset_v1.BUY_DATE.value: asset.asset_stock.trade_date,
             StockAsset_v1.CURRENT_PRICE.value: current_price,
             StockAsset_v1.DIVIDEND.value: dividend,
             StockAsset_v1.HIGHEST_PRICE.value: stock_daily.highest_price * apply_exchange_rate
@@ -478,7 +510,7 @@ class AssetService:
             StockAsset_v1.PROFIT_RATE.value: profit_rate,
             StockAsset_v1.PROFIT_AMOUNT.value: profit_amount,
             StockAsset_v1.PURCHASE_AMOUNT.value: purchase_amount,
-            StockAsset_v1.PURCHASE_PRICE.value: asset.asset_stock.purchase_price or None,
+            StockAsset_v1.PURCHASE_PRICE.value: asset.asset_stock.trade_price or None,
             StockAsset_v1.PURCHASE_CURRENCY_TYPE.value: asset.asset_stock.purchase_currency_type or None,
             StockAsset_v1.QUANTITY.value: asset.asset_stock.quantity,
             StockAsset_v1.STOCK_CODE.value: asset.asset_stock.stock.code,
@@ -506,7 +538,7 @@ class AssetService:
         return {
             StockAsset.ID.value: asset.id,
             StockAsset.ACCOUNT_TYPE.value: asset.asset_stock.account_type or None,
-            StockAsset.PURCHASE_DATE.value: asset.asset_stock.purchase_date,
+            StockAsset.TRADE_DATE.value: asset.asset_stock.trade_date,
             StockAsset.CURRENT_PRICE.value: current_price,
             StockAsset.DIVIDEND.value: dividend,
             StockAsset.HIGHEST_PRICE.value: stock_daily.highest_price * apply_exchange_rate
@@ -521,8 +553,8 @@ class AssetService:
             else None,
             StockAsset.PROFIT_RATE.value: profit_rate,
             StockAsset.PROFIT_AMOUNT.value: profit_amount,
-            StockAsset.PURCHASE_AMOUNT.value: purchase_amount,
-            StockAsset.PURCHASE_PRICE.value: asset.asset_stock.purchase_price or None,
+            StockAsset.TRADE_AMOUNT.value: purchase_amount,
+            StockAsset.TRADE_PRICE.value: asset.asset_stock.trade_price or None,
             StockAsset.PURCHASE_CURRENCY_TYPE.value: asset.asset_stock.purchase_currency_type or None,
             StockAsset.QUANTITY.value: asset.asset_stock.quantity,
             StockAsset.STOCK_CODE.value: asset.asset_stock.stock.code,
@@ -533,7 +565,7 @@ class AssetService:
     def _get_matching_stock_daily(
         self, asset: Asset, stock_daily_map: dict, lastest_stock_daily_map: dict, current_stock_price_map: dict
     ) -> TodayTempStockDaily:
-        stock_daily = stock_daily_map.get((asset.asset_stock.stock.code, asset.asset_stock.purchase_date), None)
+        stock_daily = stock_daily_map.get((asset.asset_stock.stock.code, asset.asset_stock.trade_date), None)
         if stock_daily is None:
             recent_stockdaily = lastest_stock_daily_map.get(asset.asset_stock.stock.code, None)
             open_price = (
@@ -551,7 +583,7 @@ class AssetService:
         return stock_daily
 
     def _get_purchase_price(self, asset: Asset, stock_daily: TodayTempStockDaily) -> float:
-        return asset.asset_stock.purchase_price if asset.asset_stock.purchase_price else stock_daily.adj_close_price
+        return asset.asset_stock.trade_price if asset.asset_stock.trade_price else stock_daily.adj_close_price
 
     def _apply_require_sign(self, stock_asset_data: dict, asset_fields: list) -> dict:
         result = {

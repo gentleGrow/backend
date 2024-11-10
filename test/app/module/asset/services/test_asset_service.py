@@ -7,7 +7,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.module.asset.dependencies.asset_dependency import get_asset_service
 from app.module.asset.dependencies.exchange_rate_dependency import get_exchange_rate_service
 from app.module.asset.dependencies.stock_daily_dependency import get_stock_daily_service
-from app.module.asset.enum import AccountType, AssetType, InvestmentBankType, PurchaseCurrencyType
+from app.module.asset.enum import AccountType, AssetType, InvestmentBankType, PurchaseCurrencyType, TradeType
 from app.module.asset.model import Asset
 from app.module.asset.repository.asset_repository import AssetRepository
 from app.module.asset.schema import AssetStockPutRequest
@@ -82,7 +82,7 @@ class TestAssetService:
         assert isinstance(result, dict)
         assert result[asset_id].id == asset_id
         assert result[asset_id].asset_type == AssetType.STOCK
-        assert result[asset_id].asset_stock.purchase_price == 500.0
+        assert result[asset_id].asset_stock.trade_price == 500.0
 
     async def test_update_asset_stock(self, session: AsyncSession, setup_all):
         # Given
@@ -92,13 +92,14 @@ class TestAssetService:
 
         request_data = AssetStockPutRequest(
             id=asset.id,
-            buy_date=date(2024, 9, 1),
+            trade_date=date(2024, 9, 1),
             purchase_currency_type=PurchaseCurrencyType.KOREA,
             quantity=5,
             stock_code="005930",
             account_type=AccountType.REGULAR,
             investment_bank=InvestmentBankType.KB,
-            purchase_price=600.0,
+            trade_price=600.0,
+            trade=TradeType.BUY,
         )
 
         stock = None
@@ -111,6 +112,7 @@ class TestAssetService:
         assert updated_asset.asset_stock.account_type == AccountType.REGULAR
         assert updated_asset.asset_stock.investment_bank == InvestmentBankType.KB
         assert updated_asset.asset_stock.purchase_currency_type == PurchaseCurrencyType.KOREA
-        assert updated_asset.asset_stock.purchase_date == date(2024, 9, 1)
-        assert updated_asset.asset_stock.purchase_price == 600.0
+        assert updated_asset.asset_stock.trade_date == date(2024, 9, 1)
+        assert updated_asset.asset_stock.trade_price == 600.0
         assert updated_asset.asset_stock.quantity == 5
+        assert updated_asset.asset_stock.trade == TradeType.BUY

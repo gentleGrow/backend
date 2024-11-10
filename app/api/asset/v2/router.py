@@ -17,12 +17,12 @@ from app.module.asset.repository.stock_repository import StockRepository
 from app.module.asset.schema import (
     AggregateStockAsset,
     AssetPostResponse,
+    AssetPutResponse,
     AssetStockPostRequest,
+    AssetStockPutRequest,
     AssetStockResponse,
     StockAssetGroup,
     StockAssetSchema,
-    AssetPutResponse,
-    AssetStockPutRequest
 )
 from app.module.asset.services.asset_field_service import AssetFieldService
 from app.module.asset.services.asset_service import AssetService
@@ -34,7 +34,6 @@ from app.module.auth.schema import AccessToken
 from database.dependency import get_mysql_session_router, get_redis_pool
 
 asset_stock_router_v2 = APIRouter(prefix="/v2")
-
 
 
 @asset_stock_router_v2.patch("/assetstock", summary="주식 자산을 수정합니다.", response_model=AssetPutResponse)
@@ -49,15 +48,15 @@ async def update_asset_stock(
     if asset is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"{request_data.id} id에 해당하는 자산을 찾지 못 했습니다.")
 
-    if request_data.stock_code and request_data.purchase_date:
-        stock_exist = await stock_service.check_stock_exist(session, request_data.stock_code, request_data.purchase_date)
+    if request_data.stock_code and request_data.trade_date:
+        stock_exist = await stock_service.check_stock_exist(session, request_data.stock_code, request_data.trade_date)
         if stock_exist is False:
             return AssetPutResponse(
                 status_code=status.HTTP_404_NOT_FOUND,
-                content=f"{request_data.stock_code} 코드의 {request_data.purchase_date} 날짜가 존재하지 않습니다.",
-                field=StockAsset.PURCHASE_DATE,
+                content=f"{request_data.stock_code} 코드의 {request_data.trade_date} 날짜가 존재하지 않습니다.",
+                field=StockAsset.TRADE_DATE,
             )
-            
+
     if request_data.trade not in TradeType:
         return AssetPutResponse(
             status_code=status.HTTP_404_NOT_FOUND,
@@ -69,7 +68,6 @@ async def update_asset_stock(
 
     await asset_service.save_asset_by_put(session, request_data, asset, stock)
     return AssetPutResponse(status_code=status.HTTP_200_OK, content="주식 자산을 성공적으로 수정 하였습니다.", field="")
-
 
 
 @asset_stock_router_v2.post("/assetstock", summary="자산관리 정보를 등록합니다.", response_model=AssetPostResponse)
@@ -88,12 +86,12 @@ async def create_asset_stock(
             field=StockAsset.STOCK_CODE,
         )
 
-    stock_exist = await stock_service.check_stock_exist(session, request_data.stock_code, request_data.purchase_date)
+    stock_exist = await stock_service.check_stock_exist(session, request_data.stock_code, request_data.trade_date)
     if stock_exist is False:
         return AssetPostResponse(
             status_code=status.HTTP_404_NOT_FOUND,
-            content=f"{request_data.stock_code} 코드의 {request_data.purchase_date} 날짜가 존재하지 않습니다.",
-            field=StockAsset.PURCHASE_DATE,
+            content=f"{request_data.stock_code} 코드의 {request_data.trade_date} 날짜가 존재하지 않습니다.",
+            field=StockAsset.TRADE_DATE,
         )
 
     if request_data.trade not in TradeType:

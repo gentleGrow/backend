@@ -109,8 +109,8 @@ async def fetch_rich_porfolio(redis_client: Redis, session: AsyncSession, person
         )
 
         AssetStock(
-            purchase_price=None,
-            purchase_date=date(2024, 9, 13),
+            trade_price=None,
+            trade_date=date(2024, 9, 13),
             purchase_currency_type=PurchaseCurrencyType.USA.value,
             quantity=1,
             trade=TradeType.BUY,

@@ -177,7 +177,7 @@ async def create_asset_stock(
             field=StockAsset_v1.BUY_DATE,
         )
 
-    await asset_stock_service.save_asset_stock_by_post(session, request_data, stock.id, token.get("user"))
+    await asset_stock_service.save_asset_stock_by_post_v1(session, request_data, stock.id, token.get("user"))
     return AssetPostResponse(status_code=status.HTTP_201_CREATED, content="주식 자산 성공적으로 등록 했습니다.", field="")
 
 
@@ -204,7 +204,7 @@ async def update_asset_stock(
 
     stock = await StockRepository.get_by_code(session, request_data.stock_code)
 
-    await asset_service.save_asset_by_put(session, request_data, asset, stock)
+    await asset_service.save_asset_by_put_v1(session, request_data, asset, stock)
     return AssetPutResponse(status_code=status.HTTP_200_OK, content="주식 자산을 성공적으로 수정 하였습니다.", field="")
 
 

@@ -22,7 +22,7 @@ class SummaryService:
         past_assets = [
             asset
             for asset in assets
-            if asset.asset_stock.purchase_date <= datetime.now().date() - timedelta(days=PAST_MONTH_DAY)
+            if asset.asset_stock.trade_date <= datetime.now().date() - timedelta(days=PAST_MONTH_DAY)
         ]
 
         if len(past_assets) == 0 and len(assets) > 0:

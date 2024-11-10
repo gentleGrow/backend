@@ -55,6 +55,7 @@ class AssetPutResponse(BaseModel):
     content: str
     field: str
 
+
 # 확인 후 수정하겠습니다.
 class AssetStockPostRequest_v1(BaseModel):
     buy_date: date = Field(..., description="구매일자")
@@ -67,11 +68,13 @@ class AssetStockPostRequest_v1(BaseModel):
     )
     purchase_price: float | None = Field(None, description="매입가", example=f"{62000} (Optional)")
     trade: str = Field(..., description="매매", examples=["매수/매도"])
+
+
 ####################
 
 
 class AssetStockPostRequest(BaseModel):
-    purchase_date: date = Field(..., description="매매일자")
+    trade_date: date = Field(..., description="매매일자")
     purchase_currency_type: PurchaseCurrencyType = Field(..., description="매입 통화")
     quantity: int = Field(..., description="수량")
     stock_code: str = Field(..., description="종목 코드", examples=["AAPL"])
@@ -87,7 +90,7 @@ class UpdateAssetFieldRequest(RootModel[list[str]]):
     class Config:
         json_schema_extra = {
             "example": [
-                "구매일자",
+                "매매일자",
                 "매매",
                 "수량",
                 "계좌종류",
@@ -99,12 +102,13 @@ class UpdateAssetFieldRequest(RootModel[list[str]]):
                 "시가",
                 "수익률",
                 "수익금",
-                "매입금",
-                "매입가",
+                "거래금",
+                "거래가",
                 "종목명",
                 "거래량",
             ]
         }
+
 
 # 확인 후 수정하겠습니다.
 class AssetStockPutRequest_v1(BaseModel):
@@ -116,12 +120,14 @@ class AssetStockPutRequest_v1(BaseModel):
     account_type: AccountType | None = Field(None, description="계좌 종류", example=f"{AccountType.ISA} (Optional)")
     investment_bank: str | None = Field(None, description="증권사", example=f"{InvestmentBankType.TOSS} (Optional)")
     purchase_price: float | None = Field(None, description="매입가", example=f"{62000} (Optional)")
-################3
+
+
+################
 
 
 class AssetStockPutRequest(BaseModel):
     id: int = Field(..., description="자산 고유 값")
-    purchase_date: date | None = Field(None, description="매매일자", example="2024-08-12 (Optional)")
+    trade_date: date | None = Field(None, description="매매일자", example="2024-08-12 (Optional)")
     purchase_currency_type: PurchaseCurrencyType | None = Field(None, description="매입 통화", example="KRW/USD (Optional)")
     quantity: int | None = Field(None, description="수량", example="1 (Optional)")
     stock_code: str | None = Field(None, description="종목 코드", example="AAPL (Optional)")

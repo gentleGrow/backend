@@ -91,7 +91,7 @@ class PerformanceAnalysisService:
 
         assets_by_date = defaultdict(list)
         for asset in assets:
-            assets_by_date[asset.asset_stock.purchase_date].append(asset)
+            assets_by_date[asset.asset_stock.trade_date].append(asset)
 
         cumulative_assets = []
         result = {}
