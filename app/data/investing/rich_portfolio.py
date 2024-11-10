@@ -17,7 +17,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from webdriver_manager.chrome import ChromeDriverManager
 
 from app.data.investing.sources.enum import RicePeople
-from app.module.asset.enum import AssetType, PurchaseCurrencyType
+from app.module.asset.enum import AssetType, PurchaseCurrencyType, TradeType
 from app.module.asset.model import Asset, AssetStock
 from app.module.asset.repository.asset_repository import AssetRepository
 from app.module.asset.repository.stock_repository import StockRepository
@@ -113,6 +113,7 @@ async def fetch_rich_porfolio(redis_client: Redis, session: AsyncSession, person
             purchase_date=date(2024, 9, 13),
             purchase_currency_type=PurchaseCurrencyType.USA.value,
             quantity=1,
+            trade=TradeType.BUY,
             investment_bank=None,
             account_type=None,
             asset=asset,

@@ -8,7 +8,7 @@ from sqlalchemy.future import select
 
 from app.module.asset.dependencies.dividend_dependency import get_dividend_service
 from app.module.asset.dependencies.exchange_rate_dependency import get_exchange_rate_service
-from app.module.asset.enum import AssetType
+from app.module.asset.enum import AssetType, TradeType
 from app.module.asset.model import Asset, AssetStock, Stock
 from app.module.asset.repository.asset_repository import AssetRepository
 from app.module.asset.services.dividend_service import DividendService
@@ -106,7 +106,7 @@ class TestDividendService:
     ):
         # Given
         dividend_service: DividendService = get_dividend_service()
-        asset = Asset(asset_stock=AssetStock(purchase_date=date(2024, 8, 13), stock=Stock(code="AAPL"), quantity=10))
+        asset = Asset(asset_stock=AssetStock(purchase_date=date(2024, 8, 13), stock=Stock(code="AAPL"), quantity=10, trade=TradeType.BUY))
 
         won_exchange_rate = 1300.0
 

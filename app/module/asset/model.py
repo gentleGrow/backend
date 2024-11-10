@@ -44,10 +44,10 @@ class AssetStock(TimestampMixin, MySQLBase):
     account_type = Column(String(255), nullable=True, info={"description": "계좌 종류"})
     investment_bank = Column(String(255), nullable=True, info={"description": "증권사"})
     purchase_currency_type = Column(String(255), nullable=True, info={"description": "구매 통화"})
-    purchase_date = Column(Date, nullable=False, info={"description": "구매일자"})
-    purchase_price = Column(Float, nullable=True, info={"description": "매입가"})
+    purchase_date = Column(Date, nullable=False, info={"description": "매매일자"})
+    purchase_price = Column(Float, nullable=True, info={"description": "거래가"})
     quantity = Column(Integer, nullable=False, info={"description": "구매수량"})
-    trade = Column(String(255), nullable=True, info={"description": "매매, Buy/Sell"}, default="BUY")
+    trade = Column(String(255), nullable=False, info={"description": "매매, 매수/매도"}, default="BUY")
 
     stock_id = Column(BigInteger, ForeignKey("stock.id"), primary_key=True)
     asset_id = Column(BigInteger, ForeignKey("asset.id", ondelete="CASCADE"), primary_key=True)

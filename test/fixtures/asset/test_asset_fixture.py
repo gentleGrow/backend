@@ -13,6 +13,7 @@ from app.module.asset.enum import (
     MarketIndex,
     PurchaseCurrencyType,
     StockAsset,
+    TradeType
 )
 from app.module.asset.model import (
     Asset,
@@ -240,6 +241,7 @@ async def setup_asset(session: AsyncSession, setup_user, setup_stock):
         purchase_currency_type=PurchaseCurrencyType.USA.value,
         purchase_date=date(2024, 8, 13),
         purchase_price=500.0,
+        trade=TradeType.BUY,
         quantity=1,
         stock_id=1,
     )
@@ -250,6 +252,7 @@ async def setup_asset(session: AsyncSession, setup_user, setup_stock):
         purchase_currency_type=PurchaseCurrencyType.KOREA.value,
         purchase_date=date(2024, 8, 14),
         purchase_price=1000.0,
+        trade=TradeType.BUY,
         quantity=2,
         stock_id=2,
     )
@@ -260,6 +263,7 @@ async def setup_asset(session: AsyncSession, setup_user, setup_stock):
         purchase_currency_type=PurchaseCurrencyType.KOREA.value,
         purchase_date=date(2024, 8, 14),
         purchase_price=None,
+        trade=TradeType.BUY,
         quantity=1,
         stock_id=3,
     )

@@ -39,7 +39,8 @@ class AggregateStockAsset(BaseModel):
     수익률: float
     수익금: float
     배당금: float
-    
+
+
 class StockAssetGroup(BaseModel):
     parent: AggregateStockAsset
     sub: list[StockAssetSchema]
@@ -67,6 +68,7 @@ class AssetStockPostRequest(BaseModel):
         None, description="증권사", example=f"{InvestmentBankType.TOSS} (Optional)"
     )
     purchase_price: float | None = Field(None, description="매입가", example=f"{62000} (Optional)")
+    trade: str = Field(..., description="매매", examples=["매수/매도"])
 
 
 class UpdateAssetFieldRequest(RootModel[list[str]]):
@@ -74,6 +76,7 @@ class UpdateAssetFieldRequest(RootModel[list[str]]):
         json_schema_extra = {
             "example": [
                 "구매일자",
+                "매매",
                 "수량",
                 "계좌종류",
                 "현재가",

@@ -9,7 +9,7 @@ from app.module.asset.enum import (
     PurchaseCurrencyType,
 )
 
-ASSET_PARENT_FIELD = ["수익률", "수익금", "배당금"]
+ASSET_PARENT_FIELD = ["수익률", "매매", "수익금", "배당금"]
 ASSET_AGGREGATE_FIELD = "종목명"
 
 DEFAULT_EXCHANGE_RATE = 1.0
@@ -20,12 +20,13 @@ THREE_MONTH_DAY = 90
 THREE_MONTH = 3
 MONTHS = ["1월", "2월", "3월", "4월", "5월", "6월", "7월", "8월", "9월", "10월", "11월", "12월"]
 
-REQUIRED_ASSET_FIELD = ["종목명", "수량", "구매일자", "매입가"]
+REQUIRED_ASSET_FIELD = ["종목명", "매매", "수량", "매매일자", "거래가"]
 
 ASSET_FIELD = [
     "종목명",
     "수량",
-    "구매일자",
+    "매매일자",
+    "매매",
     "계좌종류",
     "현재가",
     "배당금",
@@ -35,8 +36,8 @@ ASSET_FIELD = [
     "시가",
     "수익률",
     "수익금",
-    "매입금",
-    "매입가",
+    "거래금",
+    "거래가",
     "거래량",
 ]
 

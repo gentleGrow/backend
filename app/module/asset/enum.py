@@ -17,6 +17,7 @@ class StockAsset(StrEnum):
     STOCK_CODE = "주식코드"
     BUY_DATE = "구매일자"
     QUANTITY = "수량"
+    TRADE = "매매"
     ACCOUNT_TYPE = "계좌종류"
     CURRENT_PRICE = "현재가"
     DIVIDEND = "배당금"
@@ -85,8 +86,9 @@ class MarketIndex(StrEnum):
 
 
 class TradeType(StrEnum):
-    BUY = "BUY"
-    SELL = "SELL"
+    BUY = "매수"
+    SELL = "매도"
+
 
 class PurchaseCurrencyType(StrEnum):
     KOREA = "KRW"

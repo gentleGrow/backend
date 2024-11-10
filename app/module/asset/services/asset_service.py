@@ -11,7 +11,13 @@ from app.module.asset.constant import REQUIRED_ASSET_FIELD
 from app.module.asset.enum import ASSETNAME, AmountUnit, PurchaseCurrencyType, StockAsset
 from app.module.asset.model import Asset, Stock, StockDaily
 from app.module.asset.repository.asset_repository import AssetRepository
-from app.module.asset.schema import AggregateStockAsset, AssetStockPutRequest, StockAssetSchema, TodayTempStockDaily, StockAssetGroup
+from app.module.asset.schema import (
+    AggregateStockAsset,
+    AssetStockPutRequest,
+    StockAssetGroup,
+    StockAssetSchema,
+    TodayTempStockDaily,
+)
 from app.module.asset.services.dividend_service import DividendService
 from app.module.asset.services.exchange_rate_service import ExchangeRateService
 from app.module.asset.services.stock_daily_service import StockDailyService
@@ -261,31 +267,27 @@ class AssetService:
     async def _check_required_field(self, asset: Asset) -> bool:
         return bool(asset.asset_stock.purchase_date and asset.asset_stock.quantity and asset.stock.code)
 
-
     def group_stock_assets(
-        self, 
-        stock_asset_elements: list[StockAssetSchema], 
-        aggregate_stock_assets: list[AggregateStockAsset]
+        self, stock_asset_elements: list[StockAssetSchema], aggregate_stock_assets: list[AggregateStockAsset]
     ) -> list[StockAssetGroup]:
         result = []
-        
-        parent_stock_asset_dict = {parent_stock_asset.종목명: parent_stock_asset for parent_stock_asset in aggregate_stock_assets}
+
+        parent_stock_asset_dict = {
+            parent_stock_asset.종목명: parent_stock_asset for parent_stock_asset in aggregate_stock_assets
+        }
 
         stock_elements_by_name = defaultdict(list)
         for stock_asset in stock_asset_elements:
             stock_name = stock_asset.종목명.value
-            stock_elements_by_name[stock_name].append(stock_asset)
+            if isinstance(stock_name, str):
+                stock_elements_by_name[stock_name].append(stock_asset)
 
         for stock_name, sub_stock_assets in stock_elements_by_name.items():
             if stock_name in parent_stock_asset_dict:
-                stock_asset_group = StockAssetGroup(
-                    parent=parent_stock_asset_dict[stock_name],
-                    sub=sub_stock_assets
-                )
+                stock_asset_group = StockAssetGroup(parent=parent_stock_asset_dict[stock_name], sub=sub_stock_assets)
                 result.append(stock_asset_group)
 
         return result
-
 
     def aggregate_stock_assets(self, stock_assets: list[StockAssetSchema]) -> list[AggregateStockAsset]:
         stock_asset_dataframe = pandas.DataFrame(

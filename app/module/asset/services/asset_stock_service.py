@@ -2,7 +2,7 @@ from datetime import date, datetime
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.module.asset.enum import AssetType, CurrencyType, PurchaseCurrencyType
+from app.module.asset.enum import AssetType, CurrencyType, PurchaseCurrencyType, TradeType
 from app.module.asset.model import Asset, AssetStock, StockDaily
 from app.module.asset.repository.asset_repository import AssetRepository
 from app.module.asset.schema import AssetStockPostRequest
@@ -48,7 +48,7 @@ class AssetStockService:
     async def save_asset_stock_by_post(
         self, session: AsyncSession, request_data: AssetStockPostRequest, stock_id: int, user_id: int
     ) -> None:
-        result = []
+        result = []            
 
         new_asset = Asset(
             asset_type=AssetType.STOCK,
@@ -60,6 +60,7 @@ class AssetStockService:
                 purchase_date=request_data.buy_date,
                 purchase_price=request_data.purchase_price,
                 quantity=request_data.quantity,
+                trade=request_data.trade if request_data.trade else TradeType.BUY,
                 stock_id=stock_id,
             ),
         )
