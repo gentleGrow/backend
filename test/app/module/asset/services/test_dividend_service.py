@@ -106,7 +106,11 @@ class TestDividendService:
     ):
         # Given
         dividend_service: DividendService = get_dividend_service()
-        asset = Asset(asset_stock=AssetStock(purchase_date=date(2024, 8, 13), stock=Stock(code="AAPL"), quantity=10, trade=TradeType.BUY))
+        asset = Asset(
+            asset_stock=AssetStock(
+                purchase_date=date(2024, 8, 13), stock=Stock(code="AAPL"), quantity=10, trade=TradeType.BUY
+            )
+        )
 
         won_exchange_rate = 1300.0
 

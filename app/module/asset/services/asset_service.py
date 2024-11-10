@@ -8,7 +8,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.common.util.time import get_now_date
 from app.module.asset.constant import REQUIRED_ASSET_FIELD
-from app.module.asset.enum import ASSETNAME, AmountUnit, PurchaseCurrencyType, StockAsset
+from app.module.asset.enum import ASSETNAME, AmountUnit, PurchaseCurrencyType, StockAsset, StockAsset_v1, TradeType
 from app.module.asset.model import Asset, Stock, StockDaily
 from app.module.asset.repository.asset_repository import AssetRepository
 from app.module.asset.schema import (
@@ -113,6 +113,8 @@ class AssetService:
 
         if stock is not None:
             asset.asset_stock.stock_id = stock.id
+            
+        asset.asset_stock.trade = request_data.trade if request_data.trade else TradeType.BUY
 
         await AssetRepository.save(session, asset)
 
@@ -340,7 +342,7 @@ class AssetService:
             )
             purchase_price = self._get_purchase_price(asset, stock_daily)
 
-            stock_asset_data = self._build_stock_asset(
+            stock_asset_data = self._build_stock_asset_v1(
                 asset, stock_daily, apply_exchange_rate, current_stock_price_map, dividend_map, purchase_price
             )
 
@@ -441,6 +443,51 @@ class AssetService:
                 - purchase_price * apply_exchange_rate
             ) * asset.asset_stock.quantity
 
+    ### 확인 후 수정하겠습니다!!!!!
+    def _build_stock_asset_v1(
+        self,
+        asset: Asset,
+        stock_daily: TodayTempStockDaily,
+        apply_exchange_rate: float,
+        current_stock_price_map: dict,
+        dividend_map: dict,
+        purchase_price: float,
+    ) -> dict:
+        current_price = self._get_current_price(asset, current_stock_price_map, apply_exchange_rate)
+        dividend = self._get_dividend(asset, dividend_map, apply_exchange_rate)
+        profit_rate = self._get_profit_rate(asset, current_stock_price_map, purchase_price, apply_exchange_rate)
+        purchase_amount = self._get_purchase_amount(asset, purchase_price, apply_exchange_rate)
+        profit_amount = self._get_profit_amount(asset, current_stock_price_map, purchase_price, apply_exchange_rate)
+
+        return {
+            StockAsset_v1.ID.value: asset.id,
+            StockAsset_v1.ACCOUNT_TYPE.value: asset.asset_stock.account_type or None,
+            StockAsset_v1.BUY_DATE.value: asset.asset_stock.purchase_date,
+            StockAsset_v1.CURRENT_PRICE.value: current_price,
+            StockAsset_v1.DIVIDEND.value: dividend,
+            StockAsset_v1.HIGHEST_PRICE.value: stock_daily.highest_price * apply_exchange_rate
+            if stock_daily.highest_price
+            else None,
+            StockAsset_v1.INVESTMENT_BANK.value: asset.asset_stock.investment_bank or None,
+            StockAsset_v1.LOWEST_PRICE.value: stock_daily.lowest_price * apply_exchange_rate
+            if stock_daily.lowest_price
+            else None,
+            StockAsset_v1.OPENING_PRICE.value: stock_daily.opening_price * apply_exchange_rate
+            if stock_daily.opening_price
+            else None,
+            StockAsset_v1.PROFIT_RATE.value: profit_rate,
+            StockAsset_v1.PROFIT_AMOUNT.value: profit_amount,
+            StockAsset_v1.PURCHASE_AMOUNT.value: purchase_amount,
+            StockAsset_v1.PURCHASE_PRICE.value: asset.asset_stock.purchase_price or None,
+            StockAsset_v1.PURCHASE_CURRENCY_TYPE.value: asset.asset_stock.purchase_currency_type or None,
+            StockAsset_v1.QUANTITY.value: asset.asset_stock.quantity,
+            StockAsset_v1.STOCK_CODE.value: asset.asset_stock.stock.code,
+            StockAsset_v1.STOCK_NAME.value: asset.asset_stock.stock.name_kr,
+            StockAsset_v1.STOCK_VOLUME.value: stock_daily.trade_volume if stock_daily.trade_volume else None,
+        }
+
+    #######################
+
     def _build_stock_asset(
         self,
         asset: Asset,
@@ -459,7 +506,7 @@ class AssetService:
         return {
             StockAsset.ID.value: asset.id,
             StockAsset.ACCOUNT_TYPE.value: asset.asset_stock.account_type or None,
-            StockAsset.BUY_DATE.value: asset.asset_stock.purchase_date,
+            StockAsset.PURCHASE_DATE.value: asset.asset_stock.purchase_date,
             StockAsset.CURRENT_PRICE.value: current_price,
             StockAsset.DIVIDEND.value: dividend,
             StockAsset.HIGHEST_PRICE.value: stock_daily.highest_price * apply_exchange_rate

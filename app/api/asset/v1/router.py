@@ -10,7 +10,7 @@ from app.module.asset.dependencies.asset_field_dependency import get_asset_field
 from app.module.asset.dependencies.asset_stock_dependency import get_asset_stock_service
 from app.module.asset.dependencies.dividend_dependency import get_dividend_service
 from app.module.asset.dependencies.stock_dependency import get_stock_service
-from app.module.asset.enum import AccountType, AssetType, InvestmentBankType, StockAsset
+from app.module.asset.enum import AccountType, AssetType, InvestmentBankType, StockAsset_v1
 from app.module.asset.model import Asset, AssetField, Stock
 from app.module.asset.redis_repository import RedisExchangeRateRepository
 from app.module.asset.repository.asset_field_repository import AssetFieldRepository
@@ -20,8 +20,8 @@ from app.module.asset.schema import (
     AssetFieldResponse,
     AssetPostResponse,
     AssetPutResponse,
-    AssetStockPostRequest,
-    AssetStockPutRequest,
+    AssetStockPostRequest_v1,
+    AssetStockPutRequest_v1,
     AssetStockResponse_v1,
     BankAccountResponse,
     StockListResponse,
@@ -56,8 +56,6 @@ async def update_asset_field(
     session: AsyncSession = Depends(get_mysql_session_router),
     token: AccessToken = Depends(verify_jwt_token),
 ) -> PutResponse:
-    UpdateAssetFieldRequest.validate_request_data(request_data)
-
     asset_field = await AssetFieldRepository.get(session, token.get("user"))
     await AssetFieldRepository.update(
         session, AssetField(id=asset_field.id, user_id=token.get("user"), field_preference=request_data.root)
@@ -157,7 +155,7 @@ async def get_asset_stock(
 
 @asset_stock_router.post("/assetstock", summary="자산관리 정보를 등록합니다.", response_model=AssetPostResponse)
 async def create_asset_stock(
-    request_data: AssetStockPostRequest,
+    request_data: AssetStockPostRequest_v1,
     token: AccessToken = Depends(verify_jwt_token),
     session: AsyncSession = Depends(get_mysql_session_router),
     stock_service: StockService = Depends(get_stock_service),
@@ -168,7 +166,7 @@ async def create_asset_stock(
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail=f"{request_data.stock_code}를 찾지 못 했습니다.",
-            field=StockAsset.STOCK_CODE,
+            field=StockAsset_v1.STOCK_CODE,
         )
 
     stock_exist = await stock_service.check_stock_exist(session, request_data.stock_code, request_data.buy_date)
@@ -176,7 +174,7 @@ async def create_asset_stock(
         return AssetPostResponse(
             status_code=status.HTTP_404_NOT_FOUND,
             content=f"{request_data.stock_code} 코드의 {request_data.buy_date} 날짜가 존재하지 않습니다.",
-            field=StockAsset.BUY_DATE,
+            field=StockAsset_v1.BUY_DATE,
         )
 
     await asset_stock_service.save_asset_stock_by_post(session, request_data, stock.id, token.get("user"))
@@ -185,7 +183,7 @@ async def create_asset_stock(
 
 @asset_stock_router.patch("/assetstock", summary="주식 자산을 수정합니다.", response_model=AssetPutResponse)
 async def update_asset_stock(
-    request_data: AssetStockPutRequest,
+    request_data: AssetStockPutRequest_v1,
     token: AccessToken = Depends(verify_jwt_token),
     session: AsyncSession = Depends(get_mysql_session_router),
     stock_service: StockService = Depends(get_stock_service),
@@ -201,7 +199,7 @@ async def update_asset_stock(
             return AssetPutResponse(
                 status_code=status.HTTP_404_NOT_FOUND,
                 content=f"{request_data.stock_code} 코드의 {request_data.buy_date} 날짜가 존재하지 않습니다.",
-                field=StockAsset.BUY_DATE,
+                field=StockAsset_v1.BUY_DATE,
             )
 
     stock = await StockRepository.get_by_code(session, request_data.stock_code)

@@ -1,9 +1,8 @@
 import pytest
-from fastapi import HTTPException
 from redis.asyncio import Redis
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.module.asset.constant import REQUIRED_ASSET_FIELD, CurrencyType
+from app.module.asset.constant import CurrencyType
 from app.module.asset.dependencies.asset_dependency import get_asset_service
 from app.module.asset.dependencies.asset_field_dependency import get_asset_field_service
 from app.module.asset.dependencies.dividend_dependency import get_dividend_service
@@ -11,62 +10,8 @@ from app.module.asset.enum import AssetType
 from app.module.asset.model import Asset
 from app.module.asset.redis_repository import RedisExchangeRateRepository
 from app.module.asset.repository.asset_repository import AssetRepository
-from app.module.asset.schema import (
-    AggregateStockAsset,
-    AssetStockResponse,
-    StockAssetGroup,
-    StockAssetSchema,
-    UpdateAssetFieldRequest,
-)
+from app.module.asset.schema import AggregateStockAsset, AssetStockResponse, StockAssetGroup, StockAssetSchema
 from app.module.auth.constant import DUMMY_USER_ID
-
-
-class TestUpdateAssetFieldRequest:
-    def test_validate_request_data_missing_required_fields(self):
-        # Given
-        request_data = UpdateAssetFieldRequest(root=["종목명", "수량"])
-
-        # When
-        try:
-            UpdateAssetFieldRequest.validate_request_data(request_data)
-            validation_passed = True
-        except HTTPException as e:
-            validation_passed = False
-            error_detail = e.detail
-
-        # Then
-        assert validation_passed is False
-        assert "필수 필드가 누락되었습니다" in error_detail
-
-    def test_validate_request_data_success(self, setup_all):
-        # Given
-        valid_request_data = UpdateAssetFieldRequest(root=REQUIRED_ASSET_FIELD)
-
-        # When
-        try:
-            UpdateAssetFieldRequest.validate_request_data(valid_request_data)
-            validation_passed = True
-        except HTTPException:
-            validation_passed = False
-
-        # Then
-        assert validation_passed is True
-
-    def test_validate_request_data_fail(self):
-        # Given
-        invalid_request_data = UpdateAssetFieldRequest(root=["invalid_field", "수량"])
-
-        # When
-        try:
-            UpdateAssetFieldRequest.validate_request_data(invalid_request_data)
-            validation_passed = True
-        except HTTPException as e:
-            validation_passed = False
-            error_detail = e.detail
-
-        # Then
-        assert validation_passed is False
-        assert "'invalid_field'은 올바른 필드가 아닙니다." in error_detail
 
 
 class TestAssetStockResponse:

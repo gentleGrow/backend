@@ -8,7 +8,7 @@ from app.module.asset.dependencies.asset_stock_dependency import get_asset_stock
 from app.module.asset.dependencies.exchange_rate_dependency import get_exchange_rate_service
 from app.module.asset.dependencies.stock_daily_dependency import get_stock_daily_service
 from app.module.asset.dependencies.stock_dependency import get_stock_service
-from app.module.asset.enum import AccountType, AssetType, InvestmentBankType, PurchaseCurrencyType
+from app.module.asset.enum import AccountType, AssetType, InvestmentBankType, PurchaseCurrencyType, TradeType
 from app.module.asset.model import Asset
 from app.module.asset.repository.asset_repository import AssetRepository
 from app.module.asset.schema import AssetStockPostRequest
@@ -90,6 +90,7 @@ class TestAssetStockService:
             account_type=AccountType.ISA,
             investment_bank=InvestmentBankType.KB,
             purchase_price=500.0,
+            trade=TradeType.BUY,
         )
 
         # When

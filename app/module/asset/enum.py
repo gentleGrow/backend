@@ -11,7 +11,8 @@ class AmountUnit(StrEnum):
     MILLION_WON = "만원"
 
 
-class StockAsset(StrEnum):
+# 확인 후 수정하겠습니다.
+class StockAsset_v1(StrEnum):
     ID = "id"
     PURCHASE_CURRENCY_TYPE = "주식통화"
     STOCK_CODE = "주식코드"
@@ -29,6 +30,29 @@ class StockAsset(StrEnum):
     PROFIT_AMOUNT = "수익금"
     PURCHASE_AMOUNT = "매입금"
     PURCHASE_PRICE = "매입가"
+    STOCK_NAME = "종목명"
+    STOCK_VOLUME = "거래량"
+#################################################################
+
+
+class StockAsset(StrEnum):
+    ID = "id"
+    PURCHASE_CURRENCY_TYPE = "주식통화"
+    STOCK_CODE = "주식코드"
+    PURCHASE_DATE = "매매일자"
+    QUANTITY = "수량"
+    TRADE = "매매"
+    ACCOUNT_TYPE = "계좌종류"
+    CURRENT_PRICE = "현재가"
+    DIVIDEND = "배당금"
+    HIGHEST_PRICE = "고가"
+    INVESTMENT_BANK = "증권사"
+    LOWEST_PRICE = "저가"
+    OPENING_PRICE = "시가"
+    PROFIT_RATE = "수익률"
+    PROFIT_AMOUNT = "수익금"
+    PURCHASE_AMOUNT = "거래금"
+    PURCHASE_PRICE = "거래가"
     STOCK_NAME = "종목명"
     STOCK_VOLUME = "거래량"
 

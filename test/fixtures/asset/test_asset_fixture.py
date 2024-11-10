@@ -13,7 +13,7 @@ from app.module.asset.enum import (
     MarketIndex,
     PurchaseCurrencyType,
     StockAsset,
-    TradeType
+    TradeType,
 )
 from app.module.asset.model import (
     Asset,

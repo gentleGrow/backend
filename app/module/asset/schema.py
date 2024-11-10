@@ -1,10 +1,8 @@
 from datetime import date
 from typing import Optional
 
-from fastapi import HTTPException, status
 from pydantic import BaseModel, Field, RootModel
 
-from app.module.asset.constant import ASSET_FIELD, REQUIRED_ASSET_FIELD
 from app.module.asset.enum import AccountType, InvestmentBankType, PurchaseCurrencyType
 from app.module.asset.model import Asset
 
@@ -17,7 +15,7 @@ class StockAssetField(BaseModel):
 class StockAssetSchema(BaseModel):
     id: int
     계좌종류: StockAssetField
-    구매일자: StockAssetField
+    매매일자: StockAssetField
     현재가: StockAssetField
     배당금: StockAssetField
     고가: StockAssetField
@@ -26,8 +24,8 @@ class StockAssetSchema(BaseModel):
     시가: StockAssetField
     수익률: StockAssetField
     수익금: StockAssetField
-    매입금: StockAssetField
-    매입가: StockAssetField
+    거래금: StockAssetField
+    거래가: StockAssetField
     수량: StockAssetField
     종목명: StockAssetField
     거래량: StockAssetField
@@ -57,8 +55,8 @@ class AssetPutResponse(BaseModel):
     content: str
     field: str
 
-
-class AssetStockPostRequest(BaseModel):
+# 확인 후 수정하겠습니다.
+class AssetStockPostRequest_v1(BaseModel):
     buy_date: date = Field(..., description="구매일자")
     purchase_currency_type: PurchaseCurrencyType = Field(..., description="매입 통화")
     quantity: int = Field(..., description="수량")
@@ -68,6 +66,20 @@ class AssetStockPostRequest(BaseModel):
         None, description="증권사", example=f"{InvestmentBankType.TOSS} (Optional)"
     )
     purchase_price: float | None = Field(None, description="매입가", example=f"{62000} (Optional)")
+    trade: str = Field(..., description="매매", examples=["매수/매도"])
+####################
+
+
+class AssetStockPostRequest(BaseModel):
+    purchase_date: date = Field(..., description="매매일자")
+    purchase_currency_type: PurchaseCurrencyType = Field(..., description="매입 통화")
+    quantity: int = Field(..., description="수량")
+    stock_code: str = Field(..., description="종목 코드", examples=["AAPL"])
+    account_type: AccountType | None = Field(None, description="계좌 종류", example=f"{AccountType.ISA} (Optional)")
+    investment_bank: InvestmentBankType | None = Field(
+        None, description="증권사", example=f"{InvestmentBankType.TOSS} (Optional)"
+    )
+    trade_price: float | None = Field(None, description="거래가", example=f"{62000} (Optional)")
     trade: str = Field(..., description="매매", examples=["매수/매도"])
 
 
@@ -94,21 +106,8 @@ class UpdateAssetFieldRequest(RootModel[list[str]]):
             ]
         }
 
-    @staticmethod
-    def validate_request_data(request_data: "UpdateAssetFieldRequest"):
-        for field in request_data.root:
-            if field not in ASSET_FIELD:
-                raise HTTPException(
-                    status_code=status.HTTP_400_BAD_REQUEST,
-                    detail=f"'{field}'은 올바른 필드가 아닙니다. 다음의 필드 중 선택해주세요. {ASSET_FIELD}",
-                )
-
-        missing_fields = [field for field in REQUIRED_ASSET_FIELD if field not in request_data.root]
-        if missing_fields:
-            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=f"필수 필드가 누락되었습니다: {missing_fields}")
-
-
-class AssetStockPutRequest(BaseModel):
+# 확인 후 수정하겠습니다.
+class AssetStockPutRequest_v1(BaseModel):
     id: int = Field(..., description="자산 고유 값")
     buy_date: date | None = Field(None, description="구매일자", example="2024-08-12 (Optional)")
     purchase_currency_type: PurchaseCurrencyType | None = Field(None, description="매입 통화", example="KRW/USD (Optional)")
@@ -117,6 +116,19 @@ class AssetStockPutRequest(BaseModel):
     account_type: AccountType | None = Field(None, description="계좌 종류", example=f"{AccountType.ISA} (Optional)")
     investment_bank: str | None = Field(None, description="증권사", example=f"{InvestmentBankType.TOSS} (Optional)")
     purchase_price: float | None = Field(None, description="매입가", example=f"{62000} (Optional)")
+################3
+
+
+class AssetStockPutRequest(BaseModel):
+    id: int = Field(..., description="자산 고유 값")
+    purchase_date: date | None = Field(None, description="매매일자", example="2024-08-12 (Optional)")
+    purchase_currency_type: PurchaseCurrencyType | None = Field(None, description="매입 통화", example="KRW/USD (Optional)")
+    quantity: int | None = Field(None, description="수량", example="1 (Optional)")
+    stock_code: str | None = Field(None, description="종목 코드", example="AAPL (Optional)")
+    account_type: AccountType | None = Field(None, description="계좌 종류", example=f"{AccountType.ISA} (Optional)")
+    investment_bank: str | None = Field(None, description="증권사", example=f"{InvestmentBankType.TOSS} (Optional)")
+    trade_price: float | None = Field(None, description="거래가", example=f"{62000} (Optional)")
+    trade: str = Field(..., description="매매", examples=["매수/매도"])
 
 
 class AssetFieldResponse(RootModel[list[str]]):

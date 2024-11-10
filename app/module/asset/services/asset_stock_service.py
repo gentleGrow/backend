@@ -48,7 +48,7 @@ class AssetStockService:
     async def save_asset_stock_by_post(
         self, session: AsyncSession, request_data: AssetStockPostRequest, stock_id: int, user_id: int
     ) -> None:
-        result = []            
+        result = []
 
         new_asset = Asset(
             asset_type=AssetType.STOCK,
