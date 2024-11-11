@@ -8,7 +8,7 @@ from app.module.asset.schema import MarketIndexData
 from app.module.asset.services.realtime_index_service import RealtimeIndexService
 
 
-class TestIndexService:
+class TestRealtimeIndexService:
     async def test_get_current_market_index_value(self, redis_client: Redis, setup_all):
         # Given
         realtime_index_service: RealtimeIndexService = get_realtime_index_service()

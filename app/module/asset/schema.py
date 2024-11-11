@@ -120,6 +120,7 @@ class AssetStockPutRequest_v1(BaseModel):
     account_type: AccountType | None = Field(None, description="계좌 종류", example=f"{AccountType.ISA} (Optional)")
     investment_bank: str | None = Field(None, description="증권사", example=f"{InvestmentBankType.TOSS} (Optional)")
     purchase_price: float | None = Field(None, description="매입가", example=f"{62000} (Optional)")
+    trade: str | None
 
 
 ################
