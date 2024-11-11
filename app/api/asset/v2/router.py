@@ -166,7 +166,6 @@ async def get_asset_stock(
     no_asset_response = AssetStockResponse.validate_assets(assets, asset_fields)
     if no_asset_response:
         return no_asset_response
-    
 
     asset_fields = await asset_field_service.get_asset_field(session, DUMMY_USER_ID)
     stock_asset_elements: list[StockAssetSchema] = await asset_service.get_stock_assets(
