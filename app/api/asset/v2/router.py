@@ -114,8 +114,10 @@ async def get_sample_asset_stock(
     dividend_service: DividendService = Depends(get_dividend_service),
     asset_field_service: AssetFieldService = Depends(get_asset_field_service),
 ) -> AssetStockResponse:
-    assets: list[Asset] = await AssetRepository.get_eager(session, DUMMY_USER_ID, AssetType.STOCK)
+    original_assets: list[Asset] = await AssetRepository.get_eager(session, DUMMY_USER_ID, AssetType.STOCK)
     asset_fields: list[str] = await asset_field_service.get_asset_field(session, DUMMY_USER_ID)
+
+    assets = asset_service.filter_undone_asset(original_assets)
 
     no_asset_response = AssetStockResponse.validate_assets(assets, asset_fields)
     if no_asset_response:
@@ -156,12 +158,15 @@ async def get_asset_stock(
     dividend_service: DividendService = Depends(get_dividend_service),
     asset_field_service: AssetFieldService = Depends(get_asset_field_service),
 ) -> AssetStockResponse:
-    assets: list[Asset] = await AssetRepository.get_eager(session, token.get("user"), AssetType.STOCK)
+    original_assets: list[Asset] = await AssetRepository.get_eager(session, token.get("user"), AssetType.STOCK)
     asset_fields: list[str] = await asset_field_service.get_asset_field(session, DUMMY_USER_ID)
+
+    assets = asset_service.filter_undone_asset(original_assets)
 
     no_asset_response = AssetStockResponse.validate_assets(assets, asset_fields)
     if no_asset_response:
         return no_asset_response
+    
 
     asset_fields = await asset_field_service.get_asset_field(session, DUMMY_USER_ID)
     stock_asset_elements: list[StockAssetSchema] = await asset_service.get_stock_assets(

@@ -38,6 +38,19 @@ class AssetService:
         self.stock_service = stock_service
         self.dividend_service = dividend_service
 
+    def filter_undone_asset(self, assets: list[Asset]) -> list[Asset]:
+        return [
+            asset
+            for asset in assets
+            if all([
+                asset.asset_stock.trade_date,
+                asset.asset_stock.quantity,
+                asset.asset_stock.trade,
+                asset.asset_stock.stock,
+                asset.asset_stock.stock.code
+            ])
+        ]
+
     def asset_list_from_days(self, assets: list[Asset], days: int) -> dict:
         assets_by_date = defaultdict(list)
 
