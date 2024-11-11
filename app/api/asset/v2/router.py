@@ -86,13 +86,14 @@ async def create_asset_stock(
             field=StockAsset.STOCK_CODE,
         )
 
-    stock_exist = await stock_service.check_stock_exist(session, request_data.stock_code, request_data.trade_date)
-    if stock_exist is False:
-        return AssetPostResponse(
-            status_code=status.HTTP_404_NOT_FOUND,
-            content=f"{request_data.stock_code} 코드의 {request_data.trade_date} 날짜가 존재하지 않습니다.",
-            field=StockAsset.TRADE_DATE,
-        )
+    if request_data.stock_code and request_data.trade_date:
+        stock_exist = await stock_service.check_stock_exist(session, request_data.stock_code, request_data.trade_date)
+        if stock_exist is False:
+            return AssetPostResponse(
+                status_code=status.HTTP_404_NOT_FOUND,
+                content=f"{request_data.stock_code} 코드의 {request_data.trade_date} 날짜가 존재하지 않습니다.",
+                field=StockAsset.TRADE_DATE,
+            )
 
     if request_data.trade not in TradeType:
         return AssetPostResponse(
