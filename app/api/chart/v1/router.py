@@ -652,9 +652,11 @@ async def get_sample_my_stock(
             [MyStockResponseValue(name="", current_price=0.0, profit_rate=0.0, profit_amount=0.0, quantity=0)]
         )
 
-    stock_assets: list[StockAssetSchema] = await asset_service.get_stock_assets(
+    # 확인 후 수정하겠습니다.
+    stock_assets: list[dict] = await asset_service.get_stock_assets_v1(
         session, redis_client, assets, ASSET_FIELD
     )
+    ############
 
     return MyStockResponse(
         [
@@ -682,10 +684,12 @@ async def get_my_stock(
         return MyStockResponse(
             [MyStockResponseValue(name="", current_price=0.0, profit_rate=0.0, profit_amount=0.0, quantity=0)]
         )
-
-    stock_assets: list[StockAssetSchema] = await asset_service.get_stock_assets(
+        
+    # 확인 후 수정하겠습니다.
+    stock_assets: list[dict] = await asset_service.get_stock_assets_v1(
         session, redis_client, assets, ASSET_FIELD
     )
+    ############
 
     return MyStockResponse(
         [
