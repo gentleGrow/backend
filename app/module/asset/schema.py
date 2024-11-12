@@ -74,16 +74,16 @@ class AssetStockPostRequest_v1(BaseModel):
 
 
 class AssetStockPostRequest(BaseModel):
-    trade_date: date = Field(..., description="매매일자")
-    purchase_currency_type: PurchaseCurrencyType = Field(..., description="매입 통화")
-    quantity: int = Field(..., description="수량")
-    stock_code: str = Field(..., description="종목 코드", examples=["AAPL"])
+    trade_date: date | None = Field(None, description="매매일자")
+    purchase_currency_type: PurchaseCurrencyType | None = Field(None, description="매입 통화")
+    quantity: int | None = Field(None, description="수량")
+    stock_code: str | None = Field(..., description="종목 코드", examples=["AAPL"])
     account_type: AccountType | None = Field(None, description="계좌 종류", example=f"{AccountType.ISA} (Optional)")
     investment_bank: InvestmentBankType | None = Field(
         None, description="증권사", example=f"{InvestmentBankType.TOSS} (Optional)"
     )
     trade_price: float | None = Field(None, description="거래가", example=f"{62000} (Optional)")
-    trade: str = Field(..., description="매매", examples=["매수/매도"])
+    trade: str | None = Field(..., description="매매", examples=["매수/매도"])
 
 
 class UpdateAssetFieldRequest(RootModel[list[str]]):

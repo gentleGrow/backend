@@ -33,6 +33,7 @@ from app.module.auth.constant import DUMMY_USER_ID
 from app.module.auth.schema import AccessToken
 from database.dependency import get_mysql_session_router, get_redis_pool
 
+
 asset_stock_router_v2 = APIRouter(prefix="/v2")
 
 
@@ -103,7 +104,7 @@ async def create_asset_stock(
         )
 
     await asset_stock_service.save_asset_stock_by_post(session, request_data, stock.id, token.get("user"))
-    return AssetPostResponse(status_code=status.HTTP_201_CREATED, content="주식 자산 성공적으로 등록 했습니다.", field="")
+    return AssetPostResponse(status_code=status.HTTP_201_CREATED, content="주식을 성공적으로 등록 했습니다.", field="")
 
 
 @asset_stock_router_v2.get("/sample/assetstock", summary="임시 자산 정보를 반환합니다.", response_model=AssetStockResponse)

@@ -1,7 +1,7 @@
 from collections import defaultdict
 from datetime import date, datetime, timedelta
 from typing import Any
-
+from icecream import ic
 import pandas
 from redis.asyncio import Redis
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -140,13 +140,13 @@ class AssetService:
     async def save_asset_by_put(
         self, session: AsyncSession, request_data: AssetStockPutRequest, asset: Asset, stock: Stock | None
     ):
-        if request_data.account_type is not None:
+        if request_data.account_type:
             asset.asset_stock.account_type = request_data.account_type
 
-        if request_data.investment_bank is not None:
+        if request_data.investment_bank:
             asset.asset_stock.investment_bank = request_data.investment_bank
 
-        if request_data.purchase_currency_type is not None:
+        if request_data.purchase_currency_type:
             asset.asset_stock.purchase_currency_type = request_data.purchase_currency_type
 
         if request_data.trade_date is not None:
@@ -158,7 +158,7 @@ class AssetService:
         if request_data.quantity is not None:
             asset.asset_stock.quantity = request_data.quantity
 
-        if stock is not None:
+        if stock:
             asset.asset_stock.stock_id = stock.id
 
         asset.asset_stock.trade = request_data.trade if request_data.trade else TradeType.BUY
