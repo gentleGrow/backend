@@ -29,7 +29,7 @@ class WorldRealtimeStockCollector:
         self.redis_client = None
         self.session = None
         self._is_running = False
-        self.driver = None
+        self.driver: webdriver.Chrome = None
         self.display = None
 
     async def collect(self):

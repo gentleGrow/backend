@@ -6,8 +6,10 @@ from more_itertools import chunked
 from app.data.common.service import StockCodeFileReader
 from app.data.naver.realtime_stock.korea_realtime_stock_collector import KoreaRealtimeStockCollector
 from app.data.naver.realtime_stock.realtime_stock_monitor import RealtimeStockMonitor
-from app.data.naver.realtime_stock.world_realtime_stock_collector import WorldRealtimeStockCollector
-from app.data.naver.sources.constant import REALTIME_STOCK_LIST, WORLD_REALTIME_STOCK_LIST
+
+# from app.data.naver.realtime_stock.world_realtime_stock_collector import WorldRealtimeStockCollector
+# from app.data.naver.sources.constant import REALTIME_STOCK_LIST, WORLD_REALTIME_STOCK_LIST
+from app.data.naver.sources.constant import REALTIME_STOCK_LIST
 
 
 async def execute_async_task():
@@ -32,10 +34,9 @@ async def execute_async_task():
     # ]
 
     actor_pool = [
-            KoreaRealtimeStockCollector.remote(stock_code_list_chunk)
-            for stock_code_list_chunk in korea_stock_code_list_chunks
-        ]
-
+        KoreaRealtimeStockCollector.remote(stock_code_list_chunk)
+        for stock_code_list_chunk in korea_stock_code_list_chunks
+    ]
 
     for collector in actor_pool:
         monitor.register_collector.remote(collector)
