@@ -1,7 +1,8 @@
 import asyncio
+import re
+
 import ray
 import requests
-import re
 from bs4 import BeautifulSoup
 
 from app.common.util.time import get_now_datetime
@@ -12,7 +13,6 @@ from app.module.asset.repository.stock_minutely_repository import StockMinutelyR
 from app.module.asset.schema import StockInfo
 from database.dependency import get_mysql_session, get_redis_pool
 
-from icecream import ic
 
 @ray.remote
 class KoreaRealtimeStockCollector:
@@ -46,9 +46,7 @@ class KoreaRealtimeStockCollector:
 
             for stockinfo in self.stock_code_list:
                 try:
-                    fetch_tasks.append(
-                        event_loop.run_in_executor(None, self._fetch_stock_price, stockinfo.code)
-                    )
+                    fetch_tasks.append(event_loop.run_in_executor(None, self._fetch_stock_price, stockinfo.code))
                 except Exception:
                     continue
 
@@ -80,15 +78,14 @@ class KoreaRealtimeStockCollector:
             url = f"https://finance.naver.com/item/main.naver?code={code}"
             response = requests.get(url)
             response.raise_for_status()
-            
+
             soup = BeautifulSoup(response.content, "html.parser")
             current_price = self._parse_content(soup)
             return code, current_price
         except Exception:
             return code, 0.0
 
-
-    def _parse_content(self, soup:BeautifulSoup) -> int:
+    def _parse_content(self, soup: BeautifulSoup) -> int:
         try:
             middle_content = soup.find(id="middle")
             content_area = middle_content.find(id="content")
@@ -96,7 +93,7 @@ class KoreaRealtimeStockCollector:
             rate_info = chart_area.find(class_="rate_info")
             today_info = rate_info.find(class_="today")
             no_today = today_info.find("p", class_="no_today")
-            
+
             em_price = no_today.find("em", class_=["no_up", "no_down"])
             blind_span = em_price.find("span", class_="blind")
             filtered_text = re.sub(r"\D", "", blind_span.get_text())

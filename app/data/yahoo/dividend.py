@@ -3,7 +3,6 @@ import asyncio
 import pandas as pd
 import yfinance
 from celery import shared_task
-from icecream import ic
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.data.common.service import StockCodeFileReader
