@@ -42,12 +42,12 @@ class RealtimeIndexKoreaCollector:
 
     async def _fetch_market_data(self):
         url = "https://finance.naver.com/"
-        now = get_now_datetime()
         response = requests.get(url)
         response.raise_for_status()
 
         soup = BeautifulSoup(response.content, "html.parser")
 
+        now = get_now_datetime()
         kospi_data = self._parse_kospi(soup, now)
         kosdaq_data = self._parse_kosdaq(soup, now)
         return kospi_data, kosdaq_data

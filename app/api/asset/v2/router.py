@@ -33,7 +33,6 @@ from app.module.auth.constant import DUMMY_USER_ID
 from app.module.auth.schema import AccessToken
 from database.dependency import get_mysql_session_router, get_redis_pool
 
-
 asset_stock_router_v2 = APIRouter(prefix="/v2")
 
 

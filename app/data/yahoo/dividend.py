@@ -40,14 +40,12 @@ async def insert_dividend_data(session: AsyncSession, stock_list: list[StockInfo
                         dividend = Dividend(
                             dividend=dividend_amount, stock_code=stock.code, date=pd.to_datetime(dividend_date).date()
                         )
-                    except Exception as e:
-                        ic(f"Error processing dividend for stock {stock.code} on {dividend_date}: {e}")
+                    except Exception:
                         continue
 
                     dividend_list.append(dividend)
 
-            except Exception as e:
-                ic(f"[분석][insert_dividend_data] Error during dividend processing for {stock.code}: {e}")
+            except Exception:
                 continue
 
         await DividendRepository.bulk_upsert(session=session, dividends=dividend_list)
