@@ -1,4 +1,5 @@
 import asyncio
+
 import ray
 import yfinance
 from aiolimiter import AsyncLimiter
@@ -57,9 +58,7 @@ class RealtimeStockCollector:
                         stockinfo.market_index.upper(),
                     )
                     # 비동기 작업 생성 시 rate limiter 적용
-                    fetch_tasks.append(
-                        self._fetch_stock_price_with_limit(stock_code, stockinfo.code)
-                    )
+                    fetch_tasks.append(self._fetch_stock_price_with_limit(stock_code, stockinfo.code))
                 except Exception:
                     continue
 

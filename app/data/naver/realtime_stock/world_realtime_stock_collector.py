@@ -1,7 +1,7 @@
 import asyncio
-from icecream import ic
+
 import ray
-from pyvirtualdisplay import Display
+from icecream import ic
 from selenium import webdriver
 from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.chrome.service import Service
@@ -30,16 +30,12 @@ class WorldRealtimeStockCollector:
         self.session = None
         self._is_running = False
         self.driver: webdriver.Chrome = None
-        # self.display = None
 
     async def collect(self):
         while True:
             await self._collect_data()
 
     async def _init_webdriver(self):
-        # self.display = Display(visible=0, size=(800, 600))
-        # self.display.start()
-
         chrome_options = Options()
         chrome_options.add_argument("--no-sandbox")
         chrome_options.add_argument("--headless")
@@ -57,7 +53,7 @@ class WorldRealtimeStockCollector:
             await self._setup()
 
         if self.driver is None:
-        # if self.driver is None or self.display is None:
+            # if self.driver is None or self.display is None:
             await self._init_webdriver()
 
         self._is_running = True
@@ -138,5 +134,3 @@ class WorldRealtimeStockCollector:
             return float(closest_value)
         except Exception:
             return 0.0
-
-

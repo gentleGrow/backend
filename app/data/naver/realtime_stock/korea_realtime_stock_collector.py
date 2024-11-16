@@ -119,7 +119,7 @@ class KoreaRealtimeStockCollector:
             if blind_span is None:
                 return 0
 
-            filtered_text = re.sub(r"\D", "", blind_span.get_text())            
+            filtered_text = re.sub(r"\D", "", blind_span.get_text())
             return int(filtered_text)
         except Exception:
             return 0

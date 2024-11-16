@@ -1,4 +1,5 @@
 import asyncio
+
 import ray
 import yfinance
 from aiolimiter import AsyncLimiter
@@ -51,9 +52,7 @@ class RealtimeStockCollector:
                         country,
                         stockinfo.market_index.upper(),
                     )
-                    fetch_tasks.append(
-                        self._fetch_stock_price_with_limit(stock_code, stockinfo.code)
-                    )
+                    fetch_tasks.append(self._fetch_stock_price_with_limit(stock_code, stockinfo.code))
                 except Exception:
                     continue
 

@@ -1,14 +1,11 @@
 import asyncio
-import ray
 
+import ray
 from more_itertools import chunked
 
 from app.data.common.service import StockCodeFileReader
 from app.data.naver.realtime_stock.korea_realtime_stock_collector import KoreaRealtimeStockCollector
 from app.data.naver.realtime_stock.realtime_stock_monitor import RealtimeStockMonitor
-
-from app.data.naver.realtime_stock.world_realtime_stock_collector import WorldRealtimeStockCollector
-from app.data.naver.sources.constant import REALTIME_STOCK_LIST, WORLD_REALTIME_STOCK_LIST
 from app.data.naver.sources.constant import REALTIME_STOCK_LIST
 
 

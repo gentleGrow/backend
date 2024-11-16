@@ -1,7 +1,8 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from redis.asyncio import Redis
 from sqlalchemy.ext.asyncio import AsyncSession
-
+from app.module.auth.services.user_service import UserService
+from app.module.auth.dependencies.user_dependency import get_user_service
 from app.common.auth.security import verify_jwt_token
 from app.common.schema.common_schema import DeleteResponse, PostResponse
 from app.module.auth.constant import REDIS_JWT_REFRESH_EXPIRE_TIME_SECOND, SESSION_SPECIAL_KEY
@@ -17,27 +18,32 @@ from app.module.auth.schema import (
     NicknameRequest,
     NicknameResponse,
     TokenRefreshRequest,
+    UserDeleteRequest,
     TokenRequest,
     TokenResponse,
     UserInfoResponse,
 )
-from app.module.auth.service import Google, Kakao, Naver
+from app.module.auth.services.oauth_service import Google, Kakao, Naver
 from database.dependency import get_mysql_session_router, get_redis_pool
 
 auth_router = APIRouter(prefix="/v1")
 
 
-@auth_router.delete("/user", summary="회원 탈퇴합니다.", response_model="")
+
+@auth_router.post("/user/delete", summary="회원 탈퇴합니다.", response_model="")
 async def delete_user(
+    request:UserDeleteRequest,
+    user_service: UserService = Depends(get_user_service),
     token: AccessToken = Depends(verify_jwt_token),
     session: AsyncSession = Depends(get_mysql_session_router),
 ):
     user = await UserRepository.get(session, token.get("user"))
     if user is None:
         return DeleteResponse(status_code=status.HTTP_404_NOT_FOUND, content="유저 정보가 없습니다.")
-    else:
-        await UserRepository.delete(session, user.id)
-        return DeleteResponse(status_code=status.HTTP_200_OK, content="성공적으로 삭제하였습니다.")
+    
+    await user_service.save_user_quit_reason(request.reason)
+    await UserRepository.delete(session, user.id)
+    return DeleteResponse(status_code=status.HTTP_200_OK, content="성공적으로 삭제하였습니다.")
 
 
 @auth_router.get("/user", summary="유저 정보를 확인합니다.", response_model=UserInfoResponse)
