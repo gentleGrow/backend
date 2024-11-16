@@ -1,5 +1,5 @@
 import asyncio
-
+from icecream import ic
 import ray
 from pyvirtualdisplay import Display
 from selenium import webdriver
@@ -30,15 +30,15 @@ class WorldRealtimeStockCollector:
         self.session = None
         self._is_running = False
         self.driver: webdriver.Chrome = None
-        self.display = None
+        # self.display = None
 
     async def collect(self):
         while True:
             await self._collect_data()
 
     async def _init_webdriver(self):
-        self.display = Display(visible=0, size=(800, 600))
-        self.display.start()
+        # self.display = Display(visible=0, size=(800, 600))
+        # self.display.start()
 
         chrome_options = Options()
         chrome_options.add_argument("--no-sandbox")
@@ -56,7 +56,8 @@ class WorldRealtimeStockCollector:
         if self.redis_client is None or self.session is None:
             await self._setup()
 
-        if self.driver is None or self.display is None:
+        if self.driver is None:
+        # if self.driver is None or self.display is None:
             await self._init_webdriver()
 
         self._is_running = True
@@ -125,6 +126,7 @@ class WorldRealtimeStockCollector:
             table = div_children[0]
             text_items = table.text.splitlines()
             target_value = float(text_items[2].replace(",", ""))
+            ic(target_value)
             float_values = []
             for item in text_items[:15]:
                 value = float(item.replace(",", ""))
@@ -136,3 +138,5 @@ class WorldRealtimeStockCollector:
             return float(closest_value)
         except Exception:
             return 0.0
+
+

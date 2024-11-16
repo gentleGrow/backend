@@ -16,12 +16,17 @@ from database.dependency import get_mysql_session, get_redis_pool
 
 @ray.remote
 class RealtimeStockCollector:
-    def __init__(self, stock_code_list: list[StockInfo], rate_limit: int = 1):
+    def __init__(self, stock_code_list: list[StockInfo], rate_limit: int = 5):
+        """
+        Args:
+            stock_code_list (list[StockInfo]): 대상 주식 코드 리스트
+            rate_limit (int): 초당 최대 요청 수
+        """
         self.stock_code_list = stock_code_list
         self.redis_client = None
         self.session = None
         self._is_running = False
-        self.rate_limiter = AsyncLimiter(rate_limit, time_period=3)
+        self.rate_limiter = AsyncLimiter(rate_limit, time_period=1)  # 초당 최대 요청 수 설정
 
     async def _setup(self):
         self.redis_client = get_redis_pool()
@@ -51,6 +56,7 @@ class RealtimeStockCollector:
                         country,
                         stockinfo.market_index.upper(),
                     )
+                    # 비동기 작업 생성 시 rate limiter 적용
                     fetch_tasks.append(
                         self._fetch_stock_price_with_limit(stock_code, stockinfo.code)
                     )
@@ -80,6 +86,7 @@ class RealtimeStockCollector:
         return self._is_running
 
     async def _fetch_stock_price_with_limit(self, stock_code: str, code: str) -> tuple[str, float]:
+        """Rate Limit을 적용한 비동기 요청"""
         async with self.rate_limiter:
             return await asyncio.to_thread(self._fetch_stock_price, stock_code, code)
 

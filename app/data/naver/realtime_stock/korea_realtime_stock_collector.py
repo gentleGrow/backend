@@ -4,7 +4,7 @@ import re
 import ray
 import requests
 from bs4 import BeautifulSoup
-from icecream import ic
+
 from app.common.util.time import get_now_datetime
 from app.data.common.constant import STOCK_CACHE_SECOND
 from app.module.asset.model import StockMinutely
@@ -83,44 +83,43 @@ class KoreaRealtimeStockCollector:
             current_price = self._parse_content(soup)
             return code, current_price
         except Exception:
-            return code, 0.0
+            return code, 0
 
     def _parse_content(self, soup: BeautifulSoup) -> int:
         try:
             middle_content = soup.find(id="middle")
             if middle_content is None:
-                return 0.0
+                return 0
 
             content_area = middle_content.find(id="content")
             if content_area is None:
-                return 0.0
+                return 0
 
             chart_area = content_area.find(id="chart_area")
             if chart_area is None:
-                return 0.0
+                return 0
 
             rate_info = chart_area.find(class_="rate_info")
             if rate_info is None:
-                return 0.0
+                return 0
 
             today_info = rate_info.find(class_="today")
             if today_info is None:
-                return 0.0
+                return 0
 
             no_today = today_info.find("p", class_="no_today")
             if no_today is None:
-                return 0.0
+                return 0
 
             em_price = no_today.find("em", class_=["no_up", "no_down"])
             if em_price is None:
-                return 0.0
+                return 0
 
             blind_span = em_price.find("span", class_="blind")
             if blind_span is None:
-                return 0.0
+                return 0
 
-            filtered_text = re.sub(r"\D", "", blind_span.get_text())
+            filtered_text = re.sub(r"\D", "", blind_span.get_text())            
             return int(filtered_text)
         except Exception:
-            return 0.0
-
+            return 0

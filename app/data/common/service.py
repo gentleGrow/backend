@@ -111,6 +111,10 @@ class StockCodeFileReader:
         return StockCodeFileReader._read_stock_codes_from_excel(StockCodeFileReader._get_path(KOREA_STOCK_FILEPATH))
 
     @staticmethod
+    def get_usa_stock_code_list() -> list[StockInfo]:
+        return StockCodeFileReader._read_stock_codes_from_excel(StockCodeFileReader._get_path(USA_STOCK_FILEPATH))
+
+    @staticmethod
     def get_world_stock_code_list() -> list[StockInfo]:
         japan_stock_code_list = StockCodeFileReader._read_stock_codes_from_excel(
             StockCodeFileReader._get_path(JAPAN_STOCK_FILEPATH)

@@ -11,7 +11,7 @@ from app.data.yahoo.source.constant import REALTIME_STOCK_LIST
 
 async def execute_async_task():
     monitor = RealtimeStockMonitor.remote()
-    stock_code_list = StockCodeFileReader.get_all_stock_code_list()
+    stock_code_list = StockCodeFileReader.get_usa_stock_code_list()
     stock_code_list_chunks = chunked(stock_code_list, REALTIME_STOCK_LIST)
 
     actor_pool = [
