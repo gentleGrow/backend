@@ -1,11 +1,11 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from redis.asyncio import Redis
 from sqlalchemy.ext.asyncio import AsyncSession
-from app.module.auth.services.user_service import UserService
-from app.module.auth.dependencies.user_dependency import get_user_service
+
 from app.common.auth.security import verify_jwt_token
 from app.common.schema.common_schema import DeleteResponse, PostResponse
 from app.module.auth.constant import REDIS_JWT_REFRESH_EXPIRE_TIME_SECOND, SESSION_SPECIAL_KEY
+from app.module.auth.dependencies.user_dependency import get_user_service
 from app.module.auth.enum import ProviderEnum
 from app.module.auth.jwt import JWTBuilder
 from app.module.auth.model import User
@@ -18,21 +18,22 @@ from app.module.auth.schema import (
     NicknameRequest,
     NicknameResponse,
     TokenRefreshRequest,
-    UserDeleteRequest,
     TokenRequest,
     TokenResponse,
+    UserDeleteRequest,
     UserInfoResponse,
 )
 from app.module.auth.services.oauth_service import Google, Kakao, Naver
+from app.module.auth.services.user_service import UserService
 from database.dependency import get_mysql_session_router, get_redis_pool
+
 
 auth_router = APIRouter(prefix="/v1")
 
 
-
 @auth_router.post("/user/delete", summary="회원 탈퇴합니다.", response_model="")
 async def delete_user(
-    request:UserDeleteRequest,
+    request: UserDeleteRequest,
     user_service: UserService = Depends(get_user_service),
     token: AccessToken = Depends(verify_jwt_token),
     session: AsyncSession = Depends(get_mysql_session_router),
@@ -40,7 +41,7 @@ async def delete_user(
     user = await UserRepository.get(session, token.get("user"))
     if user is None:
         return DeleteResponse(status_code=status.HTTP_404_NOT_FOUND, content="유저 정보가 없습니다.")
-    
+
     await user_service.save_user_quit_reason(request.reason)
     await UserRepository.delete(session, user.id)
     return DeleteResponse(status_code=status.HTTP_200_OK, content="성공적으로 삭제하였습니다.")
@@ -256,3 +257,4 @@ async def refresh_access_token(
     access_token = JWTBuilder.generate_access_token(user_id, social_id)
 
     return AccessTokenResponse(access_token=access_token)
+

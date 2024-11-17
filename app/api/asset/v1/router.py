@@ -4,7 +4,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.common.auth.security import verify_jwt_token
 from app.common.schema.common_schema import DeleteResponse, PutResponse
-from app.module.asset.constant import CurrencyType
+from app.module.asset.constant import CurrencyType, KOREA, USA
 from app.module.asset.dependencies.asset_dependency import get_asset_service
 from app.module.asset.dependencies.asset_field_dependency import get_asset_field_service
 from app.module.asset.dependencies.asset_stock_dependency import get_asset_stock_service
@@ -73,7 +73,7 @@ async def get_bank_account_list() -> BankAccountResponse:
 
 @asset_stock_router.get("/stocks", summary="주시 종목 코드를 반환합니다.", response_model=StockListResponse)
 async def get_stock_list(session: AsyncSession = Depends(get_mysql_session_router)) -> StockListResponse:
-    stock_list: list[Stock] = await StockRepository.get_all(session)
+    stock_list: list[Stock] = await StockRepository.get_countries_stock(session, [KOREA, USA])
 
     return StockListResponse(
         [StockListValue(name_en=stock.name_en, name_kr=stock.name_kr, code=stock.code) for stock in stock_list]

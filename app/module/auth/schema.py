@@ -44,6 +44,7 @@ class NicknameRequest(BaseModel):
 
         return nickname
 
+
 class NaverTokenRequest(BaseModel):
     access_token: str
 

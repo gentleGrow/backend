@@ -9,6 +9,9 @@ from app.module.asset.enum import (
     PurchaseCurrencyType,
 )
 
+KOREA = "Korea"
+USA = "USA"
+
 ASSET_PARENT_FIELD = ["수익률", "매매", "수익금", "배당금"]
 ASSET_AGGREGATE_FIELD = "종목명"
 
