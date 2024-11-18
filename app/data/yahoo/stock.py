@@ -1,18 +1,17 @@
 import asyncio
 
 import yfinance
+from celery import shared_task
 from icecream import ic
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.data.common.service import get_all_stock_code_list
+from app.data.common.service import StockCodeFileReader
 from app.data.yahoo.source.constant import TIME_INTERVAL_MODEL_REPO_MAP, TIME_INTERVAL_REPOSITORY_MAP
 from app.data.yahoo.source.schema import StockDataFrame
 from app.data.yahoo.source.service import format_stock_code, get_last_week_period_bounds
 from app.module.asset.enum import Country, TimeInterval
-from app.module.asset.model import Stock, StockDaily, StockMonthly, StockWeekly  # noqa: F401 > relationship 설정시 필요합니다.
 from app.module.asset.schema import StockInfo
-from app.module.auth.model import User  # noqa: F401 > relationship 설정시 필요합니다.
 from database.dependency import get_mysql_session
 
 
@@ -77,13 +76,18 @@ async def process_stock_data(session: AsyncSession, stock_list: list[StockInfo],
                 continue
 
 
-async def main():
+async def execute_async_task():
     start_period, end_period = get_last_week_period_bounds()
-    stock_list: list[StockInfo] = get_all_stock_code_list()
+    stock_list: list[StockInfo] = StockCodeFileReader.get_all_stock_code_list()
 
     async with get_mysql_session() as session:
         await process_stock_data(session, stock_list, start_period, end_period)
 
 
+@shared_task
+def main():
+    asyncio.run(execute_async_task())
+
+
 if __name__ == "__main__":
-    asyncio.run(main())
+    asyncio.run(execute_async_task())

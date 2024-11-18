@@ -3,6 +3,7 @@ import json
 from datetime import date
 from os import getenv
 
+from celery import shared_task
 from dotenv import load_dotenv
 from icecream import ic
 from redis.asyncio import Redis
@@ -16,17 +17,17 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from webdriver_manager.chrome import ChromeDriverManager
 
 from app.data.investing.sources.enum import RicePeople
-from app.module.asset.enum import AssetType, PurchaseCurrencyType
+from app.module.asset.enum import AssetType, PurchaseCurrencyType, TradeType
 from app.module.asset.model import Asset, AssetStock
 from app.module.asset.repository.asset_repository import AssetRepository
 from app.module.asset.repository.stock_repository import StockRepository
+from app.module.asset.services.stock_service import StockService
 from app.module.auth.enum import ProviderEnum
 from app.module.auth.model import User
 from app.module.auth.repository import UserRepository
 from app.module.chart.constant import TIP_EXPIRE_SECOND
 from app.module.chart.redis_repository import RedisRichPortfolioRepository
 from database.dependency import get_mysql_session, get_redis_pool
-from database.enum import EnvironmentType
 
 load_dotenv()
 ENVIRONMENT = getenv("ENVIRONMENT", None)
@@ -38,11 +39,7 @@ async def fetch_rich_porfolio(redis_client: Redis, session: AsyncSession, person
     chrome_options.add_argument("--no-sandbox")
     chrome_options.add_argument("--disable-dev-shm-usage")
 
-    if ENVIRONMENT == EnvironmentType.DEV:
-        driver = webdriver.Chrome(service=Service(ChromeDriverManager().install()), options=chrome_options)
-    else:
-        driver = webdriver.Chrome(service=Service("/usr/bin/chromedriver"), options=chrome_options)
-
+    driver = webdriver.Chrome(service=Service(ChromeDriverManager().install()), options=chrome_options)
     driver.get(f"https://kr.investing.com/pro/ideas/{person}")
 
     WebDriverWait(driver, 30).until(
@@ -68,13 +65,23 @@ async def fetch_rich_porfolio(redis_client: Redis, session: AsyncSession, person
                     elif index == 3:
                         percentage = a_tag.get_attribute("textContent")
                         percentages[code] = percentage
-            except Exception as err:
-                ic(err)
+            except Exception:
                 continue
 
-    await RedisRichPortfolioRepository.save(redis_client, person, json.dumps(percentages), TIP_EXPIRE_SECOND)
+    stock_service = StockService()
+    stock_name_map = await stock_service.get_stock_name_map_by_codes(session, stock_codes)
+
+    name_percentage = {}
+
+    for code, percentage in percentages.items():
+        stock_name = stock_name_map.get(code)
+        if stock_name:
+            name_percentage[stock_name] = percentages[code]
+
+    await RedisRichPortfolioRepository.save(redis_client, person, json.dumps(name_percentage), TIP_EXPIRE_SECOND)
 
     user = await UserRepository.get_by_name(session, person)
+
     if user is None:
         person_user = User(social_id=f"{person}_id", provider=ProviderEnum.GOOGLE, nickname=person)
         user = await UserRepository.create(session, person_user)
@@ -102,10 +109,11 @@ async def fetch_rich_porfolio(redis_client: Redis, session: AsyncSession, person
         )
 
         AssetStock(
-            purchase_price=None,
-            purchase_date=date(2024, 9, 13),
-            purchase_currency_type=PurchaseCurrencyType.USA,
+            trade_price=None,
+            trade_date=date(2024, 9, 13),
+            purchase_currency_type=PurchaseCurrencyType.USA.value,
             quantity=1,
+            trade=TradeType.BUY,
             investment_bank=None,
             account_type=None,
             asset=asset,
@@ -114,17 +122,22 @@ async def fetch_rich_porfolio(redis_client: Redis, session: AsyncSession, person
         bulk_assets.append(asset)
 
     await AssetRepository.save_assets(session, bulk_assets)
-    print(f"{person}의 assets을 성공적으로 생성 했습니다.")
+    ic(f"{person}의 assets을 성공적으로 생성 했습니다.")
 
     driver.quit()
 
 
-async def main():
+async def execute_async_task():
     redis_client = get_redis_pool()
     async with get_mysql_session() as session:
         for person in RicePeople:
             await fetch_rich_porfolio(redis_client, session, person.value)
 
 
+@shared_task
+def main():
+    asyncio.run(execute_async_task())
+
+
 if __name__ == "__main__":
-    asyncio.run(main())
+    asyncio.run(execute_async_task())

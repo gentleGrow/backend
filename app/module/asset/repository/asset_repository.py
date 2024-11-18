@@ -64,7 +64,7 @@ class AssetRepository:
                     Asset.user_id == user_id,
                     Asset.asset_type == asset_type,
                     Asset.deleted_at.is_(None),
-                    Asset.asset_stock.has(AssetStock.purchase_date.between(start_date, end_date)),
+                    Asset.asset_stock.has(AssetStock.trade_date.between(start_date, end_date)),
                 )
             )
             .options(selectinload(Asset.asset_stock).selectinload(AssetStock.stock))

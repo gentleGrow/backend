@@ -1,4 +1,6 @@
-from sqlalchemy import extract, select
+from datetime import datetime
+
+from sqlalchemy import delete, extract, select
 from sqlalchemy.dialects.mysql import insert
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -6,6 +8,12 @@ from app.module.asset.model import StockMinutely
 
 
 class StockMinutelyRepository:
+    @staticmethod
+    async def remove_by_datetime(session: AsyncSession, remove_time: datetime) -> None:
+        stmt = delete(StockMinutely).where(StockMinutely.datetime < remove_time)
+        await session.execute(stmt)
+        await session.commit()
+
     @staticmethod
     async def get_by_range_interval_minute(
         session: AsyncSession,

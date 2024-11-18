@@ -12,7 +12,7 @@ from app.module.asset.constant import (
     STOCK_CODES,
     STOCK_QUANTITIES,
 )
-from app.module.asset.enum import AssetType
+from app.module.asset.enum import AssetType, TradeType
 from app.module.asset.model import Asset, AssetField, AssetStock
 from app.module.asset.repository.asset_field_repository import AssetFieldRepository
 from app.module.asset.repository.asset_repository import AssetRepository
@@ -80,10 +80,11 @@ async def create_dummy_assets(session: AsyncSession):
         )
 
         AssetStock(
-            purchase_price=None,
-            purchase_date=PURCHASE_DATES[i],
+            trade_price=None,
+            trade_date=PURCHASE_DATES[i],
             purchase_currency_type=PURCHASE_CURRENCY_TYPES[i],
             quantity=STOCK_QUANTITIES[i],
+            trade=TradeType.BUY,
             investment_bank=INVESTMENT_BANKS[i],
             account_type=ACCOUNT_TYPES[i],
             asset=asset,

@@ -1,18 +1,8 @@
 import datetime
 
 from app.common.util.time import end_timestamp, start_timestamp
-from app.module.asset.constant import KOSPI
+from app.module.asset.constant import KOSPI, NYSE
 from app.module.asset.enum import Country, CountryMarketCode
-from app.module.asset.model import (  # noqa: F401 > relationship 설정시 필요합니다.
-    Asset,
-    AssetStock,
-    Dividend,
-    Stock,
-    StockDaily,
-    StockMonthly,
-    StockWeekly,
-)
-from app.module.auth.model import User  # noqa: F401 > relationship 설정시 필요합니다.
 
 
 def get_last_week_period_bounds() -> tuple[int, int]:
@@ -35,6 +25,7 @@ def get_period_bounds(stock_history_timerange: int) -> tuple[int, int]:
 
 
 def format_stock_code(code: str, country: Country, market_index: str) -> str:
+    code = code.replace(".", "-")
     if country == Country.USA:
         return code
     elif country == Country.KOREA:

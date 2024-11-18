@@ -1,25 +1,62 @@
 from enum import StrEnum
 
 
+class ASSETNAME(StrEnum):
+    ESTIMATE_ASSET = "예상자산"
+    REAL_ASSET = "실질자산"
+
+
+class AmountUnit(StrEnum):
+    BILLION_WON = "억원"
+    MILLION_WON = "만원"
+
+
+# 확인 후 수정하겠습니다.
+class StockAsset_v1(StrEnum):
+    ID = "id"
+    PURCHASE_CURRENCY_TYPE = "주식통화"
+    STOCK_CODE = "주식코드"
+    BUY_DATE = "구매일자"
+    QUANTITY = "수량"
+    TRADE = "매매"
+    ACCOUNT_TYPE = "계좌종류"
+    CURRENT_PRICE = "현재가"
+    DIVIDEND = "배당금"
+    HIGHEST_PRICE = "고가"
+    INVESTMENT_BANK = "증권사"
+    LOWEST_PRICE = "저가"
+    OPENING_PRICE = "시가"
+    PROFIT_RATE = "수익률"
+    PROFIT_AMOUNT = "수익금"
+    PURCHASE_AMOUNT = "매입금"
+    PURCHASE_PRICE = "매입가"
+    STOCK_NAME = "종목명"
+    STOCK_VOLUME = "거래량"
+
+
+#################################################################
+
+
 class StockAsset(StrEnum):
     ID = "id"
-    BUY_DATE = "buy_date"
-    PURCHASE_CURRENCY_TYPE = "purchase_currency_type"
-    QUANTITY = "quantity"
-    STOCK_CODE = "stock_code"
-    ACCOUNT_TYPE = "account_type"
-    CURRENT_PRICE = "current_price"
-    DIVIDEND = "dividend"
-    HIGHEST_PRICE = "highest_price"
-    INVESTMENT_BANK = "investment_bank"
-    LOWEST_PRICE = "lowest_price"
-    OPENING_PRICE = "opening_price"
-    PROFIT_RATE = "profit_rate"
-    PROFIT_AMOUNT = "profit_amount"
-    PURCHASE_AMOUNT = "purchase_amount"
-    PURCHASE_PRICE = "purchase_price"
-    STOCK_NAME = "stock_name"
-    STOCK_VOLUME = "stock_volume"
+    PURCHASE_CURRENCY_TYPE = "주식통화"
+    STOCK_CODE = "주식코드"
+    TRADE_DATE = "매매일자"
+    QUANTITY = "수량"
+    TRADE = "매매"
+    ACCOUNT_TYPE = "계좌종류"
+    CURRENT_PRICE = "현재가"
+    DIVIDEND = "배당금"
+    HIGHEST_PRICE = "고가"
+    INVESTMENT_BANK = "증권사"
+    LOWEST_PRICE = "저가"
+    OPENING_PRICE = "시가"
+    PROFIT_RATE = "수익률"
+    PROFIT_AMOUNT = "수익금"
+    TRADE_AMOUNT = "거래금"
+    TRADE_PRICE = "거래가"
+    STOCK_NAME = "종목명"
+    STOCK_VOLUME = "거래량"
 
 
 class BaseCurrency(StrEnum):
@@ -74,6 +111,11 @@ class MarketIndex(StrEnum):
     NYSE = "NYSE"
 
 
+class TradeType(StrEnum):
+    BUY = "매수"
+    SELL = "매도"
+
+
 class PurchaseCurrencyType(StrEnum):
     KOREA = "KRW"
     USA = "USD"
@@ -121,11 +163,16 @@ class CurrencyType(StrEnum):
     BRAZIL = "BRL"
     CANADA = "CAD"
     CHINA = "CNY"
-    EUROPE = "EUR"
     HONG_KONG = "HKD"
     INDIA = "INR"
     SWITZERLAND = "CHF"
     UNITED_KINGDOM = "GBP"
+    EUROPE = "EUR"
+    FRANCE = "EUR"
+    GERMANY = "EUR"
+    NETHERLAND = "EUR"
+    ITALY = "EUR"
+    SPAIN = "EUR"
 
 
 class TimeInterval(StrEnum):

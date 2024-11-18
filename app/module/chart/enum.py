@@ -23,10 +23,23 @@ class IntervalType(StrEnum):
     SIXMONTH = "6month"
     ONEYEAR = "1year"
 
+    def get_days(self) -> int:
+        if self == IntervalType.FIVEDAY:
+            return 7
+        elif self == IntervalType.ONEMONTH:
+            return 30
+        return 5
+
     def get_start_end_time(self) -> tuple[date | datetime, date | datetime]:
         if self == IntervalType.FIVEDAY:
             end_datetime = get_now_datetime().replace(hour=0, minute=0, second=0, microsecond=0)
-            return end_datetime - timedelta(days=4), end_datetime
+            start_datetime = end_datetime - timedelta(days=4)
+            days_between = [(start_datetime + timedelta(days=i)).weekday() for i in range(5)]
+            if 5 in days_between:
+                start_datetime -= timedelta(days=1)
+            if 6 in days_between:
+                start_datetime -= timedelta(days=1)
+            return start_datetime, end_datetime
         elif self == IntervalType.ONEMONTH:
             end_date = get_now_date()
             return end_date - timedelta(days=(7 * 4) + 1), end_date

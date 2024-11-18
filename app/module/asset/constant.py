@@ -9,28 +9,45 @@ from app.module.asset.enum import (
     PurchaseCurrencyType,
 )
 
+KOREA = "Korea"
+USA = "USA"
+
+ASSET_PARENT_FIELD = ["수익률", "매매", "수익금", "배당금"]
+ASSET_AGGREGATE_FIELD = "종목명"
+
+DEFAULT_EXCHANGE_RATE = 1.0
+ASSET_SAVE_TREND_YEAR = 15
+INFLATION_RATE = 3.0
+
+THREE_MONTH_DAY = 90
+THREE_MONTH = 3
 MONTHS = ["1월", "2월", "3월", "4월", "5월", "6월", "7월", "8월", "9월", "10월", "11월", "12월"]
 
+REQUIRED_ASSET_FIELD = ["종목명", "매매", "수량", "매매일자", "거래가"]
+
 ASSET_FIELD = [
-    "buy_date",
-    "quantity",
-    "account_type",
-    "current_price",
-    "dividend",
-    "highest_price",
-    "investment_bank",
-    "lowest_price",
-    "opening_price",
-    "profit_rate",
-    "profit_amount",
-    "purchase_amount",
-    "purchase_price",
-    "stock_name",
-    "stock_volume",
+    "종목명",
+    "수량",
+    "매매일자",
+    "매매",
+    "계좌종류",
+    "현재가",
+    "배당금",
+    "고가",
+    "증권사",
+    "저가",
+    "시가",
+    "수익률",
+    "수익금",
+    "거래금",
+    "거래가",
+    "거래량",
 ]
 
 
 KOSPI = "KOSPI"
+NASDAQ = "NASDAQ"
+NYSE = "NYSE"
 
 # STOCK_CODES = ["005930", "000660", "051910", "035720", "AAPL", "MSFT", "AMZN", "GOOGL", "TSLA", "META", "NVDA"]
 STOCK_CODES = ["AAPL", "MSFT", "AMZN", "GOOGL", "TSLA", "META", "NVDA", "AAPL", "MSFT", "SCHD"]
@@ -77,17 +94,17 @@ ACCOUNT_TYPES = [
 ]
 
 PURCHASE_CURRENCY_TYPES = [
-    PurchaseCurrencyType.USA.value,
     PurchaseCurrencyType.KOREA.value,
     PurchaseCurrencyType.KOREA.value,
     PurchaseCurrencyType.KOREA.value,
     PurchaseCurrencyType.KOREA.value,
     PurchaseCurrencyType.KOREA.value,
-    PurchaseCurrencyType.USA.value,
     PurchaseCurrencyType.KOREA.value,
-    PurchaseCurrencyType.USA.value,
     PurchaseCurrencyType.KOREA.value,
-    PurchaseCurrencyType.USA.value,
+    PurchaseCurrencyType.KOREA.value,
+    PurchaseCurrencyType.KOREA.value,
+    PurchaseCurrencyType.KOREA.value,
+    PurchaseCurrencyType.KOREA.value,
 ]
 
 STOCK_QUANTITIES = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11]
@@ -211,5 +228,3 @@ COUNTRY_TRANSLATIONS = {
     "유로존": Country.EUROZONE,
     "한국": Country.KOREA,
 }
-
-REQUIRED_ASSET_FIELD = ["buy_date", "quantity", "stock_name"]

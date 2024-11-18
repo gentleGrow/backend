@@ -5,7 +5,7 @@ import pytest
 from redis.asyncio import Redis
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.module.asset.constant import ASSET_FIELD
+from app.module.asset.constant import REQUIRED_ASSET_FIELD
 from app.module.asset.enum import (
     AccountType,
     AssetType,
@@ -13,6 +13,7 @@ from app.module.asset.enum import (
     MarketIndex,
     PurchaseCurrencyType,
     StockAsset,
+    TradeType,
 )
 from app.module.asset.model import (
     Asset,
@@ -23,10 +24,11 @@ from app.module.asset.model import (
     MarketIndexMinutely,
     Stock,
     StockDaily,
+    StockMinutely,
 )
 from app.module.auth.constant import DUMMY_NAME, DUMMY_USER_ID
 from app.module.auth.enum import ProviderEnum, UserRoleEnum
-from app.module.auth.model import User  # noqa: F401 > relationship 설정시 필요합니다.
+from app.module.auth.model import User
 
 
 @pytest.fixture(scope="function")
@@ -41,9 +43,7 @@ async def setup_asset_stock_field(session: AsyncSession, setup_user, setup_stock
 
 @pytest.fixture(scope="function")
 async def setup_asset_field(session: AsyncSession, setup_user, setup_stock):
-    fields_to_disable = ["stock_volume", "purchase_price", "purchase_amount"]
-    field_preference = [field for field in ASSET_FIELD if field not in fields_to_disable]
-    asset_field = AssetField(user_id=DUMMY_USER_ID, field_preference=field_preference)
+    asset_field = AssetField(user_id=DUMMY_USER_ID, field_preference=REQUIRED_ASSET_FIELD)
 
     session.add(asset_field)
     await session.commit()
@@ -109,9 +109,9 @@ async def setup_user(session: AsyncSession):
 
 @pytest.fixture(scope="function")
 async def setup_stock(session: AsyncSession):
-    stock_1 = Stock(id=1, code="AAPL", country="USA", market_index="NASDAQ", name="Apple Inc.")
-    stock_2 = Stock(id=2, code="TSLA", country="USA", market_index="NASDAQ", name="Tesla Inc.")
-    stock_3 = Stock(id=3, code="005930", country="KOREA", market_index="KOSPI", name="삼성전자")
+    stock_1 = Stock(id=1, code="AAPL", country="USA", market_index="NASDAQ", name_kr="애플", name_en="Apple")
+    stock_2 = Stock(id=2, code="TSLA", country="USA", market_index="NASDAQ", name_kr="테슬라", name_en="Tesla")
+    stock_3 = Stock(id=3, code="005930", country="KOREA", market_index="KOSPI", name_kr="삼성전자", name_en="Samsung")
     session.add_all([stock_1, stock_2, stock_3])
     await session.commit()
 
@@ -184,7 +184,52 @@ async def setup_stock_daily(session: AsyncSession, setup_user, setup_stock):
         trade_volume=1500,
     )
 
-    session.add_all([stock_daily_1, stock_daily_2, stock_daily_3, stock_daily_4, stock_daily_5, stock_daily_6])
+    stock_daily_7 = StockDaily(
+        adj_close_price=150.0,
+        close_price=149.0,
+        code="AAPL",
+        date=date(2024, 9, 1),
+        highest_price=153.0,
+        lowest_price=148.0,
+        opening_price=150.0,
+        trade_volume=1050000,
+    )
+
+    stock_daily_8 = StockDaily(
+        adj_close_price=700.0,
+        close_price=720.0,
+        code="TSLA",
+        date=date(2024, 9, 1),
+        highest_price=735.0,
+        lowest_price=715.0,
+        opening_price=725.0,
+        trade_volume=1600000,
+    )
+
+    stock_daily_9 = StockDaily(
+        adj_close_price=70000.0,
+        close_price=72000.0,
+        code="005930",
+        date=date(2024, 9, 1),
+        highest_price=73000.0,
+        lowest_price=71000.0,
+        opening_price=71500.0,
+        trade_volume=1500,
+    )
+
+    session.add_all(
+        [
+            stock_daily_1,
+            stock_daily_2,
+            stock_daily_3,
+            stock_daily_4,
+            stock_daily_5,
+            stock_daily_6,
+            stock_daily_7,
+            stock_daily_8,
+            stock_daily_9,
+        ]
+    )
     await session.commit()
 
 
@@ -194,8 +239,9 @@ async def setup_asset(session: AsyncSession, setup_user, setup_stock):
         account_type=AccountType.ISA.value,
         investment_bank=InvestmentBankType.MIRAEASSET.value,
         purchase_currency_type=PurchaseCurrencyType.USA.value,
-        purchase_date=date(2024, 8, 13),
-        purchase_price=500.0,
+        trade_date=date(2024, 8, 13),
+        trade_price=500.0,
+        trade=TradeType.BUY,
         quantity=1,
         stock_id=1,
     )
@@ -204,8 +250,9 @@ async def setup_asset(session: AsyncSession, setup_user, setup_stock):
         account_type=AccountType.PENSION.value,
         investment_bank=InvestmentBankType.TOSS.value,
         purchase_currency_type=PurchaseCurrencyType.KOREA.value,
-        purchase_date=date(2024, 8, 14),
-        purchase_price=1000.0,
+        trade_date=date(2024, 8, 14),
+        trade_price=1000.0,
+        trade=TradeType.BUY,
         quantity=2,
         stock_id=2,
     )
@@ -214,8 +261,9 @@ async def setup_asset(session: AsyncSession, setup_user, setup_stock):
         account_type=AccountType.REGULAR.value,
         investment_bank=InvestmentBankType.KB.value,
         purchase_currency_type=PurchaseCurrencyType.KOREA.value,
-        purchase_date=date(2024, 8, 14),
-        purchase_price=None,
+        trade_date=date(2024, 8, 14),
+        trade_price=None,
+        trade=TradeType.BUY,
         quantity=1,
         stock_id=3,
     )
@@ -321,6 +369,20 @@ async def setup_market_index_minutely(session: AsyncSession):
 
 
 @pytest.fixture(scope="function")
+async def setup_stock_minutely(session: AsyncSession):
+    stock_minutely_1 = StockMinutely(code="AAPL", datetime=datetime(2024, 8, 13, 10, 30), current_price=150.0)
+
+    stock_minutely_2 = StockMinutely(code="AAPL", datetime=datetime(2024, 8, 13, 10, 45), current_price=151.0)
+
+    stock_minutely_3 = StockMinutely(code="TSLA", datetime=datetime(2024, 8, 13, 10, 30), current_price=720.0)
+
+    stock_minutely_4 = StockMinutely(code="TSLA", datetime=datetime(2024, 8, 13, 10, 45), current_price=725.0)
+
+    session.add_all([stock_minutely_1, stock_minutely_2, stock_minutely_3, stock_minutely_4])
+    await session.commit()
+
+
+@pytest.fixture(scope="function")
 async def setup_all(
     setup_asset_field,
     setup_current_market_index,
@@ -334,5 +396,6 @@ async def setup_all(
     setup_market_index_daily,
     setup_market_index_minutely_data,
     setup_market_index_minutely,
+    setup_stock_minutely,
 ):
     pass

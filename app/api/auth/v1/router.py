@@ -2,23 +2,91 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from redis.asyncio import Redis
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.common.auth.security import verify_jwt_token
+from app.common.schema.common_schema import DeleteResponse, PostResponse
 from app.module.auth.constant import REDIS_JWT_REFRESH_EXPIRE_TIME_SECOND, SESSION_SPECIAL_KEY
+from app.module.auth.dependencies.user_dependency import get_user_service
 from app.module.auth.enum import ProviderEnum
 from app.module.auth.jwt import JWTBuilder
 from app.module.auth.model import User
 from app.module.auth.redis_repository import RedisSessionRepository
 from app.module.auth.repository import UserRepository
 from app.module.auth.schema import (
+    AccessToken,
     AccessTokenResponse,
     NaverTokenRequest,
+    NicknameRequest,
+    NicknameResponse,
     TokenRefreshRequest,
     TokenRequest,
     TokenResponse,
+    UserDeleteRequest,
+    UserInfoResponse,
 )
-from app.module.auth.service import Google, Kakao, Naver
-from database.dependency import get_redis_pool, get_router_sql_session
+from app.module.auth.services.oauth_service import Google, Kakao, Naver
+from app.module.auth.services.user_service import UserService
+from database.dependency import get_mysql_session_router, get_redis_pool
+
 
 auth_router = APIRouter(prefix="/v1")
+
+
+@auth_router.post("/user/delete", summary="회원 탈퇴합니다.", response_model="")
+async def delete_user(
+    request: UserDeleteRequest,
+    user_service: UserService = Depends(get_user_service),
+    token: AccessToken = Depends(verify_jwt_token),
+    session: AsyncSession = Depends(get_mysql_session_router),
+):
+    user = await UserRepository.get(session, token.get("user"))
+    if user is None:
+        return DeleteResponse(status_code=status.HTTP_404_NOT_FOUND, content="유저 정보가 없습니다.")
+
+    await user_service.save_user_quit_reason(request.reason)
+    await UserRepository.delete(session, user.id)
+    return DeleteResponse(status_code=status.HTTP_200_OK, content="성공적으로 삭제하였습니다.")
+
+
+@auth_router.get("/user", summary="유저 정보를 확인합니다.", response_model=UserInfoResponse)
+async def get_user_info(
+    token: AccessToken = Depends(verify_jwt_token),
+    session: AsyncSession = Depends(get_mysql_session_router),
+) -> UserInfoResponse:
+    user = await UserRepository.get(session, token.get("user"))
+    if user is None:
+        return UserInfoResponse(nickname="", email="", isJoined=False)
+    else:
+        nickname = user.nickname if user.nickname is not None else ""
+        email = user.email if user.email is not None else ""
+        isJoined = True if user.nickname else False
+
+        return UserInfoResponse(nickname=nickname, email=email, isJoined=isJoined)
+
+
+@auth_router.get("/nickname", summary="해당 닉네임 존재 여부를 확인합니다.", response_model=NicknameResponse)
+async def check_nickname(nickname: str, session: AsyncSession = Depends(get_mysql_session_router)) -> NicknameResponse:
+    user_nickname = await UserRepository.get_by_name(session, nickname)
+
+    return NicknameResponse(isUsed=False) if user_nickname is None else NicknameResponse(isUsed=True)
+
+
+@auth_router.put("/nickname", summary="유저 닉네임을 수정합니다.", response_model=PostResponse)
+async def update_nickname(
+    request: NicknameRequest,
+    token: AccessToken = Depends(verify_jwt_token),
+    session: AsyncSession = Depends(get_mysql_session_router),
+) -> PostResponse:
+    user_nickname = await UserRepository.get_by_name(session, request.nickname)
+    try:
+        request.nickname = NicknameRequest.validate_nickname(request.nickname)
+    except HTTPException as e:
+        return PostResponse(status_code=e.status_code, content=e.detail)
+
+    if user_nickname is not None:
+        return PostResponse(status_code=status.HTTP_400_BAD_REQUEST, content="이미 존재하는 닉네임입니다.")
+
+    await UserRepository.update_nickname(session, token.get("user"), request.nickname)
+    return PostResponse(status_code=status.HTTP_200_OK, content="성공적으로 닉네임을 저장하였습니다.")
 
 
 @auth_router.post(
@@ -29,11 +97,10 @@ auth_router = APIRouter(prefix="/v1")
 )
 async def naver_login(
     request: NaverTokenRequest,
-    session: AsyncSession = Depends(get_router_sql_session),
+    session: AsyncSession = Depends(get_mysql_session_router),
     redis_client: Redis = Depends(get_redis_pool),
 ) -> TokenResponse:
     access_token = request.access_token
-
     if not access_token:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
@@ -50,9 +117,11 @@ async def naver_login(
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="access token에 유저 정보가 없습니다.")
 
     user = await UserRepository.get_by_social_id(session, social_id, ProviderEnum.NAVER)
+
     if user is None:
         user = User(
             social_id=social_id,
+            email=user_info["response"].get("email"),
             provider=ProviderEnum.NAVER.value,
         )
         user = await UserRepository.create(session, user)
@@ -75,7 +144,7 @@ async def naver_login(
 )
 async def kakao_login(
     request: TokenRequest,
-    session: AsyncSession = Depends(get_router_sql_session),
+    session: AsyncSession = Depends(get_mysql_session_router),
     redis_client: Redis = Depends(get_redis_pool),
 ) -> TokenResponse:
     id_token = request.id_token
@@ -95,9 +164,11 @@ async def kakao_login(
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="id token에 유저 정보가 없습니다.")
 
     user = await UserRepository.get_by_social_id(session, social_id, ProviderEnum.KAKAO)
+
     if user is None:
         user = User(
             social_id=social_id,
+            email=id_info.get("email", None),
             provider=ProviderEnum.KAKAO.value,
         )
         user = await UserRepository.create(session, user)
@@ -120,7 +191,7 @@ async def kakao_login(
 )
 async def google_login(
     request: TokenRequest,
-    session: AsyncSession = Depends(get_router_sql_session),
+    session: AsyncSession = Depends(get_mysql_session_router),
     redis_client: Redis = Depends(get_redis_pool),
 ) -> TokenResponse:
     id_token = request.id_token
@@ -136,11 +207,9 @@ async def google_login(
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="id token에 유저 정보가 없습니다.")
 
     user = await UserRepository.get_by_social_id(session, social_id, ProviderEnum.GOOGLE)
+
     if user is None:
-        user = User(
-            social_id=social_id,
-            provider=ProviderEnum.GOOGLE.value,
-        )
+        user = User(social_id=social_id, provider=ProviderEnum.GOOGLE.value, email=id_info.get("email", None))
         user = await UserRepository.create(session, user)
 
     access_token = JWTBuilder.generate_access_token(user.id, social_id)
@@ -188,3 +257,4 @@ async def refresh_access_token(
     access_token = JWTBuilder.generate_access_token(user_id, social_id)
 
     return AccessTokenResponse(access_token=access_token)
+

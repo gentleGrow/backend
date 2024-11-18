@@ -2,36 +2,33 @@ from datetime import date
 
 from redis.asyncio import Redis
 from sqlalchemy.ext.asyncio import AsyncSession
-
+from app.module.asset.constant import KOREA, USA
+from app.common.util.time import get_now_date
 from app.module.asset.model import Asset, Stock, StockDaily
 from app.module.asset.redis_repository import RedisRealTimeStockRepository
+from app.module.asset.repository.stock_daily_repository import StockDailyRepository
 from app.module.asset.repository.stock_repository import StockRepository
 
 
 class StockService:
-    @staticmethod
-    async def get_stock_map(session: AsyncSession, stock_code: str) -> dict[str, Stock] | None:
+    async def get_stock_name_map_by_codes(self, session: AsyncSession, stock_codes: list[str]) -> dict[str, str]:
+        stocks: list[Stock] = await StockRepository.get_by_codes(session, stock_codes)
+        return {stock.code: stock.name_kr for stock in stocks}
+
+    async def get_stock_map(self, session: AsyncSession, stock_code: str) -> dict[str, Stock] | None:
         stock = await StockRepository.get_by_code(session, stock_code)
         return {stock.code: stock} if stock else None
 
-    @staticmethod
-    def check_not_found_stock(
-        stock_daily_map: dict[tuple[str, date], StockDaily],
-        current_stock_daily_map: dict[str, float] | dict[str, None],
-        assets: list[Asset],
-    ) -> list[str]:
-        result = []
-        for asset in assets:
-            stock_daily = stock_daily_map.get((asset.asset_stock.stock.code, asset.asset_stock.purchase_date))
-            current_stock_daily = current_stock_daily_map.get(asset.asset_stock.stock.code)
-            if stock_daily is None or current_stock_daily is None:
-                result.append(asset.asset_stock.stock.code)
-                continue
-        return result
+    async def check_stock_exist(self, session: AsyncSession, stock_code: str, buy_date: date) -> bool:
+        today = get_now_date()
+        if buy_date == today:
+            return True
 
-    @staticmethod
+        stock = await StockDailyRepository.get_stock_daily(session, stock_code, buy_date)
+        return True if stock else False
+
     async def get_current_stock_price(
-        redis_client: Redis, lastest_stock_daily_map: dict[str, StockDaily], assets: list[Asset]
+        self, redis_client: Redis, lastest_stock_daily_map: dict[str, StockDaily], assets: list[Asset]
     ) -> dict[str, float]:
         stock_codes = [asset.asset_stock.stock.code for asset in assets]
         current_prices = await RedisRealTimeStockRepository.bulk_get(redis_client, stock_codes)
@@ -46,9 +43,8 @@ class StockService:
             result[stock_code] = float(current_price)
         return result
 
-    @staticmethod
     async def get_current_stock_price_by_code(
-        redis_client: Redis, lastest_stock_daily_map: dict[str, StockDaily], stock_codes: list[str]
+        self, redis_client: Redis, lastest_stock_daily_map: dict[str, StockDaily], stock_codes: list[str]
     ) -> dict[str, float]:
         current_prices = await RedisRealTimeStockRepository.bulk_get(redis_client, stock_codes)
 
@@ -62,8 +58,8 @@ class StockService:
             result[stock_code] = float(current_price)
         return result
 
-    @staticmethod
     def get_daily_profit(
+        self,
         lastest_stock_daily_map: dict[str, StockDaily],
         current_stock_price_map: dict[str, float],
         stock_codes: list[str],
@@ -78,3 +74,14 @@ class StockService:
             stock_profit = ((current_stock_price - stock_daily.adj_close_price) / stock_daily.adj_close_price) * 100
             result[stock_code] = stock_profit
         return result
+
+
+    async def get_korea_usa_stock(self, session: AsyncSession) -> list[Stock]:
+        stock_list: list[Stock] = await StockRepository.get_countries_stock(session, [KOREA, USA])
+
+    
+    
+    
+    
+    
+    

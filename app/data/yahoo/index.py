@@ -1,6 +1,7 @@
 import asyncio
 
 import yfinance
+from celery import shared_task
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.data.common.enum import MarketIndexEnum
@@ -55,7 +56,7 @@ async def fetch_and_save_all_intervals(session: AsyncSession, index_symbol: str,
         )
 
 
-async def main():
+async def execute_async_task():
     start_period, end_period = get_last_week_period_bounds()
 
     async with get_mysql_session() as session:
@@ -63,5 +64,10 @@ async def main():
             await fetch_and_save_all_intervals(session, index_symbol, start_period, end_period)
 
 
+@shared_task
+def main():
+    asyncio.run(execute_async_task())
+
+
 if __name__ == "__main__":
-    asyncio.run(main())
+    asyncio.run(execute_async_task())

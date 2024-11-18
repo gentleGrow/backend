@@ -4,7 +4,6 @@ from sqlalchemy import (
     Column,
     Date,
     DateTime,
-    Enum,
     Float,
     ForeignKey,
     Index,
@@ -15,7 +14,6 @@ from sqlalchemy import (
 from sqlalchemy.orm import relationship
 
 from app.common.mixin.timestamp import TimestampMixin
-from app.module.asset.enum import AccountType, AssetType, InvestmentBankType, PurchaseCurrencyType
 from database.config import MySQLBase
 
 
@@ -23,7 +21,7 @@ class AssetField(TimestampMixin, MySQLBase):
     __tablename__ = "asset_field"
 
     id = Column(BigInteger, primary_key=True, autoincrement=True)
-    user_id = Column(BigInteger, ForeignKey("user.id"), nullable=False, unique=True)
+    user_id = Column(BigInteger, ForeignKey("user.id", ondelete="CASCADE"), nullable=False, unique=True)
     field_preference = Column(JSON, nullable=False, default=list)
 
 
@@ -43,15 +41,16 @@ class AssetStock(TimestampMixin, MySQLBase):
     __tablename__ = "asset_stock"
 
     id = Column(BigInteger, primary_key=True, autoincrement=True)
-    account_type = Column(Enum(AccountType), nullable=True, info={"description": "계좌 종류"})
-    investment_bank = Column(Enum(InvestmentBankType), nullable=True, info={"description": "증권사"})
-    purchase_currency_type = Column(Enum(PurchaseCurrencyType), nullable=True, info={"description": "구매 통화"})
-    purchase_date = Column(Date, nullable=False, info={"description": "구매일자"})
-    purchase_price = Column(Float, nullable=True, info={"description": "매입가"})
-    quantity = Column(Integer, nullable=False, info={"description": "구매수량"})
+    account_type = Column(String(255), nullable=True, info={"description": "계좌 종류"})
+    investment_bank = Column(String(255), nullable=True, info={"description": "증권사"})
+    purchase_currency_type = Column(String(255), nullable=True, info={"description": "구매 통화"})
+    trade_date = Column(Date, nullable=True, info={"description": "매매일자"})
+    trade_price = Column(Float, nullable=True, info={"description": "거래가"})
+    quantity = Column(Integer, nullable=True, info={"description": "구매수량"})
+    trade = Column(String(255), nullable=True, info={"description": "매매, 매수/매도"}, default="BUY")
 
     stock_id = Column(BigInteger, ForeignKey("stock.id"), primary_key=True)
-    asset_id = Column(BigInteger, ForeignKey("asset.id"), primary_key=True)
+    asset_id = Column(BigInteger, ForeignKey("asset.id", ondelete="CASCADE"), primary_key=True)
     asset = relationship("Asset", back_populates="asset_stock", uselist=False, overlaps="stock,asset", lazy="selectin")
     stock = relationship("Stock", back_populates="asset_stock", overlaps="asset,stock", lazy="selectin")
 
@@ -60,10 +59,10 @@ class Asset(TimestampMixin, MySQLBase):
     __tablename__ = "asset"
 
     id = Column(BigInteger, primary_key=True, autoincrement=True)
-    asset_type = Column(Enum(AssetType), nullable=False, info={"description": "자산 종류"})
+    asset_type = Column(String(255), nullable=False, info={"description": "자산 종류"})
 
-    user_id = Column(BigInteger, ForeignKey("user.id"), nullable=False)
-    user = relationship("User", back_populates="asset")
+    user_id = Column(BigInteger, ForeignKey("user.id", ondelete="CASCADE"), nullable=False)
+
     stock = relationship(
         "Stock", secondary="asset_stock", back_populates="asset", overlaps="asset_stock", lazy="selectin"
     )
@@ -77,7 +76,8 @@ class Stock(TimestampMixin, MySQLBase):
     code = Column(String(255), nullable=False, unique=True)
     country = Column(String(255), nullable=False)
     market_index = Column(String(255), nullable=False)
-    name = Column(String(255), nullable=False)
+    name_kr = Column(String(255), nullable=False)
+    name_en = Column(String(255), nullable=False)
 
     asset = relationship(
         "Asset", secondary="asset_stock", back_populates="stock", overlaps="asset_stock", lazy="selectin"
@@ -94,7 +94,11 @@ class StockMinutely(MySQLBase):
     datetime = Column(DateTime, nullable=False)
     current_price = Column(Float, nullable=False)
 
-    __table_args__ = (UniqueConstraint("code", "datetime", name="uq_code_name_datetime"),)
+    __table_args__ = (
+        UniqueConstraint("code", "datetime", name="uq_code_name_datetime"),
+        Index("idx_code", "code"),
+        Index("idx_code_datetime", "code", "datetime"),
+    )
 
 
 class StockDaily(MySQLBase):
@@ -153,7 +157,11 @@ class MarketIndexMinutely(MySQLBase):
     datetime = Column(DateTime, nullable=False)
     current_price = Column(Float, nullable=False)
 
-    __table_args__ = (UniqueConstraint("name", "datetime", name="uq_name_datetime"),)
+    __table_args__ = (
+        UniqueConstraint("name", "datetime", name="uq_name_datetime"),
+        Index("idx_name", "name"),
+        Index("idx_name_datetime", "name", "datetime"),
+    )
 
 
 class MarketIndexDaily(MySQLBase):

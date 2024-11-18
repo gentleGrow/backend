@@ -7,7 +7,7 @@ from app.module.asset.schema import MarketIndexData
 
 class RedisRichPortfolioRepository:
     @staticmethod
-    async def gets(redis_client: Redis, keys: list[str]) -> list[str | None]:
+    async def gets(redis_client: Redis, keys: list[str]) -> list[str] | None:
         rich_portfolios = await redis_client.mget(*keys)
         return [rich_portfolio if rich_portfolio is not None else None for rich_portfolio in rich_portfolios]
 

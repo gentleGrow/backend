@@ -27,6 +27,10 @@ class RedisExchangeRateRepository:
     async def save(redis_client: Redis, key: str, data: float, expire_time: int) -> None:
         await redis_client.set(key, data, ex=expire_time)
 
+    @staticmethod
+    async def get(redis_client: Redis, key: str) -> float | None:
+        return await redis_client.get(key)
+
 
 class RedisRealTimeMarketIndexRepository:
     @staticmethod

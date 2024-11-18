@@ -6,7 +6,9 @@ from redis.asyncio import Redis
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
 
-from app.module.asset.enum import AssetType
+from app.module.asset.dependencies.dividend_dependency import get_dividend_service
+from app.module.asset.dependencies.exchange_rate_dependency import get_exchange_rate_service
+from app.module.asset.enum import AssetType, TradeType
 from app.module.asset.model import Asset, AssetStock, Stock
 from app.module.asset.repository.asset_repository import AssetRepository
 from app.module.asset.services.dividend_service import DividendService
@@ -17,6 +19,8 @@ from app.module.auth.constant import DUMMY_USER_ID
 class TestDividendService:
     def test_process_dividends_by_year_month(self, setup_all):
         # Given
+        dividend_service: DividendService = get_dividend_service()
+
         total_dividends = {
             date(2024, 1, 15): 100.0,
             date(2024, 3, 20): 200.0,
@@ -57,13 +61,14 @@ class TestDividendService:
         }
 
         # When
-        result = DividendService.process_dividends_by_year_month(total_dividends)
+        result = dividend_service.process_dividends_by_year_month(total_dividends)
 
         # Then
         assert result == expected_result
 
     async def test_get_last_year_dividends(self, setup_all, session: AsyncSession):
         # Given
+        dividend_service: DividendService = get_dividend_service()
         assets = await AssetRepository.get_assets(session, DUMMY_USER_ID)
         asset = assets[0]
 
@@ -77,7 +82,7 @@ class TestDividendService:
         last_dividend_date = date(2024, 8, 14)
 
         # When
-        result = DividendService.get_last_year_dividends(
+        result = dividend_service.get_last_year_dividends(
             asset=asset,
             dividend_map=dividend_map,
             won_exchange_rate=won_exchange_rate,
@@ -100,7 +105,12 @@ class TestDividendService:
         setup_all,
     ):
         # Given
-        asset = Asset(asset_stock=AssetStock(purchase_date=date(2024, 8, 13), stock=Stock(code="AAPL"), quantity=10))
+        dividend_service: DividendService = get_dividend_service()
+        asset = Asset(
+            asset_stock=AssetStock(
+                trade_date=date(2024, 8, 13), stock=Stock(code="AAPL"), quantity=10, trade=TradeType.BUY
+            )
+        )
 
         won_exchange_rate = 1300.0
 
@@ -111,7 +121,7 @@ class TestDividendService:
         }
 
         # When
-        result, last_dividend_date = DividendService.get_asset_total_dividend(
+        result, last_dividend_date = dividend_service.get_asset_total_dividend(
             won_exchange_rate=won_exchange_rate,
             dividend_map=dividend_map,
             asset=asset,
@@ -128,11 +138,12 @@ class TestDividendService:
 
     async def test_get_dividend_map(self, session: AsyncSession, setup_all):
         # Given
+        dividend_service: DividendService = get_dividend_service()
         assets = await session.execute(select(Asset).filter(Asset.user_id == DUMMY_USER_ID))
         assets = assets.scalars().all()
 
         # When
-        dividend_map = await DividendService.get_dividend_map(session, assets)
+        dividend_map = await dividend_service.get_dividend_map(session, assets)
 
         # Then
         expected_dividend_map = {
@@ -148,11 +159,12 @@ class TestDividendService:
 
     async def test_get_recent_map(self, session: AsyncSession, setup_dividend, setup_asset):
         # Given
+        dividend_service: DividendService = get_dividend_service()
         assets = await session.execute(select(Asset).filter(Asset.user_id == DUMMY_USER_ID))
         assets = assets.scalars().all()
 
         # When
-        result = await DividendService.get_recent_map(session, assets)
+        result = await dividend_service.get_recent_map(session, assets)
 
         # Then
         assert result["AAPL"] == 1.60
@@ -162,22 +174,22 @@ class TestDividendService:
         self, session: AsyncSession, redis_client: Redis, setup_exchange_rate, setup_asset, setup_dividend
     ):
         # Given
+        dividend_service: DividendService = get_dividend_service()
+        exchange_rate_service: ExchangeRateService = get_exchange_rate_service()
+
         assets: list[Asset] = await AssetRepository.get_eager(session, DUMMY_USER_ID, AssetType.STOCK)
-        dividend_map = await DividendService.get_recent_map(session, assets)
-        exchange_rate_map = await ExchangeRateService.get_exchange_rate_map(redis_client)
+        dividend_map = await dividend_service.get_recent_map(session, assets)
+        exchange_rate_map = await exchange_rate_service.get_exchange_rate_map(redis_client)
 
         # When
-        total_dividend = DividendService.get_total_dividend(
-            assets=assets,
-            dividend_map=dividend_map,
-            exchange_rate_map=exchange_rate_map,
+        total_dividend = await dividend_service.get_total_dividend(
+            session=session, redis_client=redis_client, assets=assets
         )
-
-        # Then
         expected_total_dividend = 0.0
         for asset in assets:
             dividend_per_stock = dividend_map.get(asset.asset_stock.stock.code, 0.0)
-            exchange_rate = ExchangeRateService.get_won_exchange_rate(asset, exchange_rate_map)
+            exchange_rate = exchange_rate_service.get_won_exchange_rate(asset, exchange_rate_map)
             expected_total_dividend += dividend_per_stock * asset.asset_stock.quantity * exchange_rate
 
+        # Then
         assert total_dividend == approx(expected_total_dividend)
