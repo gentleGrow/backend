@@ -3,7 +3,6 @@ import asyncio
 import ray
 import yfinance
 from aiolimiter import AsyncLimiter
-
 from app.common.util.time import get_now_datetime
 from app.data.common.constant import STOCK_CACHE_SECOND
 from app.data.yahoo.source.service import format_stock_code
@@ -15,14 +14,14 @@ from app.module.asset.schema import StockInfo
 from database.dependency import get_mysql_session, get_redis_pool
 
 
-@ray.remote
+@ray.remote(max_task_retries=1)
 class RealtimeStockCollector:
     def __init__(self, stock_code_list: list[StockInfo], rate_limit: int = 1):
         self.stock_code_list = stock_code_list
         self.redis_client = None
         self.session = None
         self._is_running = False
-        self.rate_limiter = AsyncLimiter(rate_limit, time_period=3)
+        self.rate_limiter = AsyncLimiter(rate_limit, time_period=1)
 
     async def _setup(self):
         self.redis_client = get_redis_pool()
