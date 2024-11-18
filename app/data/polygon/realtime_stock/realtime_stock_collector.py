@@ -14,8 +14,8 @@ from app.module.asset.schema import StockInfo
 from database.dependency import get_mysql_session, get_redis_pool
 
 
-@ray.remote
-class KoreaRealtimeStockCollector:
+@ray.remote(max_task_retries=1)
+class RealtimeStockCollector:
     def __init__(self, stock_code_list: list[StockInfo]):
         self.stock_code_list = stock_code_list
         self.redis_client = None
@@ -75,51 +75,8 @@ class KoreaRealtimeStockCollector:
 
     def _fetch_stock_price(self, code: str) -> tuple[str, float]:
         try:
-            url = f"https://finance.naver.com/item/main.naver?code={code}"
-            response = requests.get(url)
-            response.raise_for_status()
-
-            soup = BeautifulSoup(response.content, "html.parser")
-            current_price = self._parse_content(soup)
-            return code, current_price
+            
+            return code, 0
         except Exception:
             return code, 0
 
-    def _parse_content(self, soup: BeautifulSoup) -> int:
-        try:
-            middle_content = soup.find(id="middle")
-            if middle_content is None:
-                return 0
-
-            content_area = middle_content.find(id="content")
-            if content_area is None:
-                return 0
-
-            chart_area = content_area.find(id="chart_area")
-            if chart_area is None:
-                return 0
-
-            rate_info = chart_area.find(class_="rate_info")
-            if rate_info is None:
-                return 0
-
-            today_info = rate_info.find(class_="today")
-            if today_info is None:
-                return 0
-
-            no_today = today_info.find("p", class_="no_today")
-            if no_today is None:
-                return 0
-
-            em_price = no_today.find("em", class_=["no_up", "no_down"])
-            if em_price is None:
-                return 0
-
-            blind_span = em_price.find("span", class_="blind")
-            if blind_span is None:
-                return 0
-
-            filtered_text = re.sub(r"\D", "", blind_span.get_text())
-            return int(filtered_text)
-        except Exception:
-            return 0

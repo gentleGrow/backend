@@ -3,6 +3,7 @@ import asyncio
 import ray
 import yfinance
 from aiolimiter import AsyncLimiter
+
 from app.common.util.time import get_now_datetime
 from app.data.common.constant import STOCK_CACHE_SECOND
 from app.data.yahoo.source.service import format_stock_code

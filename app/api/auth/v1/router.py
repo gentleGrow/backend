@@ -27,7 +27,6 @@ from app.module.auth.services.oauth_service import Google, Kakao, Naver
 from app.module.auth.services.user_service import UserService
 from database.dependency import get_mysql_session_router, get_redis_pool
 
-
 auth_router = APIRouter(prefix="/v1")
 
 
@@ -257,4 +256,3 @@ async def refresh_access_token(
     access_token = JWTBuilder.generate_access_token(user_id, social_id)
 
     return AccessTokenResponse(access_token=access_token)
-
