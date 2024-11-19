@@ -4,9 +4,7 @@ import requests
 from requests.models import Response
 from datetime import datetime
 import itertools
-from app.common.util.time import get_current_unix_timestamp, make_minute_to_milisecond_timestamp
-from app.common.util.time import get_now_datetime, transform_timestamp_datetime
-
+from app.common.util.time import get_current_unix_timestamp, make_minute_to_milisecond_timestamp, transform_timestamp_datetime
 from app.data.polygon.constant import STOCK_COLLECT_START_TIME_MINUTE, STOCK_COLLECT_END_TIME_MINUTE
 from app.data.common.constant import STOCK_CACHE_SECOND
 from app.module.asset.model import StockMinutely
@@ -45,7 +43,6 @@ class RealtimeStockCollector:
 
         self._is_running = True
         try:
-            now = get_now_datetime()
             code_price_pairs = []
             db_bulk_data = []
             fetch_tasks = []
@@ -68,7 +65,7 @@ class RealtimeStockCollector:
 
             redis_bulk_data = [(code, price) for code, _, price in code_price_pairs if price]
 
-            for code, current_datetime, price in redis_bulk_data:
+            for code, current_datetime, price in code_price_pairs:
                 current_stock_data = StockMinutely(code=code, datetime=current_datetime, current_price=price)
                 db_bulk_data.append(current_stock_data)
 
@@ -90,7 +87,7 @@ class RealtimeStockCollector:
             now = get_current_unix_timestamp()
             end_time = now - make_minute_to_milisecond_timestamp(STOCK_COLLECT_END_TIME_MINUTE)
             start_time = now - make_minute_to_milisecond_timestamp(STOCK_COLLECT_START_TIME_MINUTE)
-
+            
             url = f"https://api.polygon.io/v2/aggs/ticker/{code}/range/1/minute/{start_time}/{end_time}"
             params = {
                 "adjusted": "true",
@@ -99,14 +96,14 @@ class RealtimeStockCollector:
                 "apiKey": POLYGON_API_KEY
             }
             response = requests.get(url, params=params)
-            stocks: list[str, datetime, float] = self._parse_response_data(response)
+            stocks: list[str, datetime, float] = self._parse_response_data(response, code)
             return stocks
         except Exception:
             return []
 
 
     def _parse_response_data(self, response:Response, code: str) -> list[str, datetime, float]:
-        if response.status_code is not 200:
+        if response.status_code != 200:
             return []
         
         stock_data = response.json()
@@ -118,7 +115,6 @@ class RealtimeStockCollector:
             current_datetime = transform_timestamp_datetime(record['t'])
             result.append((code, current_datetime, record['c']))
 
-        
         return result
 
 

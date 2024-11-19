@@ -2,6 +2,7 @@ import calendar
 import time
 from datetime import datetime, timedelta, date
 from zoneinfo import ZoneInfo
+from icecream import ic
 
 
 def make_minute_to_milisecond_timestamp(minute: int) -> int:
@@ -20,7 +21,6 @@ def check_weekend() -> bool:
     today = datetime.today().weekday()
     return today >= 5
 
-
 def get_now_date() -> date:
     seoul_tz = ZoneInfo("Asia/Seoul")
     now_in_seoul = datetime.now(seoul_tz)
@@ -29,14 +29,13 @@ def get_now_date() -> date:
 def transform_timestamp_datetime(timestamp: int) -> datetime:
     seoul_tz = ZoneInfo("Asia/Seoul")
     
-    # 밀리초인지 확인 (초보다 값이 큼)
-    if timestamp > 10**10:  
+    if timestamp > 10**10:
         timestamp /= 1000
 
-    utc_datetime = datetime.fromtimestamp(timestamp)
+    adjusted_timestamp = timestamp - (9 * 3600)
 
-    return utc_datetime.replace(tzinfo=ZoneInfo("UTC")).astimezone(seoul_tz)
- 
+    utc_datetime = datetime.fromtimestamp(adjusted_timestamp, tz=ZoneInfo("UTC"))
+    return utc_datetime.astimezone(seoul_tz)
 
 
 def get_now_datetime() -> datetime:
