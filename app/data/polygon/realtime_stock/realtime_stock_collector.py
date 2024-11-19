@@ -1,17 +1,25 @@
 import asyncio
-import re
-
 import ray
 import requests
-from bs4 import BeautifulSoup
+from requests.models import Response
+from datetime import datetime
+import itertools
+from app.common.util.time import get_current_unix_timestamp, make_minute_to_milisecond_timestamp
+from app.common.util.time import get_now_datetime, transform_timestamp_datetime
 
-from app.common.util.time import get_now_datetime
+from app.data.polygon.constant import STOCK_COLLECT_START_TIME_MINUTE, STOCK_COLLECT_END_TIME_MINUTE
 from app.data.common.constant import STOCK_CACHE_SECOND
 from app.module.asset.model import StockMinutely
 from app.module.asset.redis_repository import RedisRealTimeStockRepository
 from app.module.asset.repository.stock_minutely_repository import StockMinutelyRepository
 from app.module.asset.schema import StockInfo
 from database.dependency import get_mysql_session, get_redis_pool
+from os import getenv
+from dotenv import load_dotenv
+
+
+load_dotenv()
+POLYGON_API_KEY = getenv("POLYGON_API_KEY", None)
 
 
 @ray.remote(max_task_retries=1)
@@ -52,12 +60,16 @@ class RealtimeStockCollector:
 
             task_results = await asyncio.gather(*fetch_tasks, return_exceptions=True)
 
-            code_price_pairs = [result for result in task_results if not isinstance(result, Exception)]
+            code_price_pairs = list(
+                itertools.chain.from_iterable(
+                    result for result in task_results if not isinstance(result, Exception)
+                )
+            )
 
-            redis_bulk_data = [(code, price) for code, price in code_price_pairs if price]
+            redis_bulk_data = [(code, price) for code, _, price in code_price_pairs if price]
 
-            for code, price in redis_bulk_data:
-                current_stock_data = StockMinutely(code=code, datetime=now, current_price=price)
+            for code, current_datetime, price in redis_bulk_data:
+                current_stock_data = StockMinutely(code=code, datetime=current_datetime, current_price=price)
                 db_bulk_data.append(current_stock_data)
 
             if redis_bulk_data:
@@ -73,10 +85,40 @@ class RealtimeStockCollector:
     def is_running(self) -> bool:
         return self._is_running
 
-    def _fetch_stock_price(self, code: str) -> tuple[str, float]:
+    def _fetch_stock_price(self, code: str) -> list[str, datetime, float]:
         try:
-            
-            return code, 0
+            now = get_current_unix_timestamp()
+            end_time = now - make_minute_to_milisecond_timestamp(STOCK_COLLECT_END_TIME_MINUTE)
+            start_time = now - make_minute_to_milisecond_timestamp(STOCK_COLLECT_START_TIME_MINUTE)
+
+            url = f"https://api.polygon.io/v2/aggs/ticker/{code}/range/1/minute/{start_time}/{end_time}"
+            params = {
+                "adjusted": "true",
+                "sort": "asc",
+                "limit": 5000,
+                "apiKey": POLYGON_API_KEY
+            }
+            response = requests.get(url, params=params)
+            stocks: list[str, datetime, float] = self._parse_response_data(response)
+            return stocks
         except Exception:
-            return code, 0
+            return []
+
+
+    def _parse_response_data(self, response:Response, code: str) -> list[str, datetime, float]:
+        if response.status_code is not 200:
+            return []
+        
+        stock_data = response.json()
+        
+        result = []
+        stocks = stock_data.get("results", [])
+        
+        for record in stocks:
+            current_datetime = transform_timestamp_datetime(record['t'])
+            result.append((code, current_datetime, record['c']))
+
+        
+        return result
+
 
