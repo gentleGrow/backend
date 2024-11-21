@@ -1,11 +1,11 @@
 import asyncio
 import json
+import logging
 from datetime import date
 from os import getenv
 
 from celery import shared_task
 from dotenv import load_dotenv
-from icecream import ic
 from redis.asyncio import Redis
 from selenium import webdriver
 from selenium.webdriver.chrome.options import Options
@@ -31,6 +31,16 @@ from database.dependency import get_mysql_session, get_redis_pool
 
 load_dotenv()
 ENVIRONMENT = getenv("ENVIRONMENT", None)
+
+
+logging.basicConfig(
+    level=logging.INFO,  
+    format="%(asctime)s - %(levelname)s - %(message)s",  
+    handlers=[
+        logging.FileHandler("rich_portfolio.log"), 
+        logging.StreamHandler(),  
+    ],
+)
 
 
 async def fetch_rich_porfolio(redis_client: Redis, session: AsyncSession, person: str):
@@ -100,7 +110,6 @@ async def fetch_rich_porfolio(redis_client: Redis, session: AsyncSession, person
         stock = stock_dict.get(stock)
 
         if not stock:
-            ic("stock이 존재하지 않습니다.")
             continue
 
         asset = Asset(
@@ -122,17 +131,18 @@ async def fetch_rich_porfolio(redis_client: Redis, session: AsyncSession, person
         bulk_assets.append(asset)
 
     await AssetRepository.save_assets(session, bulk_assets)
-    ic(f"{person}의 assets을 성공적으로 생성 했습니다.")
 
     driver.quit()
 
 
 async def execute_async_task():
+    logging.info('부자 포트폴리오 수집을 시작합니다.')
     redis_client = get_redis_pool()
     async with get_mysql_session() as session:
         for person in RicePeople:
             await fetch_rich_porfolio(redis_client, session, person.value)
 
+        logging.info('부자 포트폴리오 수집을 마칩니다.')
 
 @shared_task
 def main():

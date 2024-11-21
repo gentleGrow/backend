@@ -116,7 +116,6 @@ async def create_asset_field(session: AsyncSession):
     await AssetFieldRepository.save(session, asset_field)
 
 
-
 async def main():
     async with get_mysql_session() as session:
         try:
@@ -142,5 +141,3 @@ async def main():
 
 if __name__ == "__main__":
     asyncio.run(main())
-
-

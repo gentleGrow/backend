@@ -1,15 +1,16 @@
 import calendar
 import time
-from datetime import datetime, timedelta, date
+from datetime import date, datetime, timedelta
 from zoneinfo import ZoneInfo
-from icecream import ic
 
 
 def make_minute_to_milisecond_timestamp(minute: int) -> int:
     return minute * 60 * 1000
 
+
 def get_current_unix_timestamp() -> int:
     return int(time.time() * 1000)
+
 
 def get_date_past_day(days: int):
     seoul_tz = ZoneInfo("Asia/Seoul")
@@ -21,16 +22,18 @@ def check_weekend() -> bool:
     today = datetime.today().weekday()
     return today >= 5
 
+
 def get_now_date() -> date:
     seoul_tz = ZoneInfo("Asia/Seoul")
     now_in_seoul = datetime.now(seoul_tz)
     return now_in_seoul.date()
 
+
 def transform_timestamp_datetime(timestamp: int) -> datetime:
     seoul_tz = ZoneInfo("Asia/Seoul")
-    
+
     if timestamp > 10**10:
-        timestamp /= 1000
+        timestamp //= 1000
 
     adjusted_timestamp = timestamp - (9 * 3600)
 

@@ -1,11 +1,12 @@
 import asyncio
-import ray
 
+import ray
 from more_itertools import chunked
+
 from app.data.common.service import StockCodeFileReader
+from app.data.polygon.constant import REALTIME_USA_STOCK_LIST
 from app.data.polygon.realtime_stock.realtime_stock_collector import RealtimeStockCollector
 from app.data.polygon.realtime_stock.realtime_stock_monitor import RealtimeStockMonitor
-from app.data.polygon.constant import REALTIME_USA_STOCK_LIST
 
 
 async def execute_async_task():
@@ -14,8 +15,7 @@ async def execute_async_task():
     stock_code_list_chunks = chunked(stock_code_list, REALTIME_USA_STOCK_LIST)
 
     actor_pool = [
-        RealtimeStockCollector.remote(stock_code_list_chunk)
-        for stock_code_list_chunk in stock_code_list_chunks
+        RealtimeStockCollector.remote(stock_code_list_chunk) for stock_code_list_chunk in stock_code_list_chunks
     ]
 
     for collector in actor_pool:

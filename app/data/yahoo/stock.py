@@ -1,8 +1,9 @@
 import asyncio
-
+import logging
 import yfinance
+
 from celery import shared_task
-from icecream import ic
+from database.dependency import get_mysql_session
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -12,7 +13,16 @@ from app.data.yahoo.source.schema import StockDataFrame
 from app.data.yahoo.source.service import format_stock_code, get_last_week_period_bounds
 from app.module.asset.enum import Country, TimeInterval
 from app.module.asset.schema import StockInfo
-from database.dependency import get_mysql_session
+
+
+logging.basicConfig(
+    level=logging.INFO,  
+    format="%(asctime)s - %(levelname)s - %(message)s",  
+    handlers=[
+        logging.FileHandler("stock.log"), 
+        logging.StreamHandler(),  
+    ],
+)
 
 
 async def process_stock_data(session: AsyncSession, stock_list: list[StockInfo], start_period: int, end_period: int):
@@ -28,7 +38,6 @@ async def process_stock_data(session: AsyncSession, stock_list: list[StockInfo],
                     stock_info.market_index.upper(),
                 )
             except KeyError:
-                ic(f"Skipping stock with invalid market index: {stock_info.market_index}")
                 continue
 
             try:
@@ -36,7 +45,7 @@ async def process_stock_data(session: AsyncSession, stock_list: list[StockInfo],
                 df = stock.history(start=start_period, end=end_period, interval=interval.value)
                 df.reset_index(inplace=True)
             except Exception as e:
-                ic(f"{e=}")
+                logging.error(e)
                 continue
 
             stock_rows = []
@@ -52,7 +61,8 @@ async def process_stock_data(session: AsyncSession, stock_list: list[StockInfo],
                         adj_close=row["Close"],
                         volume=row["Volume"],
                     )
-                except Exception:
+                except Exception as e:
+                    logging.error(e)
                     continue
 
                 stock_row = stock_model(
@@ -71,14 +81,17 @@ async def process_stock_data(session: AsyncSession, stock_list: list[StockInfo],
             try:
                 await interval_repository.bulk_upsert(session, stock_rows)
             except IntegrityError as e:
-                print(f"{e=}")
+                logging.error(e)
                 await session.rollback()
                 continue
-
+        
+    logging.info('일별 주식 수집을 마칩니다')
+    
 
 async def execute_async_task():
+    logging.info('일별 주식 수집을 시작합니다.')
     start_period, end_period = get_last_week_period_bounds()
-    stock_list: list[StockInfo] = StockCodeFileReader.get_all_stock_code_list()
+    stock_list: list[StockInfo] = StockCodeFileReader.get_usa_korea_stock_code_list()
 
     async with get_mysql_session() as session:
         await process_stock_data(session, stock_list, start_period, end_period)

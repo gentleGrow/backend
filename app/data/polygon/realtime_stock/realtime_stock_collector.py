@@ -1,20 +1,26 @@
 import asyncio
+import itertools
+from datetime import datetime
+from os import getenv
+from icecream import ic
+
 import ray
 import requests
+from dotenv import load_dotenv
 from requests.models import Response
-from datetime import datetime
-import itertools
-from app.common.util.time import get_current_unix_timestamp, make_minute_to_milisecond_timestamp, transform_timestamp_datetime
-from app.data.polygon.constant import STOCK_COLLECT_START_TIME_MINUTE, STOCK_COLLECT_END_TIME_MINUTE
+
+from app.common.util.time import (
+    get_current_unix_timestamp,
+    make_minute_to_milisecond_timestamp,
+    transform_timestamp_datetime,
+)
 from app.data.common.constant import STOCK_CACHE_SECOND
+from app.data.polygon.constant import STOCK_COLLECT_END_TIME_MINUTE, STOCK_COLLECT_START_TIME_MINUTE
 from app.module.asset.model import StockMinutely
 from app.module.asset.redis_repository import RedisRealTimeStockRepository
 from app.module.asset.repository.stock_minutely_repository import StockMinutelyRepository
 from app.module.asset.schema import StockInfo
 from database.dependency import get_mysql_session, get_redis_pool
-from os import getenv
-from dotenv import load_dotenv
-
 
 load_dotenv()
 POLYGON_API_KEY = getenv("POLYGON_API_KEY", None)
@@ -58,9 +64,7 @@ class RealtimeStockCollector:
             task_results = await asyncio.gather(*fetch_tasks, return_exceptions=True)
 
             code_price_pairs = list(
-                itertools.chain.from_iterable(
-                    result for result in task_results if not isinstance(result, Exception)
-                )
+                itertools.chain.from_iterable(result for result in task_results if not isinstance(result, Exception))
             )
 
             redis_bulk_data = [(code, price) for code, _, price in code_price_pairs if price]
@@ -82,39 +86,33 @@ class RealtimeStockCollector:
     def is_running(self) -> bool:
         return self._is_running
 
-    def _fetch_stock_price(self, code: str) -> list[str, datetime, float]:
+    def _fetch_stock_price(self, code: str) -> list[tuple[str, datetime, float]]:
         try:
             now = get_current_unix_timestamp()
             end_time = now - make_minute_to_milisecond_timestamp(STOCK_COLLECT_END_TIME_MINUTE)
             start_time = now - make_minute_to_milisecond_timestamp(STOCK_COLLECT_START_TIME_MINUTE)
-            
+
             url = f"https://api.polygon.io/v2/aggs/ticker/{code}/range/1/minute/{start_time}/{end_time}"
-            params = {
-                "adjusted": "true",
-                "sort": "asc",
-                "limit": 5000,
-                "apiKey": POLYGON_API_KEY
-            }
+            
+            ic(url)
+            
+            params = {"adjusted": "true", "sort": "asc", "limit": 5000, "apiKey": POLYGON_API_KEY}
             response = requests.get(url, params=params)
-            stocks: list[str, datetime, float] = self._parse_response_data(response, code)
-            return stocks
+            return self._parse_response_data(response, code)
         except Exception:
             return []
 
-
-    def _parse_response_data(self, response:Response, code: str) -> list[str, datetime, float]:
+    def _parse_response_data(self, response: Response, code: str) -> list[tuple[str, datetime, float]]:
         if response.status_code != 200:
             return []
-        
+
         stock_data = response.json()
-        
+
         result = []
         stocks = stock_data.get("results", [])
-        
+
         for record in stocks:
-            current_datetime = transform_timestamp_datetime(record['t'])
-            result.append((code, current_datetime, record['c']))
+            current_datetime = transform_timestamp_datetime(record["t"])
+            result.append((code, current_datetime, record["c"]))
 
         return result
-
-
