@@ -35,9 +35,7 @@ def transform_timestamp_datetime(timestamp: int) -> datetime:
     if timestamp > 10**10:
         timestamp //= 1000
 
-    adjusted_timestamp = timestamp - (9 * 3600)
-
-    utc_datetime = datetime.fromtimestamp(adjusted_timestamp, tz=ZoneInfo("UTC"))
+    utc_datetime = datetime.fromtimestamp(timestamp, tz=ZoneInfo("UTC"))
     return utc_datetime.astimezone(seoul_tz)
 
 

@@ -15,7 +15,6 @@ from app.module.asset.repository.dividend_repository import DividendRepository
 from app.module.asset.schema import StockInfo
 from database.dependency import get_mysql_session
 
-
 logging.basicConfig(
     level=logging.INFO,
     format="%(asctime)s - %(levelname)s - %(message)s",
@@ -54,7 +53,6 @@ async def insert_dividend_data(session: AsyncSession, stock_list: list[StockInfo
                         continue
 
                     dividend_list.append(dividend)
-
             except Exception:
                 continue
 
