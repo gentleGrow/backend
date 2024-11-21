@@ -2,11 +2,11 @@ import asyncio
 import itertools
 from datetime import datetime
 from os import getenv
-from icecream import ic
 
 import ray
 import requests
 from dotenv import load_dotenv
+from icecream import ic
 from requests.models import Response
 
 from app.common.util.time import (
@@ -93,9 +93,9 @@ class RealtimeStockCollector:
             start_time = now - make_minute_to_milisecond_timestamp(STOCK_COLLECT_START_TIME_MINUTE)
 
             url = f"https://api.polygon.io/v2/aggs/ticker/{code}/range/1/minute/{start_time}/{end_time}"
-            
+
             ic(url)
-            
+
             params = {"adjusted": "true", "sort": "asc", "limit": 5000, "apiKey": POLYGON_API_KEY}
             response = requests.get(url, params=params)
             return self._parse_response_data(response, code)

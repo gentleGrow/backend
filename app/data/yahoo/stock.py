@@ -1,9 +1,8 @@
 import asyncio
 import logging
-import yfinance
 
+import yfinance
 from celery import shared_task
-from database.dependency import get_mysql_session
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -13,14 +12,14 @@ from app.data.yahoo.source.schema import StockDataFrame
 from app.data.yahoo.source.service import format_stock_code, get_last_week_period_bounds
 from app.module.asset.enum import Country, TimeInterval
 from app.module.asset.schema import StockInfo
-
+from database.dependency import get_mysql_session
 
 logging.basicConfig(
-    level=logging.INFO,  
-    format="%(asctime)s - %(levelname)s - %(message)s",  
+    level=logging.INFO,
+    format="%(asctime)s - %(levelname)s - %(message)s",
     handlers=[
-        logging.FileHandler("stock.log"), 
-        logging.StreamHandler(),  
+        logging.FileHandler("/home/backend/stock.log"),
+        logging.StreamHandler(),
     ],
 )
 
@@ -84,12 +83,12 @@ async def process_stock_data(session: AsyncSession, stock_list: list[StockInfo],
                 logging.error(e)
                 await session.rollback()
                 continue
-        
-    logging.info('일별 주식 수집을 마칩니다')
-    
+
+    logging.info("일별 주식 수집을 마칩니다")
+
 
 async def execute_async_task():
-    logging.info('일별 주식 수집을 시작합니다.')
+    logging.info("일별 주식 수집을 시작합니다.")
     start_period, end_period = get_last_week_period_bounds()
     stock_list: list[StockInfo] = StockCodeFileReader.get_usa_korea_stock_code_list()
 

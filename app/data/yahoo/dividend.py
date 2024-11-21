@@ -1,5 +1,6 @@
 import asyncio
 import logging
+
 import pandas as pd
 import yfinance
 from celery import shared_task
@@ -16,11 +17,11 @@ from database.dependency import get_mysql_session
 
 
 logging.basicConfig(
-    level=logging.INFO,  
-    format="%(asctime)s - %(levelname)s - %(message)s",  
+    level=logging.INFO,
+    format="%(asctime)s - %(levelname)s - %(message)s",
     handlers=[
-        logging.FileHandler("dividend.log"), 
-        logging.StreamHandler(),  
+        logging.FileHandler("/home/backend/dividend.log"),
+        logging.StreamHandler(),
     ],
 )
 
@@ -59,10 +60,11 @@ async def insert_dividend_data(session: AsyncSession, stock_list: list[StockInfo
 
         await DividendRepository.bulk_upsert(session=session, dividends=dividend_list)
 
-    logging.info('배당 수집을 마칩니다')
+    logging.info("배당 수집을 마칩니다")
+
 
 async def execute_async_task():
-    logging.info('배당 수집을 시작합니다.')
+    logging.info("배당 수집을 시작합니다.")
     stock_list: list[StockInfo] = StockCodeFileReader.get_all_stock_code_list()
 
     async with get_mysql_session() as session:
