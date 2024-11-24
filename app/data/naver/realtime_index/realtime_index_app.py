@@ -1,4 +1,5 @@
 import asyncio
+
 import ray
 
 from app.data.naver.realtime_index.realtime_index_collector_korea import RealtimeIndexKoreaCollector

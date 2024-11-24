@@ -16,13 +16,13 @@ from app.module.asset.repository.stock_daily_repository import StockDailyReposit
 from app.module.asset.schema import StockInfo
 from database.dependency import get_mysql_session
 
-
 logger = logging.getLogger("stock")
 logger.setLevel(logging.INFO)
 
 file_handler = logging.FileHandler("/home/backend/stock.log", delay=False)
 file_handler.setFormatter(logging.Formatter("%(asctime)s - %(levelname)s - %(message)s"))
 logger.addHandler(file_handler)
+
 
 async def process_stock_data(session: AsyncSession, stock_list: list[StockInfo], start_period: int, end_period: int):
     for stock_info in stock_list:
