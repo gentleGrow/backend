@@ -117,38 +117,6 @@ class StockDaily(MySQLBase):
     __table_args__ = (UniqueConstraint("code", "date", name="uq_code_date"), Index("idx_code_date", "code", "date"))
 
 
-class StockWeekly(MySQLBase):
-    __tablename__ = "stock_weekly"
-
-    id = Column(BigInteger, primary_key=True, autoincrement=True)
-    adj_close_price = Column(Float, nullable=False, info={"description": "Adjusted closing price of the stock"})
-    close_price = Column(Float, nullable=False, info={"description": "Closing price of the stock"})
-    code = Column(String(255), nullable=False)
-    date = Column(Date, primary_key=True, nullable=False, info={"description": "stock closing week"})
-    highest_price = Column(Float, nullable=False, info={"description": "Highest price of the stock"})
-    lowest_price = Column(Float, nullable=False, info={"description": "Lowest price of the stock"})
-    opening_price = Column(Float, nullable=False, info={"description": "Opening price of the stock"})
-    trade_volume = Column(BigInteger, nullable=False, info={"description": "Volume of stock traded"})
-
-    ___table_args__ = (UniqueConstraint("code", "date", name="uq_code_date"),)
-
-
-class StockMonthly(MySQLBase):
-    __tablename__ = "stock_monthly"
-
-    id = Column(BigInteger, primary_key=True, autoincrement=True)
-    adj_close_price = Column(Float, nullable=False, info={"description": "Adjusted closing price of the stock"})
-    close_price = Column(Float, nullable=False, info={"description": "Closing price of the stock"})
-    code = Column(String(255), nullable=False)
-    date = Column(Date, primary_key=True, nullable=False, info={"description": "stock closing month"})
-    highest_price = Column(Float, nullable=False, info={"description": "Highest price of the stock"})
-    lowest_price = Column(Float, nullable=False, info={"description": "Lowest price of the stock"})
-    opening_price = Column(Float, nullable=False, info={"description": "Opening price of the stock"})
-    trade_volume = Column(BigInteger, nullable=False, info={"description": "Volume of stock traded"})
-
-    ___table_args__ = (UniqueConstraint("code", "date", name="uq_code_date"),)
-
-
 class MarketIndexMinutely(MySQLBase):
     __tablename__ = "market_index_minutely"
 
@@ -178,32 +146,3 @@ class MarketIndexDaily(MySQLBase):
 
     __table_args__ = (UniqueConstraint("name", "date", name="uq_name_date"),)
 
-
-class MarketIndexWeekly(MySQLBase):
-    __tablename__ = "market_index_weekly"
-
-    id = Column(BigInteger, primary_key=True, autoincrement=True)
-    name = Column(String(50), nullable=False)
-    date = Column(Date, nullable=False)
-    open_price = Column(Float, nullable=False)
-    close_price = Column(Float, nullable=False)
-    high_price = Column(Float, nullable=False)
-    low_price = Column(Float, nullable=False)
-    volume = Column(BigInteger, nullable=False)
-
-    __table_args__ = (UniqueConstraint("name", "date", name="uq_name_date"),)
-
-
-class MarketIndexMonthly(MySQLBase):
-    __tablename__ = "market_index_monthly"
-
-    id = Column(BigInteger, primary_key=True, autoincrement=True)
-    name = Column(String(50), nullable=False)
-    date = Column(Date, nullable=False)
-    open_price = Column(Float, nullable=False)
-    close_price = Column(Float, nullable=False)
-    high_price = Column(Float, nullable=False)
-    low_price = Column(Float, nullable=False)
-    volume = Column(BigInteger, nullable=False)
-
-    __table_args__ = (UniqueConstraint("name", "date", name="uq_name_date"),)

@@ -24,10 +24,10 @@ from app.module.asset.schema import (
     AssetStockPutRequest_v1,
     AssetStockResponse_v1,
     BankAccountResponse,
+    ParentAssetDeleteResponse,
     StockListResponse,
     StockListValue,
     UpdateAssetFieldRequest,
-    ParentAssetDeleteResponse
 )
 from app.module.asset.services.asset_field_service import AssetFieldService
 from app.module.asset.services.asset_service import AssetService
@@ -210,7 +210,7 @@ async def update_asset_stock(
 
 
 @asset_stock_router.delete("/{asset_id}", summary="자산을 삭제합니다.", response_model=DeleteResponse)
-async def delete_asset_stock(
+async def delete_asset(
     asset_id: int,
     token: AccessToken = Depends(verify_jwt_token),
     session: AsyncSession = Depends(get_mysql_session_router),
@@ -222,7 +222,7 @@ async def delete_asset_stock(
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e))
 
 
-@asset_stock_router.delete("/assetstock/{stock_code}", summary="주식 부모행을 삭제합니다.", response_model=DeleteResponse)
+@asset_stock_router.delete("/assetstock/{stock_code}", summary="주식 부모 행을 삭제합니다.", response_model=DeleteResponse)
 async def delete_asset_stock(
     stock_code: str,
     token: AccessToken = Depends(verify_jwt_token),
@@ -234,12 +234,9 @@ async def delete_asset_stock(
         no_matching_response = ParentAssetDeleteResponse.validate_stock_code(assets, stock_code)
         if no_matching_response:
             return no_matching_response
-        
+
         await asset_service.delete_parent_row(session, assets, stock_code)
-        
+
         return DeleteResponse(status_code=status.HTTP_200_OK, detail="부모행을 성공적으로 삭제 하였습니다.")
     except ValueError as e:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e))
-
-
-

@@ -14,4 +14,3 @@ class PutResponse(BaseModel):
 class DeleteResponse(BaseModel):
     status_code: int = Field(..., description="상태 코드")
     detail: str
-

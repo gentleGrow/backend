@@ -175,12 +175,6 @@ class CurrencyType(StrEnum):
     SPAIN = "EUR"
 
 
-class TimeInterval(StrEnum):
-    DAY = "1d"
-    WEEK = "1wk"
-    MONTH = "1mo"
-
-
 class Country(StrEnum):
     USA = "USA"
     JAPAN = "JAPAN"

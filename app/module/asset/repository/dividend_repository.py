@@ -71,5 +71,5 @@ class DividendRepository:
         try:
             await session.execute(upsert_stmt)
             await session.commit()
-        except Exception as e:
+        except Exception:
             await session.rollback()
