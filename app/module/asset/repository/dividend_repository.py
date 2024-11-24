@@ -1,4 +1,3 @@
-from icecream import ic
 from sqlalchemy.dialects.mysql import insert
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
@@ -72,7 +71,5 @@ class DividendRepository:
         try:
             await session.execute(upsert_stmt)
             await session.commit()
-            ic("성공적으로 저장하였습니다.")
         except Exception as e:
             await session.rollback()
-            ic(f"저장에 실패했습니다. 에러: {e}")

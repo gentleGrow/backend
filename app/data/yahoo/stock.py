@@ -1,7 +1,7 @@
 import asyncio
 import logging
-import yfinance
 
+import yfinance
 from celery import shared_task
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -13,7 +13,6 @@ from app.data.yahoo.source.service import format_stock_code, get_last_week_perio
 from app.module.asset.enum import Country, TimeInterval
 from app.module.asset.schema import StockInfo
 from database.dependency import get_mysql_session
-
 
 logging.basicConfig(
     level=logging.INFO,

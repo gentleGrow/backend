@@ -14,7 +14,6 @@ from app.module.asset.repository.market_index_monthly_repository import MarketIn
 from app.module.asset.repository.market_index_weekly_repository import MarketIndexWeeklyRepository
 from database.dependency import get_mysql_session
 
-
 logging.basicConfig(
     level=logging.INFO,
     format="%(asctime)s - %(levelname)s - %(message)s",

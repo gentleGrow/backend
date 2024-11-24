@@ -1,7 +1,6 @@
 from collections import defaultdict
 from datetime import date, datetime, timedelta
 from typing import Any
-
 import pandas
 from redis.asyncio import Redis
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -37,6 +36,16 @@ class AssetService:
         self.exchange_rate_service = exchange_rate_service
         self.stock_service = stock_service
         self.dividend_service = dividend_service
+
+
+    async def delete_parent_row(self, session: AsyncSession, assets: list[Asset], stock_code: str) -> None:
+        asset_id_list = []
+        for asset in assets:
+            if stock_code == asset.asset_stock.stock.code:
+                asset_id_list.append(asset.id)
+                
+        return await AssetRepository.delete_assets(session, asset_id_list)
+         
 
     def filter_undone_asset(self, assets: list[Asset]) -> list[Asset]:
         return [
