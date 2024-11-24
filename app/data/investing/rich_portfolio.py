@@ -33,14 +33,12 @@ load_dotenv()
 ENVIRONMENT = getenv("ENVIRONMENT", None)
 
 
-logging.basicConfig(
-    level=logging.INFO,
-    format="%(asctime)s - %(levelname)s - %(message)s",
-    handlers=[
-        logging.FileHandler("/home/backend/rich_portfolio.log"),
-        logging.StreamHandler(),
-    ],
-)
+logger = logging.getLogger("stock")
+logger.setLevel(logging.INFO)
+
+file_handler = logging.FileHandler("/home/backend/rich_portfolio.log", delay=False)
+file_handler.setFormatter(logging.Formatter("%(asctime)s - %(levelname)s - %(message)s"))
+logger.addHandler(file_handler)
 
 
 async def fetch_rich_porfolio(redis_client: Redis, session: AsyncSession, person: str):
@@ -136,13 +134,13 @@ async def fetch_rich_porfolio(redis_client: Redis, session: AsyncSession, person
 
 
 async def execute_async_task():
-    logging.info("부자 포트폴리오 수집을 시작합니다.")
+    logger.info("부자 포트폴리오 수집을 시작합니다.")
     redis_client = get_redis_pool()
     async with get_mysql_session() as session:
         for person in RicePeople:
             await fetch_rich_porfolio(redis_client, session, person.value)
 
-        logging.info("부자 포트폴리오 수집을 마칩니다.")
+        logger.info("부자 포트폴리오 수집을 마칩니다.")
 
 
 @shared_task

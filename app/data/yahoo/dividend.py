@@ -15,14 +15,12 @@ from app.module.asset.repository.dividend_repository import DividendRepository
 from app.module.asset.schema import StockInfo
 from database.dependency import get_mysql_session
 
-logging.basicConfig(
-    level=logging.INFO,
-    format="%(asctime)s - %(levelname)s - %(message)s",
-    handlers=[
-        logging.FileHandler("/home/backend/dividend.log"),
-        logging.StreamHandler(),
-    ],
-)
+logger = logging.getLogger("stock")
+logger.setLevel(logging.INFO)
+
+file_handler = logging.FileHandler("/home/backend/dividend.log", delay=False)
+file_handler.setFormatter(logging.Formatter("%(asctime)s - %(levelname)s - %(message)s"))
+logger.addHandler(file_handler)
 
 
 async def insert_dividend_data(session: AsyncSession, stock_list: list[StockInfo], batch_size: int):
@@ -58,11 +56,11 @@ async def insert_dividend_data(session: AsyncSession, stock_list: list[StockInfo
 
         await DividendRepository.bulk_upsert(session=session, dividends=dividend_list)
 
-    logging.info("배당 수집을 마칩니다")
+    logger.info("배당 수집을 마칩니다")
 
 
 async def execute_async_task():
-    logging.info("배당 수집을 시작합니다.")
+    logger.info("배당 수집을 시작합니다.")
     stock_list: list[StockInfo] = StockCodeFileReader.get_all_stock_code_list()
 
     async with get_mysql_session() as session:

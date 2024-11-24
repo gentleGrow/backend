@@ -71,9 +71,7 @@ class RealtimeIndexKoreaCollector:
                 update_time="",
             )
 
-            market_index_db = MarketIndexMinutely(
-                name=MarketIndex.KOSPI, datetime=now, price=kospi_current_value
-            )
+            market_index_db = MarketIndexMinutely(name=MarketIndex.KOSPI, datetime=now, price=kospi_current_value)
 
             return {"db": market_index_db, "redis": market_index_data}
         except Exception:

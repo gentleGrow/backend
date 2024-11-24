@@ -31,7 +31,7 @@ async def collect_realtime_stock_history(session: AsyncSession, code: str):
     url = f"https://api.polygon.io/v2/aggs/ticker/{code}/range/1/minute/{start_time}/{end_time}"
     params = {"adjusted": "true", "sort": "asc", "limit": 5000, "apiKey": POLYGON_API_KEY}
 
-    response = requests.get(url, params=params)
+    response = requests.get(url, params=params, timeout=10)
     stocks: list[tuple[str, datetime, float]] = parse_response_data(response, code)
     db_bulk_data = []
 

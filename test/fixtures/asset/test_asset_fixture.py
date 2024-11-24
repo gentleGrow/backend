@@ -340,9 +340,7 @@ async def setup_market_index_minutely_data(session: AsyncSession):
     start_date = end_date - timedelta(days=4)
 
     mock_data = [
-        MarketIndexMinutely(
-            name=market_type.value, datetime=start_date + timedelta(minutes=i), price=3000.0 + i
-        )
+        MarketIndexMinutely(name=market_type.value, datetime=start_date + timedelta(minutes=i), price=3000.0 + i)
         for i in range(0, 60 * 24 * 5, 30)
     ]
 

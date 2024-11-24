@@ -27,6 +27,7 @@ celery_task = Celery(
 
 celery_task.conf.update(
     {
+        "worker_hijack_root_logger": False,
         "broker_connection_retry_on_startup": True,
         "beat_schedule_filename": "/home/ubuntu/celerybeat-schedule.db",
         "timezone": "Asia/Seoul",

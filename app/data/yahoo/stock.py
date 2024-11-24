@@ -16,15 +16,13 @@ from app.module.asset.repository.stock_daily_repository import StockDailyReposit
 from app.module.asset.schema import StockInfo
 from database.dependency import get_mysql_session
 
-logging.basicConfig(
-    level=logging.INFO,
-    format="%(asctime)s - %(levelname)s - %(message)s",
-    handlers=[
-        logging.FileHandler("/home/backend/stock.log"),
-        logging.StreamHandler(),
-    ],
-)
 
+logger = logging.getLogger("stock")
+logger.setLevel(logging.INFO)
+
+file_handler = logging.FileHandler("/home/backend/stock.log", delay=False)
+file_handler.setFormatter(logging.Formatter("%(asctime)s - %(levelname)s - %(message)s"))
+logger.addHandler(file_handler)
 
 async def process_stock_data(session: AsyncSession, stock_list: list[StockInfo], start_period: int, end_period: int):
     for stock_info in stock_list:
@@ -42,7 +40,7 @@ async def process_stock_data(session: AsyncSession, stock_list: list[StockInfo],
             df = stock.history(start=start_period, end=end_period, interval=STOCK_TIME_INTERVAL)
             df.reset_index(inplace=True)
         except Exception as e:
-            logging.error(e)
+            logger.error(e)
             continue
 
         stock_rows = []
@@ -59,7 +57,7 @@ async def process_stock_data(session: AsyncSession, stock_list: list[StockInfo],
                     volume=row["Volume"],
                 )
             except Exception as e:
-                logging.error(e)
+                logger.error(e)
                 continue
 
             stock_row = StockDaily(
@@ -78,15 +76,15 @@ async def process_stock_data(session: AsyncSession, stock_list: list[StockInfo],
         try:
             await StockDailyRepository.bulk_upsert(session, stock_rows)
         except IntegrityError as e:
-            logging.error(e)
+            logger.error(e)
             await session.rollback()
             continue
 
-    logging.info("일별 주식 수집을 마칩니다")
+    logger.info("일별 주식 수집을 마칩니다")
 
 
 async def execute_async_task():
-    logging.info("일별 주식 수집을 시작합니다.")
+    logger.info("일별 주식 수집을 시작합니다.")
     start_period, end_period = get_last_week_period_bounds()
     stock_list: list[StockInfo] = StockCodeFileReader.get_usa_korea_stock_code_list()
 
@@ -96,6 +94,7 @@ async def execute_async_task():
 
 @shared_task
 def main():
+    logger.info("Celery 작업이 시작되었습니다.")
     asyncio.run(execute_async_task())
 
 
