@@ -36,7 +36,7 @@ async def collect_realtime_stock_history(session: AsyncSession, code: str):
     db_bulk_data = []
 
     for code, current_datetime, price in stocks:
-        current_stock_data = StockMinutely(code=code, datetime=current_datetime, current_price=price)
+        current_stock_data = StockMinutely(code=code, datetime=current_datetime, price=price)
         db_bulk_data.append(current_stock_data)
 
     await StockMinutelyRepository.bulk_upsert(session, db_bulk_data)

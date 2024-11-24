@@ -4,7 +4,7 @@ import yfinance
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.data.common.enum import MarketIndexEnum
-from app.data.yahoo.source.constant import STOCK_HISTORY_TIMERANGE_YEAR, MARKET_TIME_INTERVAL
+from app.data.yahoo.source.constant import MARKET_TIME_INTERVAL, STOCK_HISTORY_TIMERANGE_YEAR
 from app.data.yahoo.source.service import get_period_bounds
 from app.module.asset.model import MarketIndexDaily
 from app.module.asset.repository.market_index_daily_repository import MarketIndexDailyRepository
@@ -17,7 +17,9 @@ async def fetch_and_save_market_index_data(
     start_period: str,
     end_period: str,
 ):
-    index_data = yfinance.download(index_symbol, start=start_period, end=end_period, interval=MARKET_TIME_INTERVAL, progress=False)
+    index_data = yfinance.download(
+        index_symbol, start=start_period, end=end_period, interval=MARKET_TIME_INTERVAL, progress=False
+    )
 
     if index_data.empty:
         print(f"{index_symbol} 데이터를 찾지 못 했습니다.")
@@ -27,7 +29,7 @@ async def fetch_and_save_market_index_data(
 
     for index, row in index_data.iterrows():
         market_index_record = MarketIndexDaily(
-            name=index_symbol.value.lstrip("^"),
+            name=index_symbol.lstrip("^"),
             date=index.date(),
             open_price=row["Open"],
             close_price=row["Close"],
@@ -43,12 +45,12 @@ async def fetch_and_save_market_index_data(
 
 
 async def fetch_and_save_all_intervals(session: AsyncSession, index_symbol: str, start_period: str, end_period: str):
-        await fetch_and_save_market_index_data(
-            session,
-            index_symbol,
-            start_period,
-            end_period,
-        )
+    await fetch_and_save_market_index_data(
+        session,
+        index_symbol,
+        start_period,
+        end_period,
+    )
 
 
 async def main():

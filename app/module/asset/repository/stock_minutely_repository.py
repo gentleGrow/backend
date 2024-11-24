@@ -39,13 +39,13 @@ class StockMinutelyRepository:
                 {
                     "code": stock.code,
                     "datetime": stock.datetime,
-                    "current_price": stock.current_price,
+                    "price": stock.price,
                 }
                 for stock in stocks
             ]
         )
 
-        update_dict = {"current_price": stmt.inserted.current_price}
+        update_dict = {"price": stmt.inserted.price}
 
         upsert_stmt = stmt.on_duplicate_key_update(update_dict)
 

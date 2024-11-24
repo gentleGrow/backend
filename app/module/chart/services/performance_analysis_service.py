@@ -257,7 +257,7 @@ class PerformanceAnalysisService:
             naive_current_datetime = current_datetime.replace(tzinfo=None)
             if naive_current_datetime in market_index_minutely_map:
                 market_index = market_index_minutely_map[naive_current_datetime]
-                current_profit = ((current_kospi_price - market_index.current_price) / market_index.current_price) * 100
+                current_profit = ((current_kospi_price - market_index.price) / market_index.price) * 100
 
             result[naive_current_datetime] = current_profit
             current_datetime += timedelta(minutes=interval.get_interval())

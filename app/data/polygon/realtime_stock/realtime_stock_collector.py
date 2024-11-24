@@ -69,7 +69,7 @@ class RealtimeStockCollector:
             redis_bulk_data = [(code, price) for code, _, price in code_price_pairs if price]
 
             for code, current_datetime, price in code_price_pairs:
-                current_stock_data = StockMinutely(code=code, datetime=current_datetime, current_price=price)
+                current_stock_data = StockMinutely(code=code, datetime=current_datetime, price=price)
                 db_bulk_data.append(current_stock_data)
 
             if redis_bulk_data:

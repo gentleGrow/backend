@@ -5,12 +5,14 @@ import yfinance
 from celery import shared_task
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
-from app.module.asset.model import StockDaily
-from app.module.asset.repository.stock_daily_repository import StockDailyRepository
+
 from app.data.common.service import StockCodeFileReader
+from app.data.yahoo.source.constant import STOCK_TIME_INTERVAL
 from app.data.yahoo.source.schema import StockDataFrame
 from app.data.yahoo.source.service import format_stock_code, get_last_week_period_bounds
 from app.module.asset.enum import Country
+from app.module.asset.model import StockDaily
+from app.module.asset.repository.stock_daily_repository import StockDailyRepository
 from app.module.asset.schema import StockInfo
 from database.dependency import get_mysql_session
 
@@ -37,7 +39,7 @@ async def process_stock_data(session: AsyncSession, stock_list: list[StockInfo],
 
         try:
             stock = yfinance.Ticker(stock_code)
-            df = stock.history(start=start_period, end=end_period, interval=interval.value)
+            df = stock.history(start=start_period, end=end_period, interval=STOCK_TIME_INTERVAL)
             df.reset_index(inplace=True)
         except Exception as e:
             logging.error(e)

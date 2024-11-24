@@ -132,7 +132,7 @@ class RealtimeIndexWorldCollector:
                 update_time=tr_row_data[5],
             )
 
-            current_index = MarketIndexMinutely(name=name_en, datetime=get_now_datetime(), current_price=current_value)
+            current_index = MarketIndexMinutely(name=name_en, datetime=get_now_datetime(), price=current_value)
 
             return {"redis": (name_en, market_index.model_dump_json()), "db": current_index}
 

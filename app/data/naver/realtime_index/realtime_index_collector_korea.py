@@ -72,7 +72,7 @@ class RealtimeIndexKoreaCollector:
             )
 
             market_index_db = MarketIndexMinutely(
-                name=MarketIndex.KOSPI, datetime=now, current_price=kospi_current_value
+                name=MarketIndex.KOSPI, datetime=now, price=kospi_current_value
             )
 
             return {"db": market_index_db, "redis": market_index_data}
@@ -96,7 +96,7 @@ class RealtimeIndexKoreaCollector:
             update_time="",
         )
 
-        market_index_db = MarketIndexMinutely(name=MarketIndex.KOSDAQ, datetime=now, current_price=kosdaq_current_value)
+        market_index_db = MarketIndexMinutely(name=MarketIndex.KOSDAQ, datetime=now, price=kosdaq_current_value)
 
         return {"db": market_index_db, "redis": market_index_data}
 

@@ -2,13 +2,14 @@ import asyncio
 
 import yfinance
 from sqlalchemy.ext.asyncio import AsyncSession
-from app.module.asset.model import StockDaily
-from app.module.asset.repository.stock_daily_repository import StockDailyRepository
+
 from app.data.common.service import StockCodeFileReader
 from app.data.yahoo.source.constant import STOCK_HISTORY_TIMERANGE_YEAR, STOCK_TIME_INTERVAL
 from app.data.yahoo.source.schema import StockDataFrame
 from app.data.yahoo.source.service import format_stock_code, get_period_bounds
 from app.module.asset.enum import Country
+from app.module.asset.model import StockDaily
+from app.module.asset.repository.stock_daily_repository import StockDailyRepository
 from app.module.asset.schema import StockInfo
 from database.dependency import get_mysql_session
 

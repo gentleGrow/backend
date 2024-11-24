@@ -341,7 +341,7 @@ async def setup_market_index_minutely_data(session: AsyncSession):
 
     mock_data = [
         MarketIndexMinutely(
-            name=market_type.value, datetime=start_date + timedelta(minutes=i), current_price=3000.0 + i
+            name=market_type.value, datetime=start_date + timedelta(minutes=i), price=3000.0 + i
         )
         for i in range(0, 60 * 24 * 5, 30)
     ]
@@ -355,13 +355,13 @@ async def setup_market_index_minutely(session: AsyncSession):
     market_index_1 = MarketIndexMinutely(
         name=MarketIndex.KOSPI,
         datetime=datetime(2024, 9, 24, 21, 30),
-        current_price=3100.0,
+        price=3100.0,
     )
 
     market_index_2 = MarketIndexMinutely(
         name=MarketIndex.KOSPI,
         datetime=datetime(2024, 9, 24, 22, 30),
-        current_price=3150.0,
+        price=3150.0,
     )
 
     session.add_all([market_index_1, market_index_2])
@@ -370,13 +370,13 @@ async def setup_market_index_minutely(session: AsyncSession):
 
 @pytest.fixture(scope="function")
 async def setup_stock_minutely(session: AsyncSession):
-    stock_minutely_1 = StockMinutely(code="AAPL", datetime=datetime(2024, 8, 13, 10, 30), current_price=150.0)
+    stock_minutely_1 = StockMinutely(code="AAPL", datetime=datetime(2024, 8, 13, 10, 30), price=150.0)
 
-    stock_minutely_2 = StockMinutely(code="AAPL", datetime=datetime(2024, 8, 13, 10, 45), current_price=151.0)
+    stock_minutely_2 = StockMinutely(code="AAPL", datetime=datetime(2024, 8, 13, 10, 45), price=151.0)
 
-    stock_minutely_3 = StockMinutely(code="TSLA", datetime=datetime(2024, 8, 13, 10, 30), current_price=720.0)
+    stock_minutely_3 = StockMinutely(code="TSLA", datetime=datetime(2024, 8, 13, 10, 30), price=720.0)
 
-    stock_minutely_4 = StockMinutely(code="TSLA", datetime=datetime(2024, 8, 13, 10, 45), current_price=725.0)
+    stock_minutely_4 = StockMinutely(code="TSLA", datetime=datetime(2024, 8, 13, 10, 45), price=725.0)
 
     session.add_all([stock_minutely_1, stock_minutely_2, stock_minutely_3, stock_minutely_4])
     await session.commit()
