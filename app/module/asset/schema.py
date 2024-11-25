@@ -1,10 +1,24 @@
 from datetime import date
 from typing import Optional
 
+from fastapi import status
 from pydantic import BaseModel, Field, RootModel
 
 from app.module.asset.enum import AccountType, InvestmentBankType, PurchaseCurrencyType
 from app.module.asset.model import Asset
+
+
+class ParentAssetDeleteResponse(BaseModel):
+    status_code: int = Field(..., description="상태 코드")
+    detail: str
+
+    @staticmethod
+    def validate_stock_code(assets: list[Asset], stock_code: str) -> Optional["ParentAssetDeleteResponse"]:
+        for asset in assets:
+            if stock_code == asset.asset_stock.stock.code:
+                return None
+
+        return ParentAssetDeleteResponse(status_code=status.HTTP_404_NOT_FOUND, detail="해당하는 주식 종목을 보유하고 있지 않습니다.")
 
 
 class StockAssetField(BaseModel):
@@ -46,13 +60,13 @@ class StockAssetGroup(BaseModel):
 
 class AssetPostResponse(BaseModel):
     status_code: int = Field(..., description="상태 코드")
-    content: str
+    detail: str
     field: str
 
 
 class AssetPutResponse(BaseModel):
     status_code: int = Field(..., description="상태 코드")
-    content: str
+    detail: str
     field: str
 
 

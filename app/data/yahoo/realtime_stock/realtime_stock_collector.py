@@ -3,6 +3,7 @@ import asyncio
 import ray
 import yfinance
 from aiolimiter import AsyncLimiter
+
 from app.common.util.time import get_now_datetime
 from app.data.common.constant import STOCK_CACHE_SECOND
 from app.data.yahoo.source.service import format_stock_code
@@ -61,7 +62,7 @@ class RealtimeStockCollector:
             redis_bulk_data = [(code, price) for code, price in code_price_pairs if price]
 
             for code, price in redis_bulk_data:
-                current_stock_data = StockMinutely(code=code, datetime=now, current_price=price)
+                current_stock_data = StockMinutely(code=code, datetime=now, price=price)
                 db_bulk_data.append(current_stock_data)
 
             if redis_bulk_data:

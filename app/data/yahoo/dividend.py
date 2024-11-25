@@ -1,4 +1,5 @@
 import asyncio
+import logging
 
 import pandas as pd
 import yfinance
@@ -13,6 +14,13 @@ from app.module.asset.model import Dividend
 from app.module.asset.repository.dividend_repository import DividendRepository
 from app.module.asset.schema import StockInfo
 from database.dependency import get_mysql_session
+
+logger = logging.getLogger("stock")
+logger.setLevel(logging.INFO)
+
+file_handler = logging.FileHandler("/home/backend/dividend.log", delay=False)
+file_handler.setFormatter(logging.Formatter("%(asctime)s - %(levelname)s - %(message)s"))
+logger.addHandler(file_handler)
 
 
 async def insert_dividend_data(session: AsyncSession, stock_list: list[StockInfo], batch_size: int):
@@ -43,21 +51,20 @@ async def insert_dividend_data(session: AsyncSession, stock_list: list[StockInfo
                         continue
 
                     dividend_list.append(dividend)
-
             except Exception:
                 continue
 
         await DividendRepository.bulk_upsert(session=session, dividends=dividend_list)
 
+    logger.info("배당 수집을 마칩니다")
+
 
 async def execute_async_task():
+    logger.info("배당 수집을 시작합니다.")
     stock_list: list[StockInfo] = StockCodeFileReader.get_all_stock_code_list()
 
-    try:
-        async with get_mysql_session() as session:
-            await insert_dividend_data(session, stock_list, BATCH_SIZE)
-    except asyncio.CancelledError:
-        raise
+    async with get_mysql_session() as session:
+        await insert_dividend_data(session, stock_list, BATCH_SIZE)
 
 
 @shared_task

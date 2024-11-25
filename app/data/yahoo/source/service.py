@@ -1,7 +1,7 @@
 import datetime
 
 from app.common.util.time import end_timestamp, start_timestamp
-from app.module.asset.constant import KOSPI, NYSE
+from app.module.asset.constant import KOSPI
 from app.module.asset.enum import Country, CountryMarketCode
 
 

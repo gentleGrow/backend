@@ -1,7 +1,15 @@
 import calendar
 import time
-from datetime import datetime, timedelta
+from datetime import date, datetime, timedelta
 from zoneinfo import ZoneInfo
+
+
+def make_minute_to_milisecond_timestamp(minute: int) -> int:
+    return minute * 60 * 1000
+
+
+def get_current_unix_timestamp() -> int:
+    return int(time.time() * 1000)
 
 
 def get_date_past_day(days: int):
@@ -10,18 +18,28 @@ def get_date_past_day(days: int):
     return now_in_seoul.date() - timedelta(days=days)
 
 
-def check_weekend():
+def check_weekend() -> bool:
     today = datetime.today().weekday()
     return today >= 5
 
 
-def get_now_date():
+def get_now_date() -> date:
     seoul_tz = ZoneInfo("Asia/Seoul")
     now_in_seoul = datetime.now(seoul_tz)
     return now_in_seoul.date()
 
 
-def get_now_datetime():
+def transform_timestamp_datetime(timestamp: int) -> datetime:
+    seoul_tz = ZoneInfo("Asia/Seoul")
+
+    if timestamp > 10**10:
+        timestamp //= 1000
+
+    utc_datetime = datetime.fromtimestamp(timestamp, tz=ZoneInfo("UTC"))
+    return utc_datetime.astimezone(seoul_tz)
+
+
+def get_now_datetime() -> datetime:
     seoul_tz = ZoneInfo("Asia/Seoul")
     return datetime.now(seoul_tz).replace(second=0, microsecond=0)
 

@@ -7,13 +7,9 @@ from app.module.asset.model import (  # noqa > relationship purpose
     Dividend,
     MarketIndexDaily,
     MarketIndexMinutely,
-    MarketIndexMonthly,
-    MarketIndexWeekly,
     Stock,
     StockDaily,
     StockMinutely,
-    StockMonthly,
-    StockWeekly,
 )
 from app.module.auth.model import User  # noqa > relationship purpose
 from app.module.chart.model import InvestTip  # noqa > create table

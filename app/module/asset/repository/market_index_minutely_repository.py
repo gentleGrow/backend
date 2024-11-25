@@ -49,13 +49,13 @@ class MarketIndexMinutelyRepository:
                 {
                     "name": market_index.name,
                     "datetime": market_index.datetime,
-                    "current_price": market_index.current_price,
+                    "price": market_index.price,
                 }
                 for market_index in market_indexes
             ]
         )
 
-        update_dict = {"current_price": stmt.inserted.current_price}
+        update_dict = {"price": stmt.inserted.price}
 
         upsert_stmt = stmt.on_duplicate_key_update(update_dict)
 

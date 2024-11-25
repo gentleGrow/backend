@@ -2,7 +2,7 @@ from datetime import date
 
 from redis.asyncio import Redis
 from sqlalchemy.ext.asyncio import AsyncSession
-from app.module.asset.constant import KOREA, USA
+
 from app.common.util.time import get_now_date
 from app.module.asset.model import Asset, Stock, StockDaily
 from app.module.asset.redis_repository import RedisRealTimeStockRepository
@@ -74,14 +74,3 @@ class StockService:
             stock_profit = ((current_stock_price - stock_daily.adj_close_price) / stock_daily.adj_close_price) * 100
             result[stock_code] = stock_profit
         return result
-
-
-    async def get_korea_usa_stock(self, session: AsyncSession) -> list[Stock]:
-        stock_list: list[Stock] = await StockRepository.get_countries_stock(session, [KOREA, USA])
-
-    
-    
-    
-    
-    
-    

@@ -23,6 +23,6 @@ class StockMinutelyService:
         )
 
         return {
-            f"{stock_minutely.code}_{stock_minutely.datetime}": stock_minutely.current_price
+            f"{stock_minutely.code}_{stock_minutely.datetime}": stock_minutely.price
             for stock_minutely in stock_minute_list
         }

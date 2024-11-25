@@ -27,7 +27,6 @@ from app.module.auth.services.oauth_service import Google, Kakao, Naver
 from app.module.auth.services.user_service import UserService
 from database.dependency import get_mysql_session_router, get_redis_pool
 
-
 auth_router = APIRouter(prefix="/v1")
 
 
@@ -40,11 +39,11 @@ async def delete_user(
 ):
     user = await UserRepository.get(session, token.get("user"))
     if user is None:
-        return DeleteResponse(status_code=status.HTTP_404_NOT_FOUND, content="유저 정보가 없습니다.")
+        return DeleteResponse(status_code=status.HTTP_404_NOT_FOUND, detail="유저 정보가 없습니다.")
 
     await user_service.save_user_quit_reason(request.reason)
     await UserRepository.delete(session, user.id)
-    return DeleteResponse(status_code=status.HTTP_200_OK, content="성공적으로 삭제하였습니다.")
+    return DeleteResponse(status_code=status.HTTP_200_OK, detail="성공적으로 삭제하였습니다.")
 
 
 @auth_router.get("/user", summary="유저 정보를 확인합니다.", response_model=UserInfoResponse)
@@ -80,13 +79,13 @@ async def update_nickname(
     try:
         request.nickname = NicknameRequest.validate_nickname(request.nickname)
     except HTTPException as e:
-        return PostResponse(status_code=e.status_code, content=e.detail)
+        return PostResponse(status_code=e.status_code, detail=e.detail)
 
     if user_nickname is not None:
-        return PostResponse(status_code=status.HTTP_400_BAD_REQUEST, content="이미 존재하는 닉네임입니다.")
+        return PostResponse(status_code=status.HTTP_400_BAD_REQUEST, detail="이미 존재하는 닉네임입니다.")
 
     await UserRepository.update_nickname(session, token.get("user"), request.nickname)
-    return PostResponse(status_code=status.HTTP_200_OK, content="성공적으로 닉네임을 저장하였습니다.")
+    return PostResponse(status_code=status.HTTP_200_OK, detail="성공적으로 닉네임을 저장하였습니다.")
 
 
 @auth_router.post(
@@ -257,4 +256,3 @@ async def refresh_access_token(
     access_token = JWTBuilder.generate_access_token(user_id, social_id)
 
     return AccessTokenResponse(access_token=access_token)
-

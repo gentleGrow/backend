@@ -2,7 +2,7 @@ import asyncio
 
 import ray
 from more_itertools import chunked
-from icecream import ic
+
 from app.data.common.service import StockCodeFileReader
 from app.data.yahoo.realtime_stock.realtime_stock_collector import RealtimeStockCollector
 from app.data.yahoo.realtime_stock.realtime_stock_monitor import RealtimeStockMonitor

@@ -53,21 +53,21 @@ async def update_asset_stock(
         if stock_exist is False:
             return AssetPutResponse(
                 status_code=status.HTTP_404_NOT_FOUND,
-                content=f"{request_data.stock_code} 코드의 {request_data.trade_date} 날짜가 존재하지 않습니다.",
+                detail=f"{request_data.stock_code} 코드의 {request_data.trade_date} 날짜가 존재하지 않습니다.",
                 field=StockAsset.TRADE_DATE,
             )
 
     if request_data.trade not in TradeType:
         return AssetPutResponse(
             status_code=status.HTTP_404_NOT_FOUND,
-            content=f"{request_data.trade}는 매수와 매도만 가능합니다",
+            detail=f"{request_data.trade}는 매수와 매도만 가능합니다",
             field=StockAsset.TRADE,
         )
 
     stock = await StockRepository.get_by_code(session, request_data.stock_code)
 
     await asset_service.save_asset_by_put(session, request_data, asset, stock)
-    return AssetPutResponse(status_code=status.HTTP_200_OK, content="주식 자산을 성공적으로 수정 하였습니다.", field="")
+    return AssetPutResponse(status_code=status.HTTP_200_OK, detail="주식 자산을 성공적으로 수정 하였습니다.", field="")
 
 
 @asset_stock_router_v2.post("/assetstock", summary="자산관리 정보를 등록합니다.", response_model=AssetPostResponse)
@@ -91,19 +91,19 @@ async def create_asset_stock(
         if stock_exist is False:
             return AssetPostResponse(
                 status_code=status.HTTP_404_NOT_FOUND,
-                content=f"{request_data.stock_code} 코드의 {request_data.trade_date} 날짜가 존재하지 않습니다.",
+                detail=f"{request_data.stock_code} 코드의 {request_data.trade_date} 날짜가 존재하지 않습니다.",
                 field=StockAsset.TRADE_DATE,
             )
 
     if request_data.trade not in TradeType:
         return AssetPostResponse(
             status_code=status.HTTP_404_NOT_FOUND,
-            content=f"{request_data.trade}는 매수와 매도만 가능합니다",
+            detail=f"{request_data.trade}는 매수와 매도만 가능합니다",
             field=StockAsset.TRADE,
         )
 
     await asset_stock_service.save_asset_stock_by_post(session, request_data, stock.id, token.get("user"))
-    return AssetPostResponse(status_code=status.HTTP_201_CREATED, content="주식을 성공적으로 등록 했습니다.", field="")
+    return AssetPostResponse(status_code=status.HTTP_201_CREATED, detail="주식을 성공적으로 등록 했습니다.", field="")
 
 
 @asset_stock_router_v2.get("/sample/assetstock", summary="임시 자산 정보를 반환합니다.", response_model=AssetStockResponse)

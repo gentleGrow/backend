@@ -1,11 +1,10 @@
-from datetime import datetime
-
 from sqlalchemy import and_
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
 from sqlalchemy.orm import joinedload, selectinload
 from sqlalchemy.orm.exc import NoResultFound
 
+from app.common.util.time import get_now_datetime
 from app.module.asset.enum import AssetType
 from app.module.asset.model import Asset, AssetStock
 
@@ -26,6 +25,31 @@ class AssetRepository:
         await session.commit()
 
     @staticmethod
+    async def delete_assets(session: AsyncSession, asset_ids: list[int]) -> None:
+        try:
+            assets = await session.execute(
+                select(Asset).filter(Asset.id.in_(asset_ids)).options(joinedload(Asset.asset_stock))
+            )
+            assets = assets.scalars().all()
+
+            if not assets:
+                raise ValueError(f"주어진 Asset IDs {asset_ids}에 해당하는 자산이 없습니다.")
+
+            for asset in assets:
+                if asset.asset_stock:
+                    asset.asset_stock.deleted_at = get_now_datetime()
+
+                asset.deleted_at = get_now_datetime()
+
+            await session.commit()
+
+        except NoResultFound:
+            raise ValueError(f"Asset IDs {asset_ids} 중 하나도 찾을 수 없습니다.")
+        except Exception as e:
+            await session.rollback()
+            raise ValueError(f"자산 삭제 중 오류 발생: {e}")
+
+    @staticmethod
     async def delete_asset(session: AsyncSession, asset_id: int) -> None:
         try:
             asset = await session.execute(
@@ -36,9 +60,9 @@ class AssetRepository:
             raise ValueError(f"Asset ID {asset_id}를 찾을 수 없습니다.")
 
         if asset.asset_stock:
-            asset.asset_stock.deleted_at = datetime.now()
+            asset.asset_stock.deleted_at = get_now_datetime()
 
-        asset.deleted_at = datetime.now()
+        asset.deleted_at = get_now_datetime()
         await session.commit()
 
     @staticmethod

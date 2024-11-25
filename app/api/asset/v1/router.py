@@ -4,7 +4,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.common.auth.security import verify_jwt_token
 from app.common.schema.common_schema import DeleteResponse, PutResponse
-from app.module.asset.constant import CurrencyType, KOREA, USA
+from app.module.asset.constant import KOREA, USA, CurrencyType
 from app.module.asset.dependencies.asset_dependency import get_asset_service
 from app.module.asset.dependencies.asset_field_dependency import get_asset_field_service
 from app.module.asset.dependencies.asset_stock_dependency import get_asset_stock_service
@@ -24,6 +24,7 @@ from app.module.asset.schema import (
     AssetStockPutRequest_v1,
     AssetStockResponse_v1,
     BankAccountResponse,
+    ParentAssetDeleteResponse,
     StockListResponse,
     StockListValue,
     UpdateAssetFieldRequest,
@@ -60,7 +61,7 @@ async def update_asset_field(
     await AssetFieldRepository.update(
         session, AssetField(id=asset_field.id, user_id=token.get("user"), field_preference=request_data.root)
     )
-    return PutResponse(status_code=status.HTTP_200_OK, content="자산관리 필드를 성공적으로 수정 하였습니다.")
+    return PutResponse(status_code=status.HTTP_200_OK, detail="자산관리 필드를 성공적으로 수정 하였습니다.")
 
 
 @asset_stock_router.get("/bank-accounts", summary="증권사와 계좌 리스트를 반환합니다.", response_model=BankAccountResponse)
@@ -173,12 +174,12 @@ async def create_asset_stock(
     if stock_exist is False:
         return AssetPostResponse(
             status_code=status.HTTP_404_NOT_FOUND,
-            content=f"{request_data.stock_code} 코드의 {request_data.buy_date} 날짜가 존재하지 않습니다.",
+            detail=f"{request_data.stock_code} 코드의 {request_data.buy_date} 날짜가 존재하지 않습니다.",
             field=StockAsset_v1.BUY_DATE,
         )
 
     await asset_stock_service.save_asset_stock_by_post_v1(session, request_data, stock.id, token.get("user"))
-    return AssetPostResponse(status_code=status.HTTP_201_CREATED, content="주식 자산 성공적으로 등록 했습니다.", field="")
+    return AssetPostResponse(status_code=status.HTTP_201_CREATED, detail="주식 자산 성공적으로 등록 했습니다.", field="")
 
 
 @asset_stock_router.patch("/assetstock", summary="주식 자산을 수정합니다.", response_model=AssetPutResponse)
@@ -198,24 +199,44 @@ async def update_asset_stock(
         if stock_exist is False:
             return AssetPutResponse(
                 status_code=status.HTTP_404_NOT_FOUND,
-                content=f"{request_data.stock_code} 코드의 {request_data.buy_date} 날짜가 존재하지 않습니다.",
+                detail=f"{request_data.stock_code} 코드의 {request_data.buy_date} 날짜가 존재하지 않습니다.",
                 field=StockAsset_v1.BUY_DATE,
             )
 
     stock = await StockRepository.get_by_code(session, request_data.stock_code)
 
     await asset_service.save_asset_by_put_v1(session, request_data, asset, stock)
-    return AssetPutResponse(status_code=status.HTTP_200_OK, content="주식 자산을 성공적으로 수정 하였습니다.", field="")
+    return AssetPutResponse(status_code=status.HTTP_200_OK, detail="주식 자산을 성공적으로 수정 하였습니다.", field="")
 
 
-@asset_stock_router.delete("/assetstock/{asset_id}", summary="자산을 삭제합니다.", response_model=DeleteResponse)
-async def delete_asset_stock(
+@asset_stock_router.delete("/{asset_id}", summary="자산을 삭제합니다.", response_model=DeleteResponse)
+async def delete_asset(
     asset_id: int,
     token: AccessToken = Depends(verify_jwt_token),
     session: AsyncSession = Depends(get_mysql_session_router),
 ) -> DeleteResponse:
     try:
         await AssetRepository.delete_asset(session, asset_id)
-        return DeleteResponse(status_code=status.HTTP_200_OK, content="주식 자산이 성공적으로 삭제 되었습니다.")
+        return DeleteResponse(status_code=status.HTTP_200_OK, detail="주식 자산이 성공적으로 삭제 되었습니다.")
+    except ValueError as e:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e))
+
+
+@asset_stock_router.delete("/assetstock/{stock_code}", summary="주식 부모 행을 삭제합니다.", response_model=DeleteResponse)
+async def delete_asset_stock(
+    stock_code: str,
+    token: AccessToken = Depends(verify_jwt_token),
+    session: AsyncSession = Depends(get_mysql_session_router),
+    asset_service: AssetService = Depends(get_asset_service),
+) -> DeleteResponse:
+    try:
+        assets: list[Asset] = await AssetRepository.get_eager(session, token.get("user"), AssetType.STOCK)
+        no_matching_response = ParentAssetDeleteResponse.validate_stock_code(assets, stock_code)
+        if no_matching_response:
+            return no_matching_response
+
+        await asset_service.delete_parent_row(session, assets, stock_code)
+
+        return DeleteResponse(status_code=status.HTTP_200_OK, detail="부모행을 성공적으로 삭제 하였습니다.")
     except ValueError as e:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e))
