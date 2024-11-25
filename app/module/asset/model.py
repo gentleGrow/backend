@@ -10,6 +10,7 @@ from sqlalchemy import (
     Integer,
     String,
     UniqueConstraint,
+    text
 )
 from sqlalchemy.orm import relationship
 
@@ -67,6 +68,10 @@ class Asset(TimestampMixin, MySQLBase):
         "Stock", secondary="asset_stock", back_populates="asset", overlaps="asset_stock", lazy="selectin"
     )
     asset_stock = relationship("AssetStock", back_populates="asset", uselist=False, overlaps="stock", lazy="selectin")
+  
+    __table_args__ = (
+        Index("idx_user_id_asset_type_deleted_at", "user_id", "asset_type", "deleted_at"),
+    )
 
 
 class Stock(TimestampMixin, MySQLBase):
@@ -97,7 +102,7 @@ class StockMinutely(MySQLBase):
     __table_args__ = (
         UniqueConstraint("code", "datetime", name="uq_code_name_datetime"),
         Index("idx_code", "code"),
-        Index("idx_code_datetime", "code", "datetime"),
+        Index("idx_code_datetime_desc", "code", text("datetime DESC"))
     )
 
 
@@ -114,7 +119,7 @@ class StockDaily(MySQLBase):
     opening_price = Column(Float, nullable=False, info={"description": "Opening price of the stock"})
     trade_volume = Column(BigInteger, nullable=False, info={"description": "Volume of stock traded"})
 
-    __table_args__ = (UniqueConstraint("code", "date", name="uq_code_date"), Index("idx_code_date", "code", "date"))
+    __table_args__ = (UniqueConstraint("code", "date", name="uq_code_date"), Index("idx_code_date", "code", text("date DESC")))
 
 
 class MarketIndexMinutely(MySQLBase):
@@ -128,7 +133,7 @@ class MarketIndexMinutely(MySQLBase):
     __table_args__ = (
         UniqueConstraint("name", "datetime", name="uq_name_datetime"),
         Index("idx_name", "name"),
-        Index("idx_name_datetime", "name", "datetime"),
+        Index("idx_name_datetime", "name", text("datetime DESC")),
     )
 
 
@@ -144,4 +149,4 @@ class MarketIndexDaily(MySQLBase):
     low_price = Column(Float, nullable=False)
     volume = Column(BigInteger, nullable=True)
 
-    __table_args__ = (UniqueConstraint("name", "date", name="uq_name_date"),)
+    __table_args__ = (UniqueConstraint("name", "date", name="uq_name_date"), Index("idx_name_date_desc", "name", text("date DESC")))
