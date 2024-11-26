@@ -11,7 +11,7 @@ from app.api.asset.v1.router import asset_stock_router
 from app.api.asset.v2.router import asset_stock_router_v2
 from app.api.auth.v1.router import auth_router
 from app.api.chart.v1.router import chart_router
-from app.common.middleware.request_timeout import TimeoutMiddleware
+from app.common.middleware.request import TimeoutMiddleware, RequestTimerMiddleware
 
 app = FastAPI()
 
@@ -32,6 +32,7 @@ app.add_middleware(
 )
 app.add_middleware(SessionMiddleware, secret_key=SESSION_KEY)
 app.add_middleware(TimeoutMiddleware)
+app.add_middleware(RequestTimerMiddleware)
 
 app.include_router(auth_router, prefix="/api/auth", tags=["auth"])
 app.include_router(chart_router, prefix="/api/chart", tags=["chart"])
