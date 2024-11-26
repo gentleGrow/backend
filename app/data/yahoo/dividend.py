@@ -15,7 +15,7 @@ from app.module.asset.repository.dividend_repository import DividendRepository
 from app.module.asset.schema import StockInfo
 from database.dependency import get_mysql_session
 
-logger = logging.getLogger("stock")
+logger = logging.getLogger("dividend")
 logger.setLevel(logging.INFO)
 
 file_handler = logging.FileHandler("/home/backend/dividend.log", delay=False)

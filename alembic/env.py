@@ -1,10 +1,11 @@
-from os import getenv
-from dotenv import load_dotenv
-from alembic import context
-from app.module.asset.model import MySQLBase 
 from logging.config import fileConfig
-from sqlalchemy import engine_from_config
-from sqlalchemy import pool
+from os import getenv
+
+from dotenv import load_dotenv
+from sqlalchemy import engine_from_config, pool
+
+from alembic import context
+from app.module.asset.model import MySQLBase
 from app.module.auth.model import User  # noqa > relationship purpose
 from app.module.chart.model import InvestTip  # noqa > create table
 
@@ -29,16 +30,10 @@ def run_migrations():
     )
 
     with connectable.connect() as connection:
-        context.configure(
-            connection=connection,
-            target_metadata=target_metadata
-        )
+        context.configure(connection=connection, target_metadata=target_metadata)
 
         with context.begin_transaction():
             context.run_migrations()
 
 
 run_migrations()
-
-
-

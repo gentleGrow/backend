@@ -12,7 +12,7 @@ from app.module.asset.model import MarketIndexDaily
 from app.module.asset.repository.market_index_daily_repository import MarketIndexDailyRepository
 from database.dependency import get_mysql_session
 
-logger = logging.getLogger("stock")
+logger = logging.getLogger("index")
 logger.setLevel(logging.INFO)
 
 file_handler = logging.FileHandler("/home/backend/index.log", delay=False)
@@ -30,7 +30,7 @@ async def fetch_and_save_market_index_data(
         index_symbol, start=start_period, end=end_period, interval=MARKET_TIME_INTERVAL, progress=False
     )
 
-    if index_data.empty:
+    if index_data and index_data.empty:
         return
 
     market_index_records = []

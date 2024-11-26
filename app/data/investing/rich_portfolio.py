@@ -33,7 +33,7 @@ load_dotenv()
 ENVIRONMENT = getenv("ENVIRONMENT", None)
 
 
-logger = logging.getLogger("stock")
+logger = logging.getLogger("rich_portfolio")
 logger.setLevel(logging.INFO)
 
 file_handler = logging.FileHandler("/home/backend/rich_portfolio.log", delay=False)
