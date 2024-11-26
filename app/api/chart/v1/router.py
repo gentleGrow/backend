@@ -40,7 +40,6 @@ from app.module.chart.constant import DEFAULT_TIP, TIP_TODAY_ID_REDIS_KEY
 from app.module.chart.dependencies.composition_dependency import get_composition_service
 from app.module.chart.dependencies.performance_analysis_dependency import get_performance_analysis_service
 from app.module.chart.dependencies.rich_dependency import get_rich_service
-from app.module.chart.dependencies.rich_portfolio_dependency import get_rich_portfolio_service
 from app.module.chart.dependencies.save_trend_dependency import get_save_trend_service
 from app.module.chart.dependencies.summary_dependency import get_summary_service
 from app.module.chart.enum import CompositionType, EstimateDividendType, IntervalType
@@ -72,7 +71,6 @@ from app.module.chart.schema import (
 )
 from app.module.chart.services.composition_service import CompositionService
 from app.module.chart.services.performance_analysis_service import PerformanceAnalysisService
-from app.module.chart.services.rich_portfolio_service import RichPortfolioService
 from app.module.chart.services.rich_service import RichService
 from app.module.chart.services.save_trend_service import SaveTrendService
 from app.module.chart.services.summary_service import SummaryService
@@ -87,87 +85,86 @@ async def get_rich_portfolio() -> RichPortfolioResponse:
     return RichPortfolioResponse(
         [
             RichPortfolioValue(
-                name='워렌 버핏',
+                name="워렌 버핏",
                 data=[
-                    PortfolioStockData(name='애플', percent_ratio=40.0),
-                    PortfolioStockData(name='뱅크 오브 아메리카', percent_ratio=20.0),
-                    PortfolioStockData(name='코카콜라', percent_ratio=15.0),
-                    PortfolioStockData(name='아메리칸 익스프레스', percent_ratio=10.0),
-                    PortfolioStockData(name='무디스', percent_ratio=10.0),
-                    PortfolioStockData(name='크래프트 하인즈', percent_ratio=5.0)
-                ]
+                    PortfolioStockData(name="애플", percent_ratio=40.0),
+                    PortfolioStockData(name="뱅크 오브 아메리카", percent_ratio=20.0),
+                    PortfolioStockData(name="코카콜라", percent_ratio=15.0),
+                    PortfolioStockData(name="아메리칸 익스프레스", percent_ratio=10.0),
+                    PortfolioStockData(name="무디스", percent_ratio=10.0),
+                    PortfolioStockData(name="크래프트 하인즈", percent_ratio=5.0),
+                ],
             ),
             RichPortfolioValue(
-                name='빌 애크먼',
+                name="빌 애크먼",
                 data=[
-                    PortfolioStockData(name='로우스', percent_ratio=25.0),
-                    PortfolioStockData(name='칩톨레', percent_ratio=20.0),
-                    PortfolioStockData(name='힐튼', percent_ratio=15.0),
-                    PortfolioStockData(name='액티비전 블리자드', percent_ratio=10.0),
-                    PortfolioStockData(name='카니발 크루즈', percent_ratio=10.0),
-                    PortfolioStockData(name='도미노 피자', percent_ratio=10.0),
-                    PortfolioStockData(name='넷플릭스', percent_ratio=10.0)
-                ]
+                    PortfolioStockData(name="로우스", percent_ratio=25.0),
+                    PortfolioStockData(name="칩톨레", percent_ratio=20.0),
+                    PortfolioStockData(name="힐튼", percent_ratio=15.0),
+                    PortfolioStockData(name="액티비전 블리자드", percent_ratio=10.0),
+                    PortfolioStockData(name="카니발 크루즈", percent_ratio=10.0),
+                    PortfolioStockData(name="도미노 피자", percent_ratio=10.0),
+                    PortfolioStockData(name="넷플릭스", percent_ratio=10.0),
+                ],
             ),
             RichPortfolioValue(
-                name='레이 달리오',
+                name="레이 달리오",
                 data=[
-                    PortfolioStockData(name='SPDR S&P 500 ETF', percent_ratio=30.0),
-                    PortfolioStockData(name='SPDR 골드 ETF', percent_ratio=20.0),
-                    PortfolioStockData(name='바이두', percent_ratio=15.0),
-                    PortfolioStockData(name='알리바바', percent_ratio=15.0),
-                    PortfolioStockData(name='징둥닷컴', percent_ratio=10.0),
-                    PortfolioStockData(name='텐센트', percent_ratio=10.0)
-                ]
+                    PortfolioStockData(name="SPDR S&P 500 ETF", percent_ratio=30.0),
+                    PortfolioStockData(name="SPDR 골드 ETF", percent_ratio=20.0),
+                    PortfolioStockData(name="바이두", percent_ratio=15.0),
+                    PortfolioStockData(name="알리바바", percent_ratio=15.0),
+                    PortfolioStockData(name="징둥닷컴", percent_ratio=10.0),
+                    PortfolioStockData(name="텐센트", percent_ratio=10.0),
+                ],
             ),
             RichPortfolioValue(
-                name='찰리 멍거',
+                name="찰리 멍거",
                 data=[
-                    PortfolioStockData(name='알리바바', percent_ratio=30.0),
-                    PortfolioStockData(name='뱅크 오브 아메리카', percent_ratio=25.0),
-                    PortfolioStockData(name='코카콜라', percent_ratio=15.0),
-                    PortfolioStockData(name='크래프트 하인즈', percent_ratio=10.0),
-                    PortfolioStockData(name='애플', percent_ratio=10.0),
-                    PortfolioStockData(name='디즈니', percent_ratio=10.0)
-                ]
+                    PortfolioStockData(name="알리바바", percent_ratio=30.0),
+                    PortfolioStockData(name="뱅크 오브 아메리카", percent_ratio=25.0),
+                    PortfolioStockData(name="코카콜라", percent_ratio=15.0),
+                    PortfolioStockData(name="크래프트 하인즈", percent_ratio=10.0),
+                    PortfolioStockData(name="애플", percent_ratio=10.0),
+                    PortfolioStockData(name="디즈니", percent_ratio=10.0),
+                ],
             ),
             RichPortfolioValue(
-                name='조지 소로스',
+                name="조지 소로스",
                 data=[
-                    PortfolioStockData(name='테슬라', percent_ratio=20.0),
-                    PortfolioStockData(name='애플', percent_ratio=20.0),
-                    PortfolioStockData(name='엔비디아', percent_ratio=15.0),
-                    PortfolioStockData(name='아마존', percent_ratio=15.0),
-                    PortfolioStockData(name='마이크로소프트', percent_ratio=10.0),
-                    PortfolioStockData(name='구글', percent_ratio=10.0),
-                    PortfolioStockData(name='넷플릭스', percent_ratio=10.0)
-                ]
+                    PortfolioStockData(name="테슬라", percent_ratio=20.0),
+                    PortfolioStockData(name="애플", percent_ratio=20.0),
+                    PortfolioStockData(name="엔비디아", percent_ratio=15.0),
+                    PortfolioStockData(name="아마존", percent_ratio=15.0),
+                    PortfolioStockData(name="마이크로소프트", percent_ratio=10.0),
+                    PortfolioStockData(name="구글", percent_ratio=10.0),
+                    PortfolioStockData(name="넷플릭스", percent_ratio=10.0),
+                ],
             ),
             RichPortfolioValue(
-                name='피터 린치',
+                name="피터 린치",
                 data=[
-                    PortfolioStockData(name='페덱스', percent_ratio=25.0),
-                    PortfolioStockData(name='UPS', percent_ratio=20.0),
-                    PortfolioStockData(name='애플', percent_ratio=20.0),
-                    PortfolioStockData(name='디즈니', percent_ratio=15.0),
-                    PortfolioStockData(name='테슬라', percent_ratio=10.0),
-                    PortfolioStockData(name='마이크로소프트', percent_ratio=10.0)
-                ]
+                    PortfolioStockData(name="페덱스", percent_ratio=25.0),
+                    PortfolioStockData(name="UPS", percent_ratio=20.0),
+                    PortfolioStockData(name="애플", percent_ratio=20.0),
+                    PortfolioStockData(name="디즈니", percent_ratio=15.0),
+                    PortfolioStockData(name="테슬라", percent_ratio=10.0),
+                    PortfolioStockData(name="마이크로소프트", percent_ratio=10.0),
+                ],
             ),
             RichPortfolioValue(
-                name='제프 베이조스',
+                name="제프 베이조스",
                 data=[
-                    PortfolioStockData(name='아마존', percent_ratio=50.0),
-                    PortfolioStockData(name='블루 오리진', percent_ratio=20.0),
-                    PortfolioStockData(name='워싱턴 포스트', percent_ratio=10.0),
-                    PortfolioStockData(name='애플', percent_ratio=10.0),
-                    PortfolioStockData(name='테슬라', percent_ratio=5.0),
-                    PortfolioStockData(name='구글', percent_ratio=5.0)
-                ]
-            )
+                    PortfolioStockData(name="아마존", percent_ratio=50.0),
+                    PortfolioStockData(name="블루 오리진", percent_ratio=20.0),
+                    PortfolioStockData(name="워싱턴 포스트", percent_ratio=10.0),
+                    PortfolioStockData(name="애플", percent_ratio=10.0),
+                    PortfolioStockData(name="테슬라", percent_ratio=5.0),
+                    PortfolioStockData(name="구글", percent_ratio=5.0),
+                ],
+            ),
         ]
     )
-
 
 
 # 임시 dummy api 생성, 추후 개발하겠습니다.

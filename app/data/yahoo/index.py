@@ -4,7 +4,6 @@ import logging
 import yfinance
 from celery import shared_task
 from sqlalchemy.ext.asyncio import AsyncSession
-
 from app.data.common.enum import MarketIndexEnum
 from app.data.yahoo.source.constant import MARKET_TIME_INTERVAL
 from app.data.yahoo.source.service import get_last_week_period_bounds
@@ -30,7 +29,7 @@ async def fetch_and_save_market_index_data(
         index_symbol, start=start_period, end=end_period, interval=MARKET_TIME_INTERVAL, progress=False
     )
 
-    if index_data and index_data.empty:
+    if index_data.empty:
         return
 
     market_index_records = []
