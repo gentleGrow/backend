@@ -10,6 +10,7 @@ from app.module.asset.repository.asset_repository import AssetRepository
 from app.module.asset.services.asset_service import AssetService
 from app.module.asset.services.asset_stock_service import AssetStockService
 from app.module.chart.constant import FULL_PERCENTAGE_RATE, PAST_MONTH_DAY
+from icecream import ic
 
 
 class SummaryService:
@@ -19,6 +20,7 @@ class SummaryService:
 
     async def get_today_review_rate(self, session: AsyncSession, redis_client: Redis, user_id: int) -> float:
         assets: list[Asset] = await AssetRepository.get_eager(session, user_id, AssetType.STOCK)
+
         past_assets = [
             asset
             for asset in assets
@@ -28,10 +30,9 @@ class SummaryService:
         if len(past_assets) == 0 and len(assets) > 0:
             return FULL_PERCENTAGE_RATE
 
-        past_date = get_date_past_day(PAST_MONTH_DAY)
 
-        past_total_amount = await self.asset_service.get_total_asset_amount_with_date(
-            session, redis_client, past_assets, past_date
+        past_total_amount = await self.asset_service.get_total_asset_amount(
+            session, redis_client, past_assets
         )
 
         current_total_amount = await self.asset_service.get_total_asset_amount(session, redis_client, assets)
