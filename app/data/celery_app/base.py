@@ -41,13 +41,21 @@ celery_task.conf.beat_schedule = {
         "task": "app.data.yahoo.dividend.main",
         "schedule": crontab(hour=1, minute=0),
     },
-    "index": {
+    "index_night": {
         "task": "app.data.yahoo.index.main",
         "schedule": crontab(hour=1, minute=0),
     },
-    "stock": {
+    "index_afternoon": {
+        "task": "app.data.yahoo.index.main",
+        "schedule": crontab(hour=16, minute=0),
+    },
+    "stock_night": {
         "task": "app.data.yahoo.stock.main",
         "schedule": crontab(hour=1, minute=0),
+    },
+    "stock_afternoon": {
+        "task": "app.data.yahoo.stock.main",
+        "schedule": crontab(hour=16, minute=0),
     },
     "rich_portfolio": {
         "task": "app.data.investing.rich_portfolio.main",

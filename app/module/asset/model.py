@@ -111,7 +111,7 @@ class StockDaily(MySQLBase):
     adj_close_price = Column(Float, nullable=False, info={"description": "Adjusted closing price of the stock"})
     close_price = Column(Float, nullable=False, info={"description": "Closing price of the stock"})
     code = Column(String(255), nullable=False)
-    date = Column(Date, primary_key=True, nullable=False, info={"description": "stock closing day"})
+    date = Column(Date, nullable=False, info={"description": "stock closing day"})
     highest_price = Column(Float, nullable=False, info={"description": "Highest price of the stock"})
     lowest_price = Column(Float, nullable=False, info={"description": "Lowest price of the stock"})
     opening_price = Column(Float, nullable=False, info={"description": "Opening price of the stock"})

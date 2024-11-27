@@ -1,9 +1,10 @@
 import asyncio
 import logging
+from os import getenv
 
 import yfinance
 from celery import shared_task
-from sqlalchemy.exc import IntegrityError
+from dotenv import load_dotenv
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.data.common.service import StockCodeFileReader
@@ -15,13 +16,20 @@ from app.module.asset.model import StockDaily
 from app.module.asset.repository.stock_daily_repository import StockDailyRepository
 from app.module.asset.schema import StockInfo
 from database.dependency import get_mysql_session
+from database.enum import EnvironmentType
+
+load_dotenv()
+
+ENVIRONMENT = getenv("ENVIRONMENT", None)
+
 
 logger = logging.getLogger("stock")
 logger.setLevel(logging.INFO)
 
-file_handler = logging.FileHandler("/home/backend/stock.log", delay=False)
-file_handler.setFormatter(logging.Formatter("%(asctime)s - %(levelname)s - %(message)s"))
-logger.addHandler(file_handler)
+if ENVIRONMENT == EnvironmentType.PROD:
+    file_handler = logging.FileHandler("/home/backend/stock.log", delay=False)
+    file_handler.setFormatter(logging.Formatter("%(asctime)s - %(levelname)s - %(message)s"))
+    logger.addHandler(file_handler)
 
 
 async def process_stock_data(session: AsyncSession, stock_list: list[StockInfo], start_period: int, end_period: int):
@@ -32,7 +40,8 @@ async def process_stock_data(session: AsyncSession, stock_list: list[StockInfo],
                 Country[stock_info.country.upper().replace(" ", "_")],
                 stock_info.market_index.upper(),
             )
-        except KeyError:
+        except Exception as e:
+            logger.error(e)
             continue
 
         try:
@@ -75,7 +84,7 @@ async def process_stock_data(session: AsyncSession, stock_list: list[StockInfo],
 
         try:
             await StockDailyRepository.bulk_upsert(session, stock_rows)
-        except IntegrityError as e:
+        except Exception as e:
             logger.error(e)
             await session.rollback()
             continue
@@ -94,7 +103,6 @@ async def execute_async_task():
 
 @shared_task
 def main():
-    logger.info("Celery 작업이 시작되었습니다.")
     asyncio.run(execute_async_task())
 
 
