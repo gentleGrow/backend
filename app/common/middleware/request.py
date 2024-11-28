@@ -2,12 +2,13 @@ import asyncio
 import logging
 import time
 from os import getenv
-from dotenv import load_dotenv
 
+from dotenv import load_dotenv
 from fastapi import HTTPException, Request, Response, status
 from starlette.middleware.base import BaseHTTPMiddleware
-from database.enum import EnvironmentType
+
 from app.common.middleware.constant import REQUEST_TIMEOUT_SECOND
+from database.enum import EnvironmentType
 
 load_dotenv()
 

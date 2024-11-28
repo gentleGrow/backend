@@ -60,12 +60,32 @@ class ProfitDetail(BaseModel):
     profit_amount: float = Field(..., description="수익금")
     profit_rate: float = Field(..., description="수익률")
 
+    @classmethod
+    def parse(cls, total_asset_amount: float, total_investment_amount: float) -> "ProfitDetail":
+        """총 자산 금액과 투자 금액을 받아 수익금과 수익률을 계산."""
+        profit_amount = total_asset_amount - total_investment_amount
+        profit_rate = (
+            (profit_amount / total_investment_amount) * 100
+            if total_investment_amount > 0.0
+            else 0.0
+        )
+        return cls(profit_amount=profit_amount, profit_rate=profit_rate)
+
 
 class SummaryResponse(BaseModel):
     today_review_rate: float = Field(..., description="오늘의 review")
     total_asset_amount: float = Field(..., description="나의 총 자산")
     total_investment_amount: float = Field(..., description="나의 투자 금액")
     profit: ProfitDetail = Field(..., description="수익 정보")
+
+    @classmethod
+    def default(cls) -> "SummaryResponse":
+        return cls(
+            today_review_rate=0.0,
+            total_asset_amount=0.0,
+            total_investment_amount=0.0,
+            profit=ProfitDetail(profit_amount=0.0, profit_rate=0.0),
+        )
 
 
 class MarketIndiceResponseValue(BaseModel):

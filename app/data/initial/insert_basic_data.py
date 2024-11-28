@@ -92,7 +92,7 @@ async def create_dummy_assets(session: AsyncSession):
         )
 
         assets.append(asset)
-
+    ic(len(assets))
     await AssetRepository.save_assets(session, assets)
     ic("[create_dummy_assets] 더미 유저에 assets을 성공적으로 생성 했습니다.")
 

@@ -1,10 +1,11 @@
 from datetime import date, datetime, timedelta
 from statistics import mean
+from icecream import ic
 
 from fastapi import APIRouter, Depends, Query
 from redis.asyncio import Redis
 from sqlalchemy.ext.asyncio import AsyncSession
-
+from icecream import ic
 from app.common.auth.security import verify_jwt_token
 from app.common.util.time import get_now_date
 from app.module.asset.constant import (
@@ -255,6 +256,40 @@ async def get_people_portfolio():
     )
 
 
+
+@chart_router.get("/rich-pick", summary="미국 부자들이 선택한 종목 TOP10", response_model=RichPickResponse)
+async def get_rich_pick(
+    session: AsyncSession = Depends(get_mysql_session_router),
+    redis_client: Redis = Depends(get_redis_pool),
+    rich_service: RichService = Depends(get_rich_service),
+    stock_daily_service: StockDailyService = Depends(get_stock_daily_service),
+    stock_service: StockService = Depends(get_stock_service),
+    exchange_rate_service: ExchangeRateService = Depends(get_exchange_rate_service),
+) -> RichPickResponse:
+    top_10_stock_codes, stock_name_map = await rich_service.get_rich_top_10_pick(session, redis_client)
+    lastest_stock_daily_map = await stock_daily_service.get_latest_map_by_codes(session, top_10_stock_codes)
+    current_stock_price_map: dict[str, float] = await stock_service.get_current_stock_price_by_code(
+        redis_client, lastest_stock_daily_map, top_10_stock_codes
+    )
+    exchange_rate_map = await exchange_rate_service.get_exchange_rate_map(redis_client)
+    stock_daily_profit: dict[str, float] = stock_service.get_daily_profit(
+        lastest_stock_daily_map, current_stock_price_map, top_10_stock_codes
+    )
+    won_exchange_rate = exchange_rate_service.get_exchange_rate(CurrencyType.USA, CurrencyType.KOREA, exchange_rate_map)
+    stock_korea_price = {stock_code: price * won_exchange_rate for stock_code, price in current_stock_price_map.items()}
+
+    return RichPickResponse(
+        [
+            RichPickValue(
+                name=stock_name_map.get(stock_code),
+                price=stock_korea_price[stock_code],
+                rate=stock_daily_profit[stock_code],
+            )
+            for stock_code in top_10_stock_codes
+        ]
+    )
+
+
 @chart_router.get("/sample/asset-save-trend", summary="자산적립 추이", response_model=AssetSaveTrendResponse)
 async def get_sample_asset_save_trend(
     session: AsyncSession = Depends(get_mysql_session_router),
@@ -376,11 +411,13 @@ async def get_sample_estimate_dividend(
     dividend_map: dict[tuple[str, date], float] = await dividend_service.get_dividend_map(session, assets)
     recent_dividend_map: dict[str, float] = await dividend_service.get_recent_map(session, assets)
 
+
+
     if category == EstimateDividendType.EVERY:
         total_dividends: dict[date, float] = dividend_service.get_full_month_estimate_dividend(
             assets, exchange_rate_map, dividend_map
         )
-
+        
         dividend_data_by_year = dividend_service.process_dividends_by_year_month(total_dividends)
 
         response_data = {}
@@ -775,13 +812,8 @@ async def get_summary(
     summary_service: SummaryService = Depends(get_summary_service),
 ) -> SummaryResponse:
     assets: list[Asset] = await AssetRepository.get_eager(session, token.get("user"), AssetType.STOCK)
-    if len(assets) == 0:
-        return SummaryResponse(
-            today_review_rate=0.0,
-            total_asset_amount=0,
-            total_investment_amount=0,
-            profit=ProfitDetail(profit_amount=0.0, profit_rate=0.0),
-        )
+    if not assets:
+        return SummaryResponse.default()
 
     total_asset_amount = await asset_service.get_total_asset_amount(session, redis_client, assets)
     total_investment_amount = await asset_service.get_total_investment_amount(session, redis_client, assets)
@@ -798,8 +830,8 @@ async def get_summary(
             else 0.0,
         ),
     )
-
-
+    
+    
 @chart_router.get("/sample/summary", summary="오늘의 리뷰, 나의 총자산, 나의 투자 금액, 수익금", response_model=SummaryResponse)
 async def get_sample_summary(
     session: AsyncSession = Depends(get_mysql_session_router),
@@ -808,30 +840,21 @@ async def get_sample_summary(
     summary_service: SummaryService = Depends(get_summary_service),
 ) -> SummaryResponse:
     assets: list[Asset] = await AssetRepository.get_eager(session, DUMMY_USER_ID, AssetType.STOCK)
-    if len(assets) == 0:
-        return SummaryResponse(
-            today_review_rate=0.0,
-            total_asset_amount=0,
-            total_investment_amount=0,
-            profit=ProfitDetail(profit_amount=0.0, profit_rate=0.0),
-        )
+    if not assets:
+        return SummaryResponse.default()
 
-    total_asset_amount = await asset_service.get_total_asset_amount(session, redis_client, assets)
-    total_investment_amount = await asset_service.get_total_investment_amount(session, redis_client, assets)
+    total_asset_amount: float = await asset_service.get_total_asset_amount(session, redis_client, assets)
+    total_investment_amount: float = await asset_service.get_total_investment_amount(session, redis_client, assets)
     today_review_rate: float = await summary_service.get_today_review_rate(session, redis_client, DUMMY_USER_ID)
 
     return SummaryResponse(
         today_review_rate=today_review_rate,
         total_asset_amount=total_asset_amount,
         total_investment_amount=total_investment_amount,
-        profit=ProfitDetail(
-            profit_amount=total_asset_amount - total_investment_amount,
-            profit_rate=(total_asset_amount - total_investment_amount) / total_asset_amount * 100
-            if total_investment_amount > 0.0 and total_asset_amount > 0.0
-            else 0.0,
-        ),
+        profit=ProfitDetail.parse(total_asset_amount, total_investment_amount),
     )
 
+# 여기까지 수정하였습니다. 전반적인 리팩토링 주석 라인입니다.
 
 @chart_router.get("/tip", summary="오늘의 투자 tip", response_model=ChartTipResponse)
 async def get_today_tip(
@@ -849,6 +872,8 @@ async def get_today_tip(
         return ChartTipResponse(DEFAULT_TIP)
 
     return ChartTipResponse(invest_tip.tip)
+
+
 
 
 @chart_router.get("/indice", summary="현재 시장 지수", response_model=MarketIndiceResponse)
@@ -874,34 +899,4 @@ async def get_market_index(
     )
 
 
-@chart_router.get("/rich-pick", summary="미국 부자들이 선택한 종목 TOP10", response_model=RichPickResponse)
-async def get_rich_pick(
-    session: AsyncSession = Depends(get_mysql_session_router),
-    redis_client: Redis = Depends(get_redis_pool),
-    rich_service: RichService = Depends(get_rich_service),
-    stock_daily_service: StockDailyService = Depends(get_stock_daily_service),
-    stock_service: StockService = Depends(get_stock_service),
-    exchange_rate_service: ExchangeRateService = Depends(get_exchange_rate_service),
-) -> RichPickResponse:
-    top_10_stock_codes, stock_name_map = await rich_service.get_rich_top_10_pick(session, redis_client)
-    lastest_stock_daily_map = await stock_daily_service.get_latest_map_by_codes(session, top_10_stock_codes)
-    current_stock_price_map: dict[str, float] = await stock_service.get_current_stock_price_by_code(
-        redis_client, lastest_stock_daily_map, top_10_stock_codes
-    )
-    exchange_rate_map = await exchange_rate_service.get_exchange_rate_map(redis_client)
-    stock_daily_profit: dict[str, float] = stock_service.get_daily_profit(
-        lastest_stock_daily_map, current_stock_price_map, top_10_stock_codes
-    )
-    won_exchange_rate = exchange_rate_service.get_exchange_rate(CurrencyType.USA, CurrencyType.KOREA, exchange_rate_map)
-    stock_korea_price = {stock_code: price * won_exchange_rate for stock_code, price in current_stock_price_map.items()}
 
-    return RichPickResponse(
-        [
-            RichPickValue(
-                name=stock_name_map.get(stock_code),
-                price=stock_korea_price[stock_code],
-                rate=stock_daily_profit[stock_code],
-            )
-            for stock_code in top_10_stock_codes
-        ]
-    )

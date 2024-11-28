@@ -14,7 +14,7 @@ class StockMinutelyService:
         interval_end: datetime,
         assets: list[Asset],
         interval: int,
-    ) -> dict[str, float]:
+    ) -> dict[str, float]:    
         stock_minute_list: list[StockMinutely] = await StockMinutelyRepository.get_by_range_interval_minute(
             session,
             (interval_start, interval_end),
