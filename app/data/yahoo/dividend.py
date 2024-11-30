@@ -1,11 +1,13 @@
 import asyncio
 import logging
+from os import getenv
 
 import pandas as pd
 import yfinance
 from celery import shared_task
+from dotenv import load_dotenv
 from sqlalchemy.ext.asyncio import AsyncSession
-from icecream import ic
+
 from app.data.common.service import StockCodeFileReader
 from app.data.yahoo.source.constant import BATCH_SIZE
 from app.data.yahoo.source.service import format_stock_code
@@ -14,8 +16,6 @@ from app.module.asset.model import Dividend
 from app.module.asset.repository.dividend_repository import DividendRepository
 from app.module.asset.schema import StockInfo
 from database.dependency import get_mysql_session
-from os import getenv
-from dotenv import load_dotenv
 from database.enum import EnvironmentType
 
 load_dotenv()
@@ -61,7 +61,7 @@ async def insert_dividend_data(session: AsyncSession, stock_list: list[StockInfo
                     dividend_list.append(dividend)
             except Exception:
                 continue
-        
+
         await DividendRepository.bulk_upsert(session=session, dividends=dividend_list)
 
     logger.info("배당 수집을 마칩니다")
@@ -78,6 +78,7 @@ async def execute_async_task():
 @shared_task
 def main():
     asyncio.run(execute_async_task())
+
 
 if __name__ == "__main__":
     asyncio.run(execute_async_task())

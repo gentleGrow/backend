@@ -1,11 +1,12 @@
 from datetime import date
 from typing import Optional
-
 from fastapi import status
 from pydantic import BaseModel, Field, RootModel
-
-from app.module.asset.enum import AccountType, InvestmentBankType, PurchaseCurrencyType
+from icecream import ic
+from app.module.asset.enum import AccountType, InvestmentBankType, PurchaseCurrencyType, TradeType, StockAsset_v1
 from app.module.asset.model import Asset
+from app.module.asset.constant import REQUIRED_ASSET_FIELD, PURCHASE_QUANTITY_MAX, PURCHASE_PRICE_MAX
+import numpy
 
 
 class ParentAssetDeleteResponse(BaseModel):
@@ -58,19 +59,12 @@ class StockAssetGroup(BaseModel):
     sub: list[StockAssetSchema]
 
 
-class AssetPostResponse(BaseModel):
-    status_code: int = Field(..., description="상태 코드")
-    detail: str
-    field: str
-
-
 class AssetPutResponse(BaseModel):
     status_code: int = Field(..., description="상태 코드")
     detail: str
     field: str
 
 
-# 확인 후 수정하겠습니다.
 class AssetStockPostRequest_v1(BaseModel):
     buy_date: date = Field(..., description="구매일자")
     purchase_currency_type: PurchaseCurrencyType = Field(..., description="매입 통화")
@@ -81,7 +75,25 @@ class AssetStockPostRequest_v1(BaseModel):
         None, description="증권사", example=f"{InvestmentBankType.TOSS} (Optional)"
     )
     purchase_price: float | None = Field(None, description="매입가", example=f"{62000} (Optional)")
-    trade: str = Field(..., description="매매", examples=["매수/매도"])
+    trade: TradeType | None = Field(None, description="매매", examples=["매수/매도 (Optional)"])
+
+    @classmethod
+    def validate(cls, request_data:"AssetStockPostRequest_v1") -> Optional["AssetStockPostRequest_v1"]:
+        if request_data.quantity > PURCHASE_QUANTITY_MAX:
+            return AssetPostResponse(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="수량은 10,000을 넘길 수 없습니다.",
+                field=StockAsset_v1.QUANTITY
+            )
+        elif request_data.purchase_price > PURCHASE_PRICE_MAX:
+            return AssetPostResponse(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="현재가가 10,000,000을 넘길 수 없습니다.",
+                field=StockAsset_v1.PURCHASE_PRICE
+            )
+        else:
+            return None
+        
 
 
 ####################
@@ -97,9 +109,15 @@ class AssetStockPostRequest(BaseModel):
         None, description="증권사", example=f"{InvestmentBankType.TOSS} (Optional)"
     )
     trade_price: float | None = Field(None, description="거래가", example=f"{62000} (Optional)")
-    trade: str | None = Field(..., description="매매", examples=["매수/매도"])
+    trade: TradeType | None = Field(..., description="매매", examples=["매수/매도"])
 
 
+class AssetPostResponse(BaseModel):
+    status_code: int = Field(..., description="상태 코드")
+    detail: str
+    field: str
+    
+    
 class UpdateAssetFieldRequest(RootModel[list[str]]):
     class Config:
         json_schema_extra = {
@@ -122,7 +140,30 @@ class UpdateAssetFieldRequest(RootModel[list[str]]):
                 "거래량",
             ]
         }
+        
 
+class AssetFieldUpdateResponse(BaseModel):
+    status_code: int
+    detail: str
+    
+    @classmethod
+    def validate(cls, update_field:list) -> Optional["AssetFieldUpdateResponse"]:
+        if len(update_field) == 0:
+            return cls(
+                status_code = status.HTTP_404_NOT_FOUND,
+                detail="빈 배열을 받았습니다. 필수 필드가 포함되어 있어야 합니다."
+            )
+            
+        all_include = numpy.isin(REQUIRED_ASSET_FIELD, update_field).all()
+    
+        if all_include:
+            return None
+        else:
+            return cls(
+                status_code = status.HTTP_404_NOT_FOUND,
+                detail=f"{REQUIRED_ASSET_FIELD}가 모두 포함되어 있어야 합니다."
+            )
+        
 
 # 확인 후 수정하겠습니다.
 class AssetStockPutRequest_v1(BaseModel):
@@ -134,7 +175,7 @@ class AssetStockPutRequest_v1(BaseModel):
     account_type: AccountType | None = Field(None, description="계좌 종류", example=f"{AccountType.ISA} (Optional)")
     investment_bank: str | None = Field(None, description="증권사", example=f"{InvestmentBankType.TOSS} (Optional)")
     purchase_price: float | None = Field(None, description="매입가", example=f"{62000} (Optional)")
-    trade: str | None
+    trade: TradeType | None
 
 
 ################
@@ -149,7 +190,7 @@ class AssetStockPutRequest(BaseModel):
     account_type: AccountType | None = Field(None, description="계좌 종류", example=f"{AccountType.ISA} (Optional)")
     investment_bank: str | None = Field(None, description="증권사", example=f"{InvestmentBankType.TOSS} (Optional)")
     trade_price: float | None = Field(None, description="거래가", example=f"{62000} (Optional)")
-    trade: str = Field(..., description="매매", examples=["매수/매도"])
+    trade: TradeType = Field(..., description="매매", examples=["매수/매도"])
 
 
 class AssetFieldResponse(RootModel[list[str]]):

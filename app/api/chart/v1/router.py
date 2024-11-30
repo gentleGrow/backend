@@ -1,11 +1,10 @@
 from datetime import date, datetime, timedelta
 from statistics import mean
-from icecream import ic
 
 from fastapi import APIRouter, Depends, Query
 from redis.asyncio import Redis
 from sqlalchemy.ext.asyncio import AsyncSession
-from icecream import ic
+
 from app.common.auth.security import verify_jwt_token
 from app.common.util.time import get_now_date
 from app.module.asset.constant import (
@@ -256,7 +255,6 @@ async def get_people_portfolio():
     )
 
 
-
 @chart_router.get("/rich-pick", summary="미국 부자들이 선택한 종목 TOP10", response_model=RichPickResponse)
 async def get_rich_pick(
     session: AsyncSession = Depends(get_mysql_session_router),
@@ -411,13 +409,11 @@ async def get_sample_estimate_dividend(
     dividend_map: dict[tuple[str, date], float] = await dividend_service.get_dividend_map(session, assets)
     recent_dividend_map: dict[str, float] = await dividend_service.get_recent_map(session, assets)
 
-
-
     if category == EstimateDividendType.EVERY:
         total_dividends: dict[date, float] = dividend_service.get_full_month_estimate_dividend(
             assets, exchange_rate_map, dividend_map
         )
-        
+
         dividend_data_by_year = dividend_service.process_dividends_by_year_month(total_dividends)
 
         response_data = {}
@@ -823,15 +819,12 @@ async def get_summary(
         today_review_rate=today_review_rate,
         total_asset_amount=total_asset_amount,
         total_investment_amount=total_investment_amount,
-        profit=ProfitDetail(
-            profit_amount=total_asset_amount - total_investment_amount,
-            profit_rate=(total_asset_amount - total_investment_amount) / total_asset_amount * 100
-            if total_investment_amount > 0.0 and total_asset_amount > 0.0
-            else 0.0,
-        ),
+        profit=ProfitDetail.parse(total_asset_amount, total_investment_amount),
     )
-    
-    
+
+# 서비스 레이어 > AssetQueryService, AssetCalculationService, AssetFormattingService, AssetValidationService
+# mapper 클래스 
+
 @chart_router.get("/sample/summary", summary="오늘의 리뷰, 나의 총자산, 나의 투자 금액, 수익금", response_model=SummaryResponse)
 async def get_sample_summary(
     session: AsyncSession = Depends(get_mysql_session_router),
@@ -854,7 +847,9 @@ async def get_sample_summary(
         profit=ProfitDetail.parse(total_asset_amount, total_investment_amount),
     )
 
+
 # 여기까지 수정하였습니다. 전반적인 리팩토링 주석 라인입니다.
+
 
 @chart_router.get("/tip", summary="오늘의 투자 tip", response_model=ChartTipResponse)
 async def get_today_tip(
@@ -872,8 +867,6 @@ async def get_today_tip(
         return ChartTipResponse(DEFAULT_TIP)
 
     return ChartTipResponse(invest_tip.tip)
-
-
 
 
 @chart_router.get("/indice", summary="현재 시장 지수", response_model=MarketIndiceResponse)
@@ -897,6 +890,3 @@ async def get_market_index(
             if market_index_value is not None
         ]
     )
-
-
-

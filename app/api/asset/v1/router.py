@@ -1,15 +1,16 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from redis.asyncio import Redis
 from sqlalchemy.ext.asyncio import AsyncSession
-
+from icecream import ic
 from app.common.auth.security import verify_jwt_token
 from app.common.schema.common_schema import DeleteResponse, PutResponse
+from app.module.asset.services.asset_stock.asset_stock_validate import AssetStockValidate
 from app.module.asset.constant import KOREA, USA, CurrencyType
 from app.module.asset.dependencies.asset_dependency import get_asset_service
 from app.module.asset.dependencies.asset_field_dependency import get_asset_field_service
-from app.module.asset.dependencies.asset_stock_dependency import get_asset_stock_service
+from app.module.asset.dependencies.asset_stock_dependency import get_asset_stock_service, get_asset_stock_validate
 from app.module.asset.dependencies.dividend_dependency import get_dividend_service
-from app.module.asset.dependencies.stock_dependency import get_stock_service
+from app.module.asset.dependencies.stock_dependency import get_stock_service, get_stock_validate
 from app.module.asset.enum import AccountType, AssetType, InvestmentBankType, StockAsset_v1
 from app.module.asset.model import Asset, AssetField, Stock
 from app.module.asset.redis_repository import RedisExchangeRateRepository
@@ -28,12 +29,14 @@ from app.module.asset.schema import (
     StockListResponse,
     StockListValue,
     UpdateAssetFieldRequest,
+    AssetFieldUpdateResponse
 )
 from app.module.asset.services.asset_field_service import AssetFieldService
 from app.module.asset.services.asset_service import AssetService
 from app.module.asset.services.asset_stock_service import AssetStockService
 from app.module.asset.services.dividend_service import DividendService
 from app.module.asset.services.stock_service import StockService
+from app.module.asset.services.stock.stock_validate import StockValidate
 from app.module.auth.constant import DUMMY_USER_ID
 from app.module.auth.schema import AccessToken
 from database.dependency import get_mysql_session_router, get_redis_pool
@@ -56,12 +59,17 @@ async def update_asset_field(
     request_data: UpdateAssetFieldRequest,
     session: AsyncSession = Depends(get_mysql_session_router),
     token: AccessToken = Depends(verify_jwt_token),
-) -> PutResponse:
+) -> AssetFieldUpdateResponse:
+    request_validate = AssetFieldUpdateResponse.validate(request_data.root)
+    if request_validate:
+        return request_validate
+    
     asset_field = await AssetFieldRepository.get(session, token.get("user"))
+    
     await AssetFieldRepository.update(
         session, AssetField(id=asset_field.id, user_id=token.get("user"), field_preference=request_data.root)
     )
-    return PutResponse(status_code=status.HTTP_200_OK, detail="자산관리 필드를 성공적으로 수정 하였습니다.")
+    return AssetFieldUpdateResponse(status_code=status.HTTP_200_OK, detail="자산관리 필드를 성공적으로 수정 하였습니다.")
 
 
 @asset_stock_router.get("/bank-accounts", summary="증권사와 계좌 리스트를 반환합니다.", response_model=BankAccountResponse)
@@ -74,6 +82,7 @@ async def get_bank_account_list() -> BankAccountResponse:
 
 @asset_stock_router.get("/stocks", summary="주시 종목 코드를 반환합니다.", response_model=StockListResponse)
 async def get_stock_list(session: AsyncSession = Depends(get_mysql_session_router)) -> StockListResponse:
+    # [추가] 현재는 국내/미국 주식만 반환하고 추후 서비스 안정화가 되면 전세계 주식을 반환합니다.
     stock_list: list[Stock] = await StockRepository.get_countries_stock(session, [KOREA, USA])
 
     return StockListResponse(
@@ -159,25 +168,39 @@ async def create_asset_stock(
     request_data: AssetStockPostRequest_v1,
     token: AccessToken = Depends(verify_jwt_token),
     session: AsyncSession = Depends(get_mysql_session_router),
-    stock_service: StockService = Depends(get_stock_service),
+    stock_validate:StockValidate = Depends(get_stock_validate),
     asset_stock_service: AssetStockService = Depends(get_asset_stock_service),
+    asset_stock_validate: AssetStockValidate = Depends(get_asset_stock_validate)
 ) -> AssetPostResponse:
-    stock = await StockRepository.get_by_code(session, request_data.stock_code)
-    if stock is None:
-        raise HTTPException(
+    abnormal_data_response = AssetStockPostRequest_v1.validate(request_data)
+    if abnormal_data_response:
+        return abnormal_data_response
+    
+    stock_code_exist = await stock_validate.check_code_exist(session, request_data.stock_code)
+    if stock_code_exist is False:
+        return AssetPostResponse(
             status_code=status.HTTP_404_NOT_FOUND,
             detail=f"{request_data.stock_code}를 찾지 못 했습니다.",
             field=StockAsset_v1.STOCK_CODE,
         )
-
-    stock_exist = await stock_service.check_stock_exist(session, request_data.stock_code, request_data.buy_date)
-    if stock_exist is False:
+    
+    stock_data_exist = await stock_validate.check_stock_data_exist(session, request_data.stock_code, request_data.buy_date)
+    if stock_data_exist is False:
         return AssetPostResponse(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"{request_data.stock_code} 코드의 {request_data.buy_date} 날짜가 존재하지 않습니다.",
+            detail=f"{request_data.stock_code} 코드의 {request_data.buy_date} 날짜가 데이터가 존재하지 않습니다.",
+            field=StockAsset_v1.STOCK_CODE,
+        )
+        
+    stock_purchase_type_match = await asset_stock_validate.check_stock_purchase_type(session, request_data.stock_code, request_data.purchase_currency_type)
+    if stock_purchase_type_match is False:
+        return AssetPostResponse(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"{request_data.stock_code}는 국내 주식이기에, 원화만 가능합니다.",
             field=StockAsset_v1.BUY_DATE,
         )
 
+    stock = await StockRepository.get_by_code(session, request_data.stock_code)
     await asset_stock_service.save_asset_stock_by_post_v1(session, request_data, stock.id, token.get("user"))
     return AssetPostResponse(status_code=status.HTTP_201_CREATED, detail="주식 자산 성공적으로 등록 했습니다.", field="")
 

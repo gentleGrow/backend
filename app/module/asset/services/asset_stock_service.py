@@ -49,8 +49,6 @@ class AssetStockService:
     async def save_asset_stock_by_post_v1(
         self, session: AsyncSession, request_data: AssetStockPostRequest_v1, stock_id: int, user_id: int
     ) -> None:
-        result = []
-
         new_asset = Asset(
             asset_type=AssetType.STOCK,
             user_id=user_id,
@@ -65,9 +63,8 @@ class AssetStockService:
                 stock_id=stock_id,
             ),
         )
-        result.append(new_asset)
 
-        await AssetRepository.save_assets(session, result)
+        await AssetRepository.save(session, new_asset)
 
     #############################
 

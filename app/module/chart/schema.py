@@ -64,11 +64,7 @@ class ProfitDetail(BaseModel):
     def parse(cls, total_asset_amount: float, total_investment_amount: float) -> "ProfitDetail":
         """총 자산 금액과 투자 금액을 받아 수익금과 수익률을 계산."""
         profit_amount = total_asset_amount - total_investment_amount
-        profit_rate = (
-            (profit_amount / total_investment_amount) * 100
-            if total_investment_amount > 0.0
-            else 0.0
-        )
+        profit_rate = (profit_amount / total_investment_amount) * 100 if total_investment_amount > 0.0 else 0.0
         return cls(profit_amount=profit_amount, profit_rate=profit_rate)
 
 

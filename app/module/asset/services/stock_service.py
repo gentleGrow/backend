@@ -19,14 +19,6 @@ class StockService:
         stock = await StockRepository.get_by_code(session, stock_code)
         return {stock.code: stock} if stock else None
 
-    async def check_stock_exist(self, session: AsyncSession, stock_code: str, buy_date: date) -> bool:
-        today = get_now_date()
-        if buy_date == today:
-            return True
-
-        stock = await StockDailyRepository.get_stock_daily(session, stock_code, buy_date)
-        return True if stock else False
-
     async def get_current_stock_price(
         self, redis_client: Redis, lastest_stock_daily_map: dict[str, StockDaily], assets: list[Asset]
     ) -> dict[str, float]:

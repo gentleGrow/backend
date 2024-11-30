@@ -12,6 +12,9 @@ from app.module.asset.enum import (
 KOREA = "Korea"
 USA = "USA"
 
+PURCHASE_QUANTITY_MAX = 10000
+PURCHASE_PRICE_MAX = 10000000
+
 ASSET_PARENT_FIELD = ["수익률", "매매", "수익금", "배당금"]
 ASSET_AGGREGATE_FIELD = "종목명"
 
