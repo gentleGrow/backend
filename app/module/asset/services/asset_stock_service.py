@@ -1,11 +1,12 @@
 from datetime import date, datetime
 
 from sqlalchemy.ext.asyncio import AsyncSession
-from app.module.asset.repository.stock_repository import StockRepository
+
 from app.module.asset.enum import AssetType, CurrencyType, PurchaseCurrencyType, TradeType
 from app.module.asset.model import Asset, AssetStock, StockDaily
 from app.module.asset.repository.asset_repository import AssetRepository
-from app.module.asset.schema import AssetStockPostRequest, AssetStockPostRequest_v1, AssetStockRequest
+from app.module.asset.repository.stock_repository import StockRepository
+from app.module.asset.schema import AssetStockRequest
 from app.module.asset.services.exchange_rate_service import ExchangeRateService
 
 
@@ -45,33 +46,11 @@ class AssetStockService:
             )
         return result
 
-    # 확인 후 수정하겠습니다.
-    async def save_asset_stock_by_post_v1(
-        self, session: AsyncSession, request_data: AssetStockPostRequest_v1, stock_id: int, user_id: int
-    ) -> None:
-        new_asset = Asset(
-            asset_type=AssetType.STOCK,
-            user_id=user_id,
-            asset_stock=AssetStock(
-                account_type=request_data.account_type,
-                investment_bank=request_data.investment_bank,
-                purchase_currency_type=request_data.purchase_currency_type,
-                trade_date=request_data.buy_date,
-                trade_price=request_data.purchase_price,
-                quantity=request_data.quantity,
-                trade=request_data.trade if request_data.trade else TradeType.BUY,
-                stock_id=stock_id,
-            ),
-        )
-
-        await AssetRepository.save(session, new_asset)
-
-    #############################
 
     async def save_asset_stock_by_post(
         self, session: AsyncSession, request_data: AssetStockRequest, user_id: int
     ) -> None:
-        stock = await StockRepository.get_by_code(session, request_data.stock_code) 
+        stock = await StockRepository.get_by_code(session, request_data.stock_code)
 
         new_asset = Asset(
             asset_type=AssetType.STOCK,
@@ -84,7 +63,7 @@ class AssetStockService:
                 trade_price=request_data.trade_price,
                 quantity=request_data.quantity,
                 trade=request_data.trade if request_data.trade else TradeType.BUY,
-                stock_id= stock.id 
+                stock_id=stock.id,
             ),
         )
 

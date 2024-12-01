@@ -3,13 +3,13 @@ from app.module.asset.enum import AccountType, InvestmentBankType
 
 class TestGetBankAccounts:
     """
-    api: /api/v1/bank-accounts
+    api: /api/asset/v1/bank-accounts
     method: GET
     """
 
     async def test_get_bank_accounts(self, client):
         # given
-        response = client.get("/api/v1/bank-accounts")
+        response = client.get("/api/asset/v1/bank-accounts")
 
         # when
         response_data = response.json()
@@ -32,7 +32,7 @@ class TestGetStockList:
         setup_stock
 
         # When
-        response = client.get("/api/v1/stocks")
+        response = client.get("/api/asset/v1/stocks")
 
         # Then
         response_data = response.json()

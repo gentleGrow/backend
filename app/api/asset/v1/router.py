@@ -1,15 +1,14 @@
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, status
 from redis.asyncio import Redis
 from sqlalchemy.ext.asyncio import AsyncSession
-from app.module.asset.services.asset_common.asset_common_validate import AssetCommonValidate
-from app.module.asset.dependencies.common_dependency import get_asset_common_validate
+
 from app.common.auth.security import verify_jwt_token
 from app.common.schema.common_schema import DeleteResponse, PutResponse
 from app.module.asset.constant import KOREA, USA, CurrencyType
-from app.module.asset.services.asset.asset_validate import AssetValidate
 from app.module.asset.dependencies.asset_dependency import get_asset_service, get_asset_validate
 from app.module.asset.dependencies.asset_field_dependency import get_asset_field_service
 from app.module.asset.dependencies.asset_stock_dependency import get_asset_stock_service
+from app.module.asset.dependencies.common_dependency import get_asset_common_validate
 from app.module.asset.dependencies.dividend_dependency import get_dividend_service
 from app.module.asset.enum import AccountType, AssetType, InvestmentBankType
 from app.module.asset.model import Asset, AssetField, Stock
@@ -20,15 +19,17 @@ from app.module.asset.repository.stock_repository import StockRepository
 from app.module.asset.schema import (
     AssetFieldResponse,
     AssetFieldUpdateResponse,
-    AssetStockStatusResponse,
     AssetStockRequest,
-    AssetStockResponse_v1,
+    AssetStockStatusResponse,
+    AssetStockResponse,
     BankAccountResponse,
     ParentAssetDeleteResponse,
     StockListResponse,
     StockListValue,
     UpdateAssetFieldRequest,
 )
+from app.module.asset.services.asset.asset_validate import AssetValidate
+from app.module.asset.services.asset_common.asset_common_validate import AssetCommonValidate
 from app.module.asset.services.asset_field_service import AssetFieldService
 from app.module.asset.services.asset_service import AssetService
 from app.module.asset.services.asset_stock_service import AssetStockService
@@ -83,7 +84,7 @@ async def get_stock_list(session: AsyncSession = Depends(get_mysql_session_route
     return StockListResponse(
         [StockListValue(name_en=stock.name_en, name_kr=stock.name_kr, code=stock.code) for stock in stock_list]
     )
-    
+
 
 @asset_stock_router.post("/assetstock", summary="자산관리 정보를 등록합니다.", response_model=AssetStockStatusResponse)
 async def create_asset_stock(
@@ -96,7 +97,7 @@ async def create_asset_stock(
     abnormal_data_response = AssetStockRequest.validate(request_data)
     if abnormal_data_response:
         return abnormal_data_response
-    
+
     validate_response = await asset_common_validate.check_asset_stock_request(session, request_data)
     if validate_response:
         return validate_response
@@ -132,12 +133,11 @@ async def delete_asset(
     asset_validate: AssetValidate = Depends(get_asset_validate),
     session: AsyncSession = Depends(get_mysql_session_router),
 ) -> DeleteResponse:
-    user_asset_exist = await asset_validate.check_asset_exist(session, asset_id, token.get('user'))
+    user_asset_exist = await asset_validate.check_asset_exist(session, asset_id, token.get("user"))
     if not user_asset_exist:
         return DeleteResponse(status_code=status.HTTP_404_NOT_FOUND, detail="해당하는 asset id가 유저에게 존재하지 않습니다.")
     await AssetRepository.delete_asset(session, asset_id)
     return DeleteResponse(status_code=status.HTTP_200_OK, detail="주식 자산이 성공적으로 삭제 되었습니다.")
-
 
 
 @asset_stock_router.delete("/assetstock/{stock_code}", summary="주식 부모 행을 삭제합니다.", response_model=DeleteResponse)
@@ -156,19 +156,18 @@ async def delete_asset_stock(
     return DeleteResponse(status_code=status.HTTP_200_OK, detail="부모행을 성공적으로 삭제 하였습니다.")
 
 
-
-@asset_stock_router.get("/sample/assetstock", summary="임시 자산 정보를 반환합니다.", response_model=AssetStockResponse_v1)
+@asset_stock_router.get("/sample/assetstock", summary="임시 자산 정보를 반환합니다.", response_model=AssetStockResponse)
 async def get_sample_asset_stock(
     session: AsyncSession = Depends(get_mysql_session_router),
     redis_client: Redis = Depends(get_redis_pool),
     asset_service: AssetService = Depends(get_asset_service),
     dividend_service: DividendService = Depends(get_dividend_service),
     asset_field_service: AssetFieldService = Depends(get_asset_field_service),
-) -> AssetStockResponse_v1:
+) -> AssetStockResponse:
     assets: list[Asset] = await AssetRepository.get_eager(session, DUMMY_USER_ID, AssetType.STOCK)
     asset_fields: list[str] = await asset_field_service.get_asset_field(session, DUMMY_USER_ID)
 
-    no_asset_response = AssetStockResponse_v1.validate_assets(assets, asset_fields)
+    no_asset_response = AssetStockResponse.validate_assets(assets, asset_fields)
     if no_asset_response:
         return no_asset_response
 
@@ -182,7 +181,7 @@ async def get_sample_asset_stock(
     dollar_exchange = await RedisExchangeRateRepository.get(redis_client, f"{CurrencyType.KOREA}_{CurrencyType.USA}")
     won_exchange = await RedisExchangeRateRepository.get(redis_client, f"{CurrencyType.USA}_{CurrencyType.KOREA}")
 
-    return AssetStockResponse_v1.parse(
+    return AssetStockResponse.parse(
         stock_assets,
         asset_fields,
         total_asset_amount,
@@ -193,7 +192,7 @@ async def get_sample_asset_stock(
     )
 
 
-@asset_stock_router.get("/assetstock", summary="사용자의 자산 정보를 반환합니다.", response_model=AssetStockResponse_v1)
+@asset_stock_router.get("/assetstock", summary="사용자의 자산 정보를 반환합니다.", response_model=AssetStockResponse)
 async def get_asset_stock(
     token: AccessToken = Depends(verify_jwt_token),
     redis_client: Redis = Depends(get_redis_pool),
@@ -201,16 +200,14 @@ async def get_asset_stock(
     asset_service: AssetService = Depends(get_asset_service),
     dividend_service: DividendService = Depends(get_dividend_service),
     asset_field_service: AssetFieldService = Depends(get_asset_field_service),
-) -> AssetStockResponse_v1:
+) -> AssetStockResponse:
     assets: list[Asset] = await AssetRepository.get_eager(session, token.get("user"), AssetType.STOCK)
-    asset_fields: list[str] = await asset_field_service.get_asset_field(session, DUMMY_USER_ID)
-
-    no_asset_response = AssetStockResponse_v1.validate_assets(assets, asset_fields)
+    asset_fields: list[str] = await asset_field_service.get_asset_field(session, token.get("user"))
+    no_asset_response = AssetStockResponse.validate_assets(assets, asset_fields)
     if no_asset_response:
         return no_asset_response
 
-    asset_fields = await asset_field_service.get_asset_field(session, DUMMY_USER_ID)
-    stock_assets: list[dict] = await asset_service.get_stock_assets_v1(session, redis_client, assets, asset_fields)
+    stock_assets: list[dict] = await asset_service.get_stock_assets(session, redis_client, assets, asset_fields)
 
     total_asset_amount = await asset_service.get_total_asset_amount(session, redis_client, assets)
     total_invest_amount = await asset_service.get_total_investment_amount(session, redis_client, assets)
@@ -219,7 +216,7 @@ async def get_asset_stock(
     dollar_exchange = await RedisExchangeRateRepository.get(redis_client, f"{CurrencyType.KOREA}_{CurrencyType.USA}")
     won_exchange = await RedisExchangeRateRepository.get(redis_client, f"{CurrencyType.USA}_{CurrencyType.KOREA}")
 
-    return AssetStockResponse_v1.parse(
+    return AssetStockResponse.parse(
         stock_assets,
         asset_fields,
         total_asset_amount,
@@ -228,4 +225,3 @@ async def get_asset_stock(
         dollar_exchange if dollar_exchange else 1.0,
         won_exchange if won_exchange else 1.0,
     )
-

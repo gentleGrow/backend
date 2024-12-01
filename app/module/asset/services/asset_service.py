@@ -1,20 +1,20 @@
 from collections import defaultdict
 from datetime import date, datetime, timedelta
 from typing import Any
-from app.module.asset.repository.stock_repository import StockRepository
+
 import pandas
 from redis.asyncio import Redis
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.common.util.time import get_now_date
 from app.module.asset.constant import REQUIRED_ASSET_FIELD
-from app.module.asset.enum import ASSETNAME, AmountUnit, PurchaseCurrencyType, StockAsset, StockAsset_v1, TradeType
+from app.module.asset.enum import ASSETNAME, AmountUnit, PurchaseCurrencyType, StockAsset
 from app.module.asset.model import Asset, Stock, StockDaily
 from app.module.asset.repository.asset_repository import AssetRepository
+from app.module.asset.repository.stock_repository import StockRepository
 from app.module.asset.schema import (
     AggregateStockAsset,
-    AssetStockPutRequest,
-    AssetStockPutRequest_v1,
+    AssetStockRequest,
     StockAssetGroup,
     StockAssetSchema,
     TodayTempStockDaily,
@@ -114,53 +114,21 @@ class AssetService:
         asset = await AssetRepository.get_asset_by_id(session, asset_id)
         return {asset.id: asset} if asset else None
 
-    # 확인 후 삭제하겠습니다.
-    async def save_asset_by_put_v1(
-        self, session: AsyncSession, request_data: AssetStockPutRequest_v1, asset: Asset, stock: Stock | None
-    ):
-        if request_data.account_type:
-            asset.asset_stock.account_type = request_data.account_type
-
-        if request_data.investment_bank:
-            asset.asset_stock.investment_bank = request_data.investment_bank
-
-        if request_data.purchase_currency_type:
-            asset.asset_stock.purchase_currency_type = request_data.purchase_currency_type
-
-        if request_data.buy_date:
-            asset.asset_stock.trade_date = request_data.buy_date
-
-        if request_data.purchase_price:
-            asset.asset_stock.trade_price = request_data.purchase_price
-
-        if request_data.quantity:
-            asset.asset_stock.quantity = request_data.quantity
-
-        if stock:
-            asset.asset_stock.stock_id = stock.id
-
-        asset.asset_stock.trade = request_data.trade if request_data.trade else TradeType.BUY
-
-        await AssetRepository.save(session, asset)
-
-    ###########################
-
-    async def save_asset_by_put(
-        self, session: AsyncSession, request_data: AssetStockPutRequest
-    ):
+    async def save_asset_by_put(self, session: AsyncSession, request_data: AssetStockRequest):
         asset = await AssetRepository.get_asset_by_id(session, request_data.id)
         asset.asset_stock.account_type = request_data.account_type if request_data.account_type else None
         asset.asset_stock.investment_bank = request_data.investment_bank if request_data.investment_bank else None
-        asset.asset_stock.purchase_currency_type = request_data.purchase_currency_type if request_data.purchase_currency_type else None
+        asset.asset_stock.purchase_currency_type = (
+            request_data.purchase_currency_type if request_data.purchase_currency_type else None
+        )
         asset.asset_stock.trade_date = request_data.trade_date if request_data.trade_date else None
         asset.asset_stock.trade_price = request_data.trade_price if request_data.trade_price else None
         asset.asset_stock.quantity = request_data.quantity if request_data.quantity else None
         asset.asset_stock.trade = request_data.trade if request_data.trade else None
-        
+
         stock = await StockRepository.get_by_code(session, request_data.stock_code)
         asset.asset_stock.stock_id = stock.id
         await AssetRepository.save(session, asset)
-        
 
     def get_total_asset_amount_with_datetime(
         self,
@@ -365,38 +333,6 @@ class AssetService:
             for _, row in aggregated_df.iterrows()
         ]
 
-    # 수정 확인 후 삭제하겠습니다 ####
-    async def get_stock_assets_v1(
-        self, session: AsyncSession, redis_client: Redis, assets: list[Asset], asset_fields: list
-    ) -> list[dict]:
-        stock_daily_map = await self.stock_daily_service.get_map_range(session, assets)
-        lastest_stock_daily_map = await self.stock_daily_service.get_latest_map(session, assets)
-        dividend_map = await self.dividend_service.get_recent_map(session, assets)
-        exchange_rate_map = await self.exchange_rate_service.get_exchange_rate_map(redis_client)
-        current_stock_price_map = await self.stock_service.get_current_stock_price(
-            redis_client, lastest_stock_daily_map, assets
-        )
-
-        result = []
-
-        for asset in assets:
-            apply_exchange_rate = self._get_apply_exchange_rate(asset, exchange_rate_map)
-            stock_daily = self._get_matching_stock_daily(
-                asset, stock_daily_map, lastest_stock_daily_map, current_stock_price_map
-            )
-            purchase_price = self._get_purchase_price(asset, stock_daily)
-
-            stock_asset_data = self._build_stock_asset_v1(
-                asset, stock_daily, apply_exchange_rate, current_stock_price_map, dividend_map, purchase_price
-            )
-
-            stock_asset_formatted_data = self._apply_require_sign(stock_asset_data, asset_fields)
-
-            result.append(stock_asset_formatted_data)
-
-        return result
-
-    ################
 
     async def get_stock_assets(
         self, session: AsyncSession, redis_client: Redis, assets: list[Asset], asset_fields: list
@@ -487,50 +423,6 @@ class AssetService:
                 - purchase_price * apply_exchange_rate
             ) * asset.asset_stock.quantity
 
-    ### 확인 후 수정하겠습니다!!!!!
-    def _build_stock_asset_v1(
-        self,
-        asset: Asset,
-        stock_daily: TodayTempStockDaily,
-        apply_exchange_rate: float,
-        current_stock_price_map: dict,
-        dividend_map: dict,
-        purchase_price: float,
-    ) -> dict:
-        current_price = self._get_current_price(asset, current_stock_price_map, apply_exchange_rate)
-        dividend = self._get_dividend(asset, dividend_map, apply_exchange_rate)
-        profit_rate = self._get_profit_rate(asset, current_stock_price_map, purchase_price, apply_exchange_rate)
-        purchase_amount = self._get_purchase_amount(asset, purchase_price, apply_exchange_rate)
-        profit_amount = self._get_profit_amount(asset, current_stock_price_map, purchase_price, apply_exchange_rate)
-
-        return {
-            StockAsset_v1.ID.value: asset.id,
-            StockAsset_v1.ACCOUNT_TYPE.value: asset.asset_stock.account_type or None,
-            StockAsset_v1.BUY_DATE.value: asset.asset_stock.trade_date,
-            StockAsset_v1.CURRENT_PRICE.value: current_price,
-            StockAsset_v1.DIVIDEND.value: dividend,
-            StockAsset_v1.HIGHEST_PRICE.value: stock_daily.highest_price * apply_exchange_rate
-            if stock_daily.highest_price
-            else None,
-            StockAsset_v1.INVESTMENT_BANK.value: asset.asset_stock.investment_bank or None,
-            StockAsset_v1.LOWEST_PRICE.value: stock_daily.lowest_price * apply_exchange_rate
-            if stock_daily.lowest_price
-            else None,
-            StockAsset_v1.OPENING_PRICE.value: stock_daily.opening_price * apply_exchange_rate
-            if stock_daily.opening_price
-            else None,
-            StockAsset_v1.PROFIT_RATE.value: profit_rate,
-            StockAsset_v1.PROFIT_AMOUNT.value: profit_amount,
-            StockAsset_v1.PURCHASE_AMOUNT.value: purchase_amount,
-            StockAsset_v1.PURCHASE_PRICE.value: asset.asset_stock.trade_price or None,
-            StockAsset_v1.PURCHASE_CURRENCY_TYPE.value: asset.asset_stock.purchase_currency_type or None,
-            StockAsset_v1.QUANTITY.value: asset.asset_stock.quantity,
-            StockAsset_v1.STOCK_CODE.value: asset.asset_stock.stock.code,
-            StockAsset_v1.STOCK_NAME.value: asset.asset_stock.stock.name_kr,
-            StockAsset_v1.STOCK_VOLUME.value: stock_daily.trade_volume if stock_daily.trade_volume else None,
-        }
-
-    #######################
 
     def _build_stock_asset(
         self,

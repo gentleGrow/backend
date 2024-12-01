@@ -8,7 +8,6 @@ from fastapi.middleware.cors import CORSMiddleware
 from starlette.middleware.sessions import SessionMiddleware
 
 from app.api.asset.v1.router import asset_stock_router
-from app.api.asset.v2.router import asset_stock_router_v2
 from app.api.auth.v1.router import auth_router
 from app.api.chart.v1.router import chart_router
 from app.common.middleware.request import TimeoutMiddleware
