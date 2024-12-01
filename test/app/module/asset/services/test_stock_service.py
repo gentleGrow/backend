@@ -1,9 +1,6 @@
-from datetime import date
-
 from redis.asyncio import Redis
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.common.util.time import get_now_date
 from app.module.asset.dependencies.stock_daily_dependency import get_stock_daily_service
 from app.module.asset.dependencies.stock_dependency import get_stock_service
 from app.module.asset.enum import AssetType

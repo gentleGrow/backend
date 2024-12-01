@@ -1,11 +1,11 @@
 from datetime import date, datetime
 
 from sqlalchemy.ext.asyncio import AsyncSession
-
+from app.module.asset.repository.stock_repository import StockRepository
 from app.module.asset.enum import AssetType, CurrencyType, PurchaseCurrencyType, TradeType
 from app.module.asset.model import Asset, AssetStock, StockDaily
 from app.module.asset.repository.asset_repository import AssetRepository
-from app.module.asset.schema import AssetStockPostRequest, AssetStockPostRequest_v1
+from app.module.asset.schema import AssetStockPostRequest, AssetStockPostRequest_v1, AssetStockRequest
 from app.module.asset.services.exchange_rate_service import ExchangeRateService
 
 
@@ -69,9 +69,9 @@ class AssetStockService:
     #############################
 
     async def save_asset_stock_by_post(
-        self, session: AsyncSession, request_data: AssetStockPostRequest, stock_id: int, user_id: int
+        self, session: AsyncSession, request_data: AssetStockRequest, user_id: int
     ) -> None:
-        result = []
+        stock = await StockRepository.get_by_code(session, request_data.stock_code) 
 
         new_asset = Asset(
             asset_type=AssetType.STOCK,
@@ -84,12 +84,11 @@ class AssetStockService:
                 trade_price=request_data.trade_price,
                 quantity=request_data.quantity,
                 trade=request_data.trade if request_data.trade else TradeType.BUY,
-                stock_id=stock_id,
+                stock_id= stock.id 
             ),
         )
-        result.append(new_asset)
 
-        await AssetRepository.save_assets(session, result)
+        await AssetRepository.save(session, new_asset)
 
     def get_total_asset_amount_minute(
         self,

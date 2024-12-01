@@ -8,7 +8,7 @@ from app.module.asset.dependencies.asset_dependency import get_asset_service
 from app.module.asset.dependencies.asset_field_dependency import get_asset_field_service
 from app.module.asset.dependencies.asset_stock_dependency import get_asset_stock_service
 from app.module.asset.dependencies.dividend_dependency import get_dividend_service
-from app.module.asset.dependencies.stock_dependency import get_stock_service
+from app.module.asset.dependencies.stock_dependency import get_stock_validate
 from app.module.asset.enum import AssetType, StockAsset, TradeType
 from app.module.asset.model import Asset
 from app.module.asset.redis_repository import RedisExchangeRateRepository
@@ -28,7 +28,7 @@ from app.module.asset.services.asset_field_service import AssetFieldService
 from app.module.asset.services.asset_service import AssetService
 from app.module.asset.services.asset_stock_service import AssetStockService
 from app.module.asset.services.dividend_service import DividendService
-from app.module.asset.services.stock_service import StockService
+from app.module.asset.services.stock.stock_validate import StockValidate
 from app.module.auth.constant import DUMMY_USER_ID
 from app.module.auth.schema import AccessToken
 from database.dependency import get_mysql_session_router, get_redis_pool
@@ -41,7 +41,7 @@ async def update_asset_stock(
     request_data: AssetStockPutRequest,
     token: AccessToken = Depends(verify_jwt_token),
     session: AsyncSession = Depends(get_mysql_session_router),
-    stock_service: StockService = Depends(get_stock_service),
+    stock_validate: StockValidate = Depends(get_stock_validate),
     asset_service: AssetService = Depends(get_asset_service),
 ) -> AssetPutResponse:
     asset = await AssetRepository.get_asset_by_id(session, request_data.id)
@@ -49,7 +49,9 @@ async def update_asset_stock(
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"{request_data.id} id에 해당하는 자산을 찾지 못 했습니다.")
 
     if request_data.stock_code and request_data.trade_date:
-        stock_exist = await stock_service.check_stock_exist(session, request_data.stock_code, request_data.trade_date)
+        stock_exist = await stock_validate.check_stock_data_exist(
+            session, request_data.stock_code, request_data.trade_date
+        )
         if stock_exist is False:
             return AssetPutResponse(
                 status_code=status.HTTP_404_NOT_FOUND,
@@ -75,7 +77,7 @@ async def create_asset_stock(
     request_data: AssetStockPostRequest,
     token: AccessToken = Depends(verify_jwt_token),
     session: AsyncSession = Depends(get_mysql_session_router),
-    stock_service: StockService = Depends(get_stock_service),
+    stock_validate: StockValidate = Depends(get_stock_validate),
     asset_stock_service: AssetStockService = Depends(get_asset_stock_service),
 ) -> AssetPostResponse:
     stock = await StockRepository.get_by_code(session, request_data.stock_code)
@@ -87,7 +89,9 @@ async def create_asset_stock(
         )
 
     if request_data.stock_code and request_data.trade_date:
-        stock_exist = await stock_service.check_stock_exist(session, request_data.stock_code, request_data.trade_date)
+        stock_exist = await stock_validate.check_stock_data_exist(
+            session, request_data.stock_code, request_data.trade_date
+        )
         if stock_exist is False:
             return AssetPostResponse(
                 status_code=status.HTTP_404_NOT_FOUND,

@@ -822,8 +822,10 @@ async def get_summary(
         profit=ProfitDetail.parse(total_asset_amount, total_investment_amount),
     )
 
+
 # 서비스 레이어 > AssetQueryService, AssetCalculationService, AssetFormattingService, AssetValidationService
-# mapper 클래스 
+# mapper 클래스
+
 
 @chart_router.get("/sample/summary", summary="오늘의 리뷰, 나의 총자산, 나의 투자 금액, 수익금", response_model=SummaryResponse)
 async def get_sample_summary(

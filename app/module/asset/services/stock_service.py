@@ -1,12 +1,8 @@
-from datetime import date
-
 from redis.asyncio import Redis
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.common.util.time import get_now_date
 from app.module.asset.model import Asset, Stock, StockDaily
 from app.module.asset.redis_repository import RedisRealTimeStockRepository
-from app.module.asset.repository.stock_daily_repository import StockDailyRepository
 from app.module.asset.repository.stock_repository import StockRepository
 
 

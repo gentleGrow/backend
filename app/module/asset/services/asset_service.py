@@ -1,7 +1,7 @@
 from collections import defaultdict
 from datetime import date, datetime, timedelta
 from typing import Any
-
+from app.module.asset.repository.stock_repository import StockRepository
 import pandas
 from redis.asyncio import Redis
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -118,36 +118,6 @@ class AssetService:
     async def save_asset_by_put_v1(
         self, session: AsyncSession, request_data: AssetStockPutRequest_v1, asset: Asset, stock: Stock | None
     ):
-        if request_data.account_type is not None:
-            asset.asset_stock.account_type = request_data.account_type
-
-        if request_data.investment_bank is not None:
-            asset.asset_stock.investment_bank = request_data.investment_bank
-
-        if request_data.purchase_currency_type is not None:
-            asset.asset_stock.purchase_currency_type = request_data.purchase_currency_type
-
-        if request_data.buy_date is not None:
-            asset.asset_stock.trade_date = request_data.buy_date
-
-        if request_data.purchase_price is not None:
-            asset.asset_stock.trade_price = request_data.purchase_price
-
-        if request_data.quantity is not None:
-            asset.asset_stock.quantity = request_data.quantity
-
-        if stock is not None:
-            asset.asset_stock.stock_id = stock.id
-
-        asset.asset_stock.trade = request_data.trade if request_data.trade else TradeType.BUY
-
-        await AssetRepository.save(session, asset)
-
-    ###########################
-
-    async def save_asset_by_put(
-        self, session: AsyncSession, request_data: AssetStockPutRequest, asset: Asset, stock: Stock | None
-    ):
         if request_data.account_type:
             asset.asset_stock.account_type = request_data.account_type
 
@@ -157,13 +127,13 @@ class AssetService:
         if request_data.purchase_currency_type:
             asset.asset_stock.purchase_currency_type = request_data.purchase_currency_type
 
-        if request_data.trade_date is not None:
-            asset.asset_stock.trade_date = request_data.trade_date
+        if request_data.buy_date:
+            asset.asset_stock.trade_date = request_data.buy_date
 
-        if request_data.trade_price is not None:
-            asset.asset_stock.trade_price = request_data.trade_price
+        if request_data.purchase_price:
+            asset.asset_stock.trade_price = request_data.purchase_price
 
-        if request_data.quantity is not None:
+        if request_data.quantity:
             asset.asset_stock.quantity = request_data.quantity
 
         if stock:
@@ -172,6 +142,25 @@ class AssetService:
         asset.asset_stock.trade = request_data.trade if request_data.trade else TradeType.BUY
 
         await AssetRepository.save(session, asset)
+
+    ###########################
+
+    async def save_asset_by_put(
+        self, session: AsyncSession, request_data: AssetStockPutRequest
+    ):
+        asset = await AssetRepository.get_asset_by_id(session, request_data.id)
+        asset.asset_stock.account_type = request_data.account_type if request_data.account_type else None
+        asset.asset_stock.investment_bank = request_data.investment_bank if request_data.investment_bank else None
+        asset.asset_stock.purchase_currency_type = request_data.purchase_currency_type if request_data.purchase_currency_type else None
+        asset.asset_stock.trade_date = request_data.trade_date if request_data.trade_date else None
+        asset.asset_stock.trade_price = request_data.trade_price if request_data.trade_price else None
+        asset.asset_stock.quantity = request_data.quantity if request_data.quantity else None
+        asset.asset_stock.trade = request_data.trade if request_data.trade else None
+        
+        stock = await StockRepository.get_by_code(session, request_data.stock_code)
+        asset.asset_stock.stock_id = stock.id
+        await AssetRepository.save(session, asset)
+        
 
     def get_total_asset_amount_with_datetime(
         self,

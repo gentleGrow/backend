@@ -35,8 +35,7 @@ app.add_middleware(TimeoutMiddleware)
 
 app.include_router(auth_router, prefix="/api/auth", tags=["auth"])
 app.include_router(chart_router, prefix="/api/chart", tags=["chart"])
-app.include_router(asset_stock_router, prefix="/api", tags=["asset"])
-app.include_router(asset_stock_router_v2, prefix="/api/asset", tags=["asset_v2"])
+app.include_router(asset_stock_router, prefix="/api/asset", tags=["asset"])
 
 # 테스트 서버에서는 모니터링을 열지 않아 임시 주석처리 했습니다.
 # Instrumentator().instrument(app).expose(app, include_in_schema=False, endpoint="/metrics")
