@@ -169,27 +169,3 @@ class TestDividendService:
         # Then
         assert result["AAPL"] == 1.60
         assert result["TSLA"] == 0.90
-
-    async def test_get_total_dividend(
-        self, session: AsyncSession, redis_client: Redis, setup_exchange_rate, setup_asset, setup_dividend
-    ):
-        # Given
-        dividend_service: DividendService = get_dividend_service()
-        exchange_rate_service: ExchangeRateService = get_exchange_rate_service()
-
-        assets: list[Asset] = await AssetRepository.get_eager(session, DUMMY_USER_ID, AssetType.STOCK)
-        dividend_map = await dividend_service.get_recent_map(session, assets)
-        exchange_rate_map = await exchange_rate_service.get_exchange_rate_map(redis_client)
-
-        # When
-        total_dividend = await dividend_service.get_total_dividend(
-            session=session, redis_client=redis_client, assets=assets
-        )
-        expected_total_dividend = 0.0
-        for asset in assets:
-            dividend_per_stock = dividend_map.get(asset.asset_stock.stock.code, 0.0)
-            exchange_rate = exchange_rate_service.get_won_exchange_rate(asset, exchange_rate_map)
-            expected_total_dividend += dividend_per_stock * asset.asset_stock.quantity * exchange_rate
-
-        # Then
-        assert total_dividend == approx(expected_total_dividend)

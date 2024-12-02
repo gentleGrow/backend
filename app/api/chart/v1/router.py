@@ -16,7 +16,7 @@ from app.module.asset.constant import (
     THREE_MONTH,
     THREE_MONTH_DAY,
 )
-from app.module.asset.dependencies.asset_dependency import get_asset_service
+from app.module.asset.dependencies.asset_dependency import get_asset_query, get_asset_service
 from app.module.asset.dependencies.asset_stock_dependency import get_asset_stock_service
 from app.module.asset.dependencies.dividend_dependency import get_dividend_service
 from app.module.asset.dependencies.exchange_rate_dependency import get_exchange_rate_service
@@ -26,7 +26,8 @@ from app.module.asset.dependencies.stock_dependency import get_stock_service
 from app.module.asset.enum import AssetType, CurrencyType, StockAsset
 from app.module.asset.model import Asset
 from app.module.asset.repository.asset_repository import AssetRepository
-from app.module.asset.schema import MarketIndexData
+from app.module.asset.schema import MarketIndexData, StockAssetSchema
+from app.module.asset.services.asset.asset_query import AssetQuery
 from app.module.asset.services.asset_service import AssetService
 from app.module.asset.services.asset_stock_service import AssetStockService
 from app.module.asset.services.dividend_service import DividendService
@@ -742,6 +743,7 @@ async def get_composition(
 async def get_sample_my_stock(
     session: AsyncSession = Depends(get_mysql_session_router),
     redis_client: Redis = Depends(get_redis_pool),
+    asset_query: AssetQuery = Depends(get_asset_query),
     asset_service: AssetService = Depends(get_asset_service),
 ) -> MyStockResponse:
     assets: list[Asset] = await AssetRepository.get_eager(session, DUMMY_USER_ID, AssetType.STOCK)
@@ -750,7 +752,23 @@ async def get_sample_my_stock(
             [MyStockResponseValue(name="", current_price=0.0, profit_rate=0.0, profit_amount=0.0, quantity=0)]
         )
 
-    stock_assets = await asset_service.get_stock_assets(session, redis_client, assets, ASSET_FIELD)
+    (
+        stock_daily_map,
+        lastest_stock_daily_map,
+        dividend_map,
+        exchange_rate_map,
+        current_stock_price_map,
+    ) = await asset_query.get_all_data(session, redis_client, assets)
+
+    stock_assets: list[StockAssetSchema] = asset_service.get_stock_assets(
+        assets,
+        ASSET_FIELD,
+        stock_daily_map,
+        lastest_stock_daily_map,
+        dividend_map,
+        exchange_rate_map,
+        current_stock_price_map,
+    )
 
     return MyStockResponse(
         [
@@ -771,6 +789,7 @@ async def get_my_stock(
     token: AccessToken = Depends(verify_jwt_token),
     session: AsyncSession = Depends(get_mysql_session_router),
     redis_client: Redis = Depends(get_redis_pool),
+    asset_query: AssetQuery = Depends(get_asset_query),
     asset_service: AssetService = Depends(get_asset_service),
 ) -> MyStockResponse:
     assets: list[Asset] = await AssetRepository.get_eager(session, token.get("user"), AssetType.STOCK)
@@ -779,7 +798,23 @@ async def get_my_stock(
             [MyStockResponseValue(name="", current_price=0.0, profit_rate=0.0, profit_amount=0.0, quantity=0)]
         )
 
-    stock_assets = await asset_service.get_stock_assets(session, redis_client, assets, ASSET_FIELD)
+    (
+        stock_daily_map,
+        lastest_stock_daily_map,
+        dividend_map,
+        exchange_rate_map,
+        current_stock_price_map,
+    ) = await asset_query.get_all_data(session, redis_client, assets)
+
+    stock_assets: list[StockAssetSchema] = asset_service.get_stock_assets(
+        assets,
+        ASSET_FIELD,
+        stock_daily_map,
+        lastest_stock_daily_map,
+        dividend_map,
+        exchange_rate_map,
+        current_stock_price_map,
+    )
 
     return MyStockResponse(
         [

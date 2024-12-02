@@ -1,7 +1,6 @@
 from collections import defaultdict
 from datetime import date, timedelta
 
-from redis.asyncio import Redis
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.module.asset.model import Asset, Dividend
@@ -13,10 +12,9 @@ class DividendService:
     def __init__(self, exchange_rate_service: ExchangeRateService):
         self.exchange_rate_service = exchange_rate_service
 
-    async def get_total_dividend(self, session: AsyncSession, redis_client: Redis, assets: list[Asset]) -> float:
-        exchange_rate_map = await self.exchange_rate_service.get_exchange_rate_map(redis_client)
-        dividend_map: dict[str, float] = await self.get_recent_map(session, assets)
-
+    def get_total_dividend(
+        self, assets: list[Asset], exchange_rate_map: dict[str, float], dividend_map: dict[str, float]
+    ) -> float:
         result = 0.0
 
         for asset in assets:

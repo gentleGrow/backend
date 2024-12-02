@@ -8,7 +8,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.common.util.time import get_now_date
 from app.module.asset.constant import REQUIRED_ASSET_FIELD
-from app.module.asset.enum import ASSETNAME, AmountUnit, PurchaseCurrencyType, StockAsset, AssetType
+from app.module.asset.enum import ASSETNAME, AmountUnit, PurchaseCurrencyType, StockAsset
 from app.module.asset.model import Asset, StockDaily
 from app.module.asset.repository.asset_repository import AssetRepository
 from app.module.asset.repository.stock_repository import StockRepository
@@ -38,13 +38,19 @@ class AssetService:
         self.stock_service = stock_service
         self.dividend_service = dividend_service
 
-    async def get_complete_assets(self, session: AsyncSession, user_id:str, asset_type:str) -> list[Asset]:
+    async def get_complete_assets(self, session: AsyncSession, user_id: str, asset_type: str) -> list[Asset]:
         assets: list[Asset] = await AssetRepository.get_eager(session, user_id, asset_type)
-        return [ filterd_asset for filterd_asset in filter(self._filter_complete_asset, assets)]
-        
-    def _filter_complete_asset(self, asset:Asset):
-        return asset.asset_stock.stock and asset.asset_stock.quantity and asset.asset_stock.trade_date and asset.asset_stock.trade and asset.asset_stock.purchase_currency_type
-        
+        return [filterd_asset for filterd_asset in filter(self._filter_complete_asset, assets)]
+
+    def _filter_complete_asset(self, asset: Asset):
+        return (
+            asset.asset_stock.stock
+            and asset.asset_stock.quantity
+            and asset.asset_stock.trade_date
+            and asset.asset_stock.trade
+            and asset.asset_stock.purchase_currency_type
+        )
+
     async def delete_parent_row(self, session: AsyncSession, assets: list[Asset], stock_code: str) -> None:
         asset_id_list = []
         for asset in assets:
@@ -188,13 +194,13 @@ class AssetService:
     async def filter_required_assets(self, assets: list[Asset]) -> list[Asset]:
         return [asset for asset in assets if await self._check_required_field(asset)]
 
-    async def get_total_investment_amount(
-        self, session: AsyncSession, redis_client: Redis, assets: list[Asset]
+    def get_total_investment_amount(
+        self,
+        assets: list[Asset],
+        stock_daily_map: dict[tuple[str, date], StockDaily],
+        exchange_rate_map: dict[str, float],
+        lastest_stock_daily_map: dict[str, StockDaily],
     ) -> float:
-        stock_daily_map = await self.stock_daily_service.get_map_range(session, assets)
-        exchange_rate_map = await self.exchange_rate_service.get_exchange_rate_map(redis_client)
-        lastest_stock_daily_map = await self.stock_daily_service.get_latest_map(session, assets)
-
         result = 0.0
 
         for asset in assets:
@@ -268,13 +274,9 @@ class AssetService:
 
         return result
 
-    async def get_total_asset_amount(self, session: AsyncSession, redis_client: Redis, assets: list[Asset]) -> float:
-        lastest_stock_daily_map = await self.stock_daily_service.get_latest_map(session, assets)
-        current_stock_price_map = await self.stock_service.get_current_stock_price(
-            redis_client, lastest_stock_daily_map, assets
-        )
-        exchange_rate_map = await self.exchange_rate_service.get_exchange_rate_map(redis_client)
-
+    def get_total_asset_amount(
+        self, assets: list[Asset], current_stock_price_map: dict[str, float], exchange_rate_map: dict[str, float]
+    ) -> float:
         result = 0.0
 
         for asset in assets:
@@ -340,17 +342,16 @@ class AssetService:
             for _, row in aggregated_df.iterrows()
         ]
 
-    async def get_stock_assets(
-        self, session: AsyncSession, redis_client: Redis, assets: list[Asset], asset_fields: list
+    def get_stock_assets(
+        self,
+        assets: list[Asset],
+        asset_fields: list,
+        stock_daily_map: dict[tuple[str, date], StockDaily],
+        lastest_stock_daily_map: dict[str, StockDaily],
+        dividend_map: dict[str, float],
+        exchange_rate_map: dict[str, float],
+        current_stock_price_map: dict[str, float],
     ) -> list[StockAssetSchema]:
-        stock_daily_map = await self.stock_daily_service.get_map_range(session, assets)
-        lastest_stock_daily_map = await self.stock_daily_service.get_latest_map(session, assets)
-        dividend_map = await self.dividend_service.get_recent_map(session, assets)
-        exchange_rate_map = await self.exchange_rate_service.get_exchange_rate_map(redis_client)
-        current_stock_price_map = await self.stock_service.get_current_stock_price(
-            redis_client, lastest_stock_daily_map, assets
-        )
-
         result = []
 
         for asset in assets:
