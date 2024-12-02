@@ -46,7 +46,6 @@ class AssetStockService:
             )
         return result
 
-
     async def save_asset_stock_by_post(
         self, session: AsyncSession, request_data: AssetStockRequest, user_id: int
     ) -> None:

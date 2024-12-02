@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Depends, status
 from redis.asyncio import Redis
 from sqlalchemy.ext.asyncio import AsyncSession
-
+from icecream import ic
 from app.common.auth.security import verify_jwt_token
 from app.common.schema.common_schema import DeleteResponse, PutResponse
 from app.module.asset.constant import KOREA, USA, CurrencyType
@@ -20,9 +20,12 @@ from app.module.asset.schema import (
     AssetFieldResponse,
     AssetFieldUpdateResponse,
     AssetStockRequest,
-    AssetStockStatusResponse,
+    StockAssetGroup,
     AssetStockResponse,
+    AssetStockStatusResponse,
     BankAccountResponse,
+    AggregateStockAsset,
+    StockAssetSchema,
     ParentAssetDeleteResponse,
     StockListResponse,
     StockListValue,
@@ -172,7 +175,7 @@ async def get_sample_asset_stock(
         return no_asset_response
 
     asset_fields = await asset_field_service.get_asset_field(session, DUMMY_USER_ID)
-    stock_assets: list[dict] = await asset_service.get_stock_assets_v1(session, redis_client, assets, asset_fields)
+    stock_assets = await asset_service.get_stock_assets(session, redis_client, assets, asset_fields)
 
     total_asset_amount = await asset_service.get_total_asset_amount(session, redis_client, assets)
     total_invest_amount = await asset_service.get_total_investment_amount(session, redis_client, assets)
@@ -201,13 +204,17 @@ async def get_asset_stock(
     dividend_service: DividendService = Depends(get_dividend_service),
     asset_field_service: AssetFieldService = Depends(get_asset_field_service),
 ) -> AssetStockResponse:
-    assets: list[Asset] = await AssetRepository.get_eager(session, token.get("user"), AssetType.STOCK)
+    assets = await asset_service.get_complete_assets(session, token.get("user"), AssetType.STOCK)
     asset_fields: list[str] = await asset_field_service.get_asset_field(session, token.get("user"))
     no_asset_response = AssetStockResponse.validate_assets(assets, asset_fields)
     if no_asset_response:
         return no_asset_response
 
-    stock_assets: list[dict] = await asset_service.get_stock_assets(session, redis_client, assets, asset_fields)
+    stock_asset_elements: list[StockAssetSchema] = await asset_service.get_stock_assets(
+        session, redis_client, assets, asset_fields
+    )
+    aggregate_stock_assets: list[AggregateStockAsset] = asset_service.aggregate_stock_assets(stock_asset_elements)
+    stock_assets: list[StockAssetGroup] = asset_service.group_stock_assets(stock_asset_elements, aggregate_stock_assets)
 
     total_asset_amount = await asset_service.get_total_asset_amount(session, redis_client, assets)
     total_invest_amount = await asset_service.get_total_investment_amount(session, redis_client, assets)
@@ -222,6 +229,6 @@ async def get_asset_stock(
         total_asset_amount,
         total_invest_amount,
         total_dividend_amount,
-        dollar_exchange if dollar_exchange else 1.0,
-        won_exchange if won_exchange else 1.0,
+        dollar_exchange if dollar_exchange else 0.00072,
+        won_exchange if won_exchange else 1400.0,
     )

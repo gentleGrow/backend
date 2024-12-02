@@ -8,8 +8,8 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.common.util.time import get_now_date
 from app.module.asset.constant import REQUIRED_ASSET_FIELD
-from app.module.asset.enum import ASSETNAME, AmountUnit, PurchaseCurrencyType, StockAsset
-from app.module.asset.model import Asset, Stock, StockDaily
+from app.module.asset.enum import ASSETNAME, AmountUnit, PurchaseCurrencyType, StockAsset, AssetType
+from app.module.asset.model import Asset, StockDaily
 from app.module.asset.repository.asset_repository import AssetRepository
 from app.module.asset.repository.stock_repository import StockRepository
 from app.module.asset.schema import (
@@ -38,6 +38,13 @@ class AssetService:
         self.stock_service = stock_service
         self.dividend_service = dividend_service
 
+    async def get_complete_assets(self, session: AsyncSession, user_id:str, asset_type:str) -> list[Asset]:
+        assets: list[Asset] = await AssetRepository.get_eager(session, user_id, asset_type)
+        return [ filterd_asset for filterd_asset in filter(self._filter_complete_asset, assets)]
+        
+    def _filter_complete_asset(self, asset:Asset):
+        return asset.asset_stock.stock and asset.asset_stock.quantity and asset.asset_stock.trade_date and asset.asset_stock.trade and asset.asset_stock.purchase_currency_type
+        
     async def delete_parent_row(self, session: AsyncSession, assets: list[Asset], stock_code: str) -> None:
         asset_id_list = []
         for asset in assets:
@@ -333,7 +340,6 @@ class AssetService:
             for _, row in aggregated_df.iterrows()
         ]
 
-
     async def get_stock_assets(
         self, session: AsyncSession, redis_client: Redis, assets: list[Asset], asset_fields: list
     ) -> list[StockAssetSchema]:
@@ -345,7 +351,7 @@ class AssetService:
             redis_client, lastest_stock_daily_map, assets
         )
 
-        stock_assets = []
+        result = []
 
         for asset in assets:
             apply_exchange_rate = self._get_apply_exchange_rate(asset, exchange_rate_map)
@@ -362,9 +368,9 @@ class AssetService:
 
             stock_asset_schema = StockAssetSchema(**stock_asset_formatted_data)
 
-            stock_assets.append(stock_asset_schema)
+            result.append(stock_asset_schema)
 
-        return stock_assets
+        return result
 
     def _get_apply_exchange_rate(self, asset: Asset, exchange_rate_map: dict) -> float:
         asset_purchase_currency_type = asset.asset_stock.purchase_currency_type
@@ -422,7 +428,6 @@ class AssetService:
                 current_stock_price_map.get(asset.asset_stock.stock.code, 1.0) * apply_exchange_rate
                 - purchase_price * apply_exchange_rate
             ) * asset.asset_stock.quantity
-
 
     def _build_stock_asset(
         self,

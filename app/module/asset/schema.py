@@ -7,13 +7,7 @@ from pydantic import BaseModel, Field, RootModel
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.module.asset.constant import ASSET_FIELD, PURCHASE_PRICE_MAX, PURCHASE_QUANTITY_MAX, REQUIRED_ASSET_FIELD
-from app.module.asset.enum import (
-    AccountType,
-    InvestmentBankType,
-    PurchaseCurrencyType,
-    StockAsset,
-    TradeType,
-)
+from app.module.asset.enum import AccountType, InvestmentBankType, PurchaseCurrencyType, StockAsset, TradeType
 from app.module.asset.model import Asset
 from app.module.asset.repository.asset_repository import AssetRepository
 
