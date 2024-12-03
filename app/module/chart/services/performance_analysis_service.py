@@ -146,6 +146,7 @@ class PerformanceAnalysisService:
         sorted_dates = sorted(dates)
 
         stock_daily_date_map = await self.stock_daily_service.get_date_map_dates(session, assets, sorted_dates)
+        lastest_stock_daily_map = await self.stock_daily_service.get_latest_map(session, assets)
 
         result = {}
 
@@ -153,8 +154,8 @@ class PerformanceAnalysisService:
             if market_date not in assets_by_date:
                 continue
             current_assets = assets_by_date[market_date]
-            current_investment_amount = await self.asset_service.get_total_investment_amount(
-                session, redis_client, current_assets
+            current_investment_amount = self.asset_service.get_total_investment_amount(
+                current_assets, stock_daily_date_map, exchange_rate_map, lastest_stock_daily_map
             )
             if current_assets is None or current_investment_amount == 0.0:
                 result[market_date] = 0.0
@@ -188,6 +189,7 @@ class PerformanceAnalysisService:
         assets_by_date: dict = self.asset_service.asset_list_from_days(assets, interval.get_days())
         exchange_rate_map = await self.exchange_rate_service.get_exchange_rate_map(redis_client)
         stock_daily_map = await self.stock_daily_service.get_map_range(session, assets)
+        lastest_stock_daily_map = await self.stock_daily_service.get_latest_map(session, assets)
 
         result = {}
         current_assets = None
@@ -200,8 +202,9 @@ class PerformanceAnalysisService:
             current_loop_assets = assets_by_date[market_datetime.date()]
             if current_assets is not current_loop_assets:
                 current_assets = current_loop_assets
-                current_investment_amount = await self.asset_service.get_total_investment_amount(
-                    session, redis_client, current_assets
+
+                current_investment_amount = self.asset_service.get_total_investment_amount(
+                    current_assets, stock_daily_map, exchange_rate_map, lastest_stock_daily_map
                 )
             if current_assets is None or current_investment_amount is None:
                 result[market_datetime] = 0.0

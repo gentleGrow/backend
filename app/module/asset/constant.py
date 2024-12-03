@@ -9,6 +9,9 @@ from app.module.asset.enum import (
     PurchaseCurrencyType,
 )
 
+DEFAULT_DOLLAR_EXCHANGE_RATE = 0.00072
+DEFAULT_WON_EXCHANGE_RATE = 1400.0
+
 KOREA = "Korea"
 USA = "USA"
 

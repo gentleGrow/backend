@@ -2,17 +2,14 @@ from collections import defaultdict
 from datetime import date
 
 from pytest import approx
-from redis.asyncio import Redis
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
 
 from app.module.asset.dependencies.dividend_dependency import get_dividend_service
-from app.module.asset.dependencies.exchange_rate_dependency import get_exchange_rate_service
-from app.module.asset.enum import AssetType, TradeType
+from app.module.asset.enum import TradeType
 from app.module.asset.model import Asset, AssetStock, Stock
 from app.module.asset.repository.asset_repository import AssetRepository
 from app.module.asset.services.dividend_service import DividendService
-from app.module.asset.services.exchange_rate_service import ExchangeRateService
 from app.module.auth.constant import DUMMY_USER_ID
 
 

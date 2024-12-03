@@ -169,11 +169,13 @@ async def get_sample_asset_stock(
     dividend_service: DividendService = Depends(get_dividend_service),
     asset_field_service: AssetFieldService = Depends(get_asset_field_service),
 ) -> AssetStockResponse:
-    assets = await asset_service.get_complete_assets(session, DUMMY_USER_ID, AssetType.STOCK)
+    assets: list[Asset] = await AssetRepository.get_eager(session, DUMMY_USER_ID, AssetType.STOCK)
     asset_fields: list[str] = await asset_field_service.get_asset_field(session, DUMMY_USER_ID)
     no_asset_response = AssetStockResponse.validate_assets(assets, asset_fields)
     if no_asset_response:
         return no_asset_response
+
+    full_required_assets = await asset_service.get_full_required_assets(assets)
 
     (
         stock_daily_map,
@@ -181,10 +183,13 @@ async def get_sample_asset_stock(
         dividend_map,
         exchange_rate_map,
         current_stock_price_map,
-    ) = await asset_query.get_all_data(session, redis_client, assets)
+    ) = await asset_query.get_all_data(session, redis_client, full_required_assets)
 
-    stock_asset_elements: list[StockAssetSchema] = asset_service.get_stock_assets(
-        assets,
+    complete_asset, incomplete_assets = asset_service.separate_assets_by_full_data(assets, stock_daily_map)
+
+    incomplete_stock_asset_elements = asset_service.get_incomplete_stock_assets(incomplete_assets)
+    complete_stock_asset_elements: list[StockAssetSchema] = asset_service.get_stock_assets(
+        complete_asset,
         asset_fields,
         stock_daily_map,
         lastest_stock_daily_map,
@@ -192,14 +197,22 @@ async def get_sample_asset_stock(
         exchange_rate_map,
         current_stock_price_map,
     )
-    aggregate_stock_assets: list[AggregateStockAsset] = asset_service.aggregate_stock_assets(stock_asset_elements)
-    stock_assets: list[StockAssetGroup] = asset_service.group_stock_assets(stock_asset_elements, aggregate_stock_assets)
+    full_stock_asset_elements = incomplete_stock_asset_elements + complete_stock_asset_elements
 
-    total_asset_amount = asset_service.get_total_asset_amount(assets, current_stock_price_map, exchange_rate_map)
-    total_invest_amount = asset_service.get_total_investment_amount(
-        assets, stock_daily_map, exchange_rate_map, lastest_stock_daily_map
+    aggregate_stock_assets: list[AggregateStockAsset] = asset_service.aggregate_stock_assets(
+        complete_stock_asset_elements
     )
-    total_dividend_amount = dividend_service.get_total_dividend(assets, exchange_rate_map, dividend_map)
+    stock_assets: list[StockAssetGroup] = asset_service.group_stock_assets(
+        full_stock_asset_elements, aggregate_stock_assets
+    )
+
+    total_asset_amount = asset_service.get_total_asset_amount(
+        complete_asset, current_stock_price_map, exchange_rate_map
+    )
+    total_invest_amount = asset_service.get_total_investment_amount(
+        complete_asset, stock_daily_map, exchange_rate_map, lastest_stock_daily_map
+    )
+    total_dividend_amount = dividend_service.get_total_dividend(complete_asset, exchange_rate_map, dividend_map)
 
     dollar_exchange = await RedisExchangeRateRepository.get(redis_client, f"{CurrencyType.KOREA}_{CurrencyType.USA}")
     won_exchange = await RedisExchangeRateRepository.get(redis_client, f"{CurrencyType.USA}_{CurrencyType.KOREA}")
@@ -210,8 +223,8 @@ async def get_sample_asset_stock(
         total_asset_amount,
         total_invest_amount,
         total_dividend_amount,
-        dollar_exchange if dollar_exchange else 0.00072,
-        won_exchange if won_exchange else 1400.0,
+        dollar_exchange=dollar_exchange or 0.00072,
+        won_exchange=won_exchange or 1400.0,
     )
 
 
@@ -225,11 +238,13 @@ async def get_asset_stock(
     dividend_service: DividendService = Depends(get_dividend_service),
     asset_field_service: AssetFieldService = Depends(get_asset_field_service),
 ) -> AssetStockResponse:
-    assets = await asset_service.get_complete_assets(session, token.get("user"), AssetType.STOCK)
+    assets: list[Asset] = await AssetRepository.get_eager(session, token.get("user"), AssetType.STOCK)
     asset_fields: list[str] = await asset_field_service.get_asset_field(session, token.get("user"))
     no_asset_response = AssetStockResponse.validate_assets(assets, asset_fields)
     if no_asset_response:
         return no_asset_response
+
+    full_required_assets = await asset_service.get_full_required_assets(assets)
 
     (
         stock_daily_map,
@@ -237,10 +252,13 @@ async def get_asset_stock(
         dividend_map,
         exchange_rate_map,
         current_stock_price_map,
-    ) = await asset_query.get_all_data(session, redis_client, assets)
+    ) = await asset_query.get_all_data(session, redis_client, full_required_assets)
 
-    stock_asset_elements: list[StockAssetSchema] = asset_service.get_stock_assets(
-        assets,
+    complete_asset, incomplete_assets = asset_service.separate_assets_by_full_data(assets, stock_daily_map)
+
+    incomplete_stock_asset_elements = asset_service.get_incomplete_stock_assets(incomplete_assets)
+    complete_stock_asset_elements: list[StockAssetSchema] = asset_service.get_stock_assets(
+        complete_asset,
         asset_fields,
         stock_daily_map,
         lastest_stock_daily_map,
@@ -248,14 +266,22 @@ async def get_asset_stock(
         exchange_rate_map,
         current_stock_price_map,
     )
-    aggregate_stock_assets: list[AggregateStockAsset] = asset_service.aggregate_stock_assets(stock_asset_elements)
-    stock_assets: list[StockAssetGroup] = asset_service.group_stock_assets(stock_asset_elements, aggregate_stock_assets)
+    full_stock_asset_elements = incomplete_stock_asset_elements + complete_stock_asset_elements
 
-    total_asset_amount = asset_service.get_total_asset_amount(assets, current_stock_price_map, exchange_rate_map)
-    total_invest_amount = asset_service.get_total_investment_amount(
-        assets, stock_daily_map, exchange_rate_map, lastest_stock_daily_map
+    aggregate_stock_assets: list[AggregateStockAsset] = asset_service.aggregate_stock_assets(
+        complete_stock_asset_elements
     )
-    total_dividend_amount = dividend_service.get_total_dividend(assets, exchange_rate_map, dividend_map)
+    stock_assets: list[StockAssetGroup] = asset_service.group_stock_assets(
+        full_stock_asset_elements, aggregate_stock_assets
+    )
+
+    total_asset_amount = asset_service.get_total_asset_amount(
+        complete_asset, current_stock_price_map, exchange_rate_map
+    )
+    total_invest_amount = asset_service.get_total_investment_amount(
+        complete_asset, stock_daily_map, exchange_rate_map, lastest_stock_daily_map
+    )
+    total_dividend_amount = dividend_service.get_total_dividend(complete_asset, exchange_rate_map, dividend_map)
 
     dollar_exchange = await RedisExchangeRateRepository.get(redis_client, f"{CurrencyType.KOREA}_{CurrencyType.USA}")
     won_exchange = await RedisExchangeRateRepository.get(redis_client, f"{CurrencyType.USA}_{CurrencyType.KOREA}")
@@ -266,6 +292,6 @@ async def get_asset_stock(
         total_asset_amount,
         total_invest_amount,
         total_dividend_amount,
-        dollar_exchange if dollar_exchange else 0.00072,
-        won_exchange if won_exchange else 1400.0,
+        dollar_exchange=dollar_exchange or 0.00072,
+        won_exchange=won_exchange or 1400.0,
     )

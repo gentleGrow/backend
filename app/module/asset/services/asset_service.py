@@ -38,11 +38,28 @@ class AssetService:
         self.stock_service = stock_service
         self.dividend_service = dividend_service
 
-    async def get_complete_assets(self, session: AsyncSession, user_id: str, asset_type: str) -> list[Asset]:
-        assets: list[Asset] = await AssetRepository.get_eager(session, user_id, asset_type)
-        return [filterd_asset for filterd_asset in filter(self._filter_complete_asset, assets)]
+    def separate_assets_by_full_data(
+        self, assets: list[Asset], stock_daily_map: dict[tuple[str, date], StockDaily]
+    ) -> tuple[list[Asset], list[Asset]]:
+        complete_assets = []
+        incomplete_assets = []
 
-    def _filter_complete_asset(self, asset: Asset):
+        for asset in assets:
+            if self._filter_full_required_asset(asset):
+                stock_daily = stock_daily_map.get((asset.asset_stock.stock.code, asset.asset_stock.trade_date), None)
+                if stock_daily:
+                    complete_assets.append(asset)
+                else:
+                    incomplete_assets.append(asset)
+            else:
+                incomplete_assets.append(asset)
+
+        return complete_assets, incomplete_assets
+
+    async def get_full_required_assets(self, assets: list[Asset]) -> list[Asset]:
+        return [filterd_asset for filterd_asset in filter(self._filter_full_required_asset, assets)]
+
+    def _filter_full_required_asset(self, asset: Asset):
         return (
             asset.asset_stock.stock
             and asset.asset_stock.quantity
@@ -302,13 +319,23 @@ class AssetService:
         stock_elements_by_name = defaultdict(list)
         for stock_asset in stock_asset_elements:
             stock_name = stock_asset.종목명.value
-            if isinstance(stock_name, str):
-                stock_elements_by_name[stock_name].append(stock_asset)
+            stock_elements_by_name[stock_name].append(stock_asset)
 
         for stock_name, sub_stock_assets in stock_elements_by_name.items():
             if stock_name in parent_stock_asset_dict:
                 stock_asset_group = StockAssetGroup(parent=parent_stock_asset_dict[stock_name], sub=sub_stock_assets)
                 result.append(stock_asset_group)
+            else:
+                empty_stock_asset_group = StockAssetGroup(
+                    parent=AggregateStockAsset(
+                        종목명=stock_name,
+                        수익률=0.0,
+                        수익금=0.0,
+                        배당금=0.0
+                    ),
+                    sub=sub_stock_assets
+                )
+                result.append(empty_stock_asset_group)
 
         return result
 
@@ -342,6 +369,37 @@ class AssetService:
             for _, row in aggregated_df.iterrows()
         ]
 
+    def get_incomplete_stock_assets(self, assets: list[Asset]):
+        result = []
+        for asset in assets:
+            incomplete_stock_asset_data = self._build_incomplete_stock_asset(asset)
+            incomplete_stock_asset_formatted_data = self._apply_require_sign(incomplete_stock_asset_data)
+            incomplete_stock_asset_schema = StockAssetSchema(**incomplete_stock_asset_formatted_data)
+            result.append(incomplete_stock_asset_schema)
+        return result
+
+    def _build_incomplete_stock_asset(self, asset: Asset):
+        return {
+            StockAsset.ID.value: asset.id,
+            StockAsset.ACCOUNT_TYPE.value: asset.asset_stock.account_type,
+            StockAsset.TRADE_DATE.value: asset.asset_stock.trade_date,
+            StockAsset.CURRENT_PRICE.value: None,
+            StockAsset.DIVIDEND.value: None,
+            StockAsset.HIGHEST_PRICE.value: None,
+            StockAsset.INVESTMENT_BANK.value: asset.asset_stock.investment_bank,
+            StockAsset.LOWEST_PRICE.value: None,
+            StockAsset.OPENING_PRICE.value: None,
+            StockAsset.PROFIT_RATE.value: None,
+            StockAsset.PROFIT_AMOUNT.value: None,
+            StockAsset.TRADE_AMOUNT.value: None,
+            StockAsset.TRADE_PRICE.value: asset.asset_stock.trade_price,
+            StockAsset.PURCHASE_CURRENCY_TYPE.value: asset.asset_stock.purchase_currency_type,
+            StockAsset.QUANTITY.value: asset.asset_stock.quantity,
+            StockAsset.STOCK_CODE.value: asset.asset_stock.stock.code,
+            StockAsset.STOCK_NAME.value: asset.asset_stock.stock.name_kr,
+            StockAsset.STOCK_VOLUME.value: None,
+        }
+
     def get_stock_assets(
         self,
         assets: list[Asset],
@@ -365,7 +423,7 @@ class AssetService:
                 asset, stock_daily, apply_exchange_rate, current_stock_price_map, dividend_map, purchase_price
             )
 
-            stock_asset_formatted_data = self._apply_require_sign(stock_asset_data, asset_fields)
+            stock_asset_formatted_data = self._apply_require_sign(stock_asset_data)
 
             stock_asset_schema = StockAssetSchema(**stock_asset_formatted_data)
 
@@ -447,14 +505,14 @@ class AssetService:
 
         return {
             StockAsset.ID.value: asset.id,
-            StockAsset.ACCOUNT_TYPE.value: asset.asset_stock.account_type or None,
+            StockAsset.ACCOUNT_TYPE.value: asset.asset_stock.account_type,
             StockAsset.TRADE_DATE.value: asset.asset_stock.trade_date,
             StockAsset.CURRENT_PRICE.value: current_price,
             StockAsset.DIVIDEND.value: dividend,
             StockAsset.HIGHEST_PRICE.value: stock_daily.highest_price * apply_exchange_rate
             if stock_daily.highest_price
             else None,
-            StockAsset.INVESTMENT_BANK.value: asset.asset_stock.investment_bank or None,
+            StockAsset.INVESTMENT_BANK.value: asset.asset_stock.investment_bank,
             StockAsset.LOWEST_PRICE.value: stock_daily.lowest_price * apply_exchange_rate
             if stock_daily.lowest_price
             else None,
@@ -464,8 +522,8 @@ class AssetService:
             StockAsset.PROFIT_RATE.value: profit_rate,
             StockAsset.PROFIT_AMOUNT.value: profit_amount,
             StockAsset.TRADE_AMOUNT.value: purchase_amount,
-            StockAsset.TRADE_PRICE.value: asset.asset_stock.trade_price or None,
-            StockAsset.PURCHASE_CURRENCY_TYPE.value: asset.asset_stock.purchase_currency_type or None,
+            StockAsset.TRADE_PRICE.value: asset.asset_stock.trade_price,
+            StockAsset.PURCHASE_CURRENCY_TYPE.value: asset.asset_stock.purchase_currency_type,
             StockAsset.QUANTITY.value: asset.asset_stock.quantity,
             StockAsset.STOCK_CODE.value: asset.asset_stock.stock.code,
             StockAsset.STOCK_NAME.value: asset.asset_stock.stock.name_kr,
@@ -495,7 +553,7 @@ class AssetService:
     def _get_purchase_price(self, asset: Asset, stock_daily: TodayTempStockDaily) -> float:
         return asset.asset_stock.trade_price if asset.asset_stock.trade_price else stock_daily.adj_close_price
 
-    def _apply_require_sign(self, stock_asset_data: dict, asset_fields: list) -> dict:
+    def _apply_require_sign(self, stock_asset_data: dict) -> dict:
         result = {
             field: {"isRequired": field in REQUIRED_ASSET_FIELD, "value": value}
             for field, value in stock_asset_data.items()

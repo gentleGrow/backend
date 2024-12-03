@@ -47,7 +47,7 @@ class StockAssetSchema(BaseModel):
     수량: StockAssetField
     종목명: StockAssetField
     거래량: StockAssetField
-    주식통화: str
+    주식통화: str | None
 
 
 class AggregateStockAsset(BaseModel):
