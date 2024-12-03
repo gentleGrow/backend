@@ -36,7 +36,7 @@ class StockAssetSchema(BaseModel):
     매매일자: StockAssetField
     현재가: StockAssetField
     배당금: StockAssetField
-    매매:StockAssetField
+    매매: StockAssetField
     고가: StockAssetField
     증권사: StockAssetField
     저가: StockAssetField

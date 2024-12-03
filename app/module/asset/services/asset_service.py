@@ -224,7 +224,7 @@ class AssetService:
             stock_daily = stock_daily_map.get((asset.asset_stock.stock.code, asset.asset_stock.trade_date), None)
             if stock_daily is None:
                 continue
-            
+
             invest_price = (
                 asset.asset_stock.trade_price
                 * self.exchange_rate_service.get_won_exchange_rate(asset, exchange_rate_map)
@@ -292,7 +292,7 @@ class AssetService:
         self, assets: list[Asset], current_stock_price_map: dict[str, float], exchange_rate_map: dict[str, float]
     ) -> float:
         result = 0.0
-        
+
         for asset in assets:
             result += (
                 current_stock_price_map.get(asset.asset_stock.stock.code)

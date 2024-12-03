@@ -8,7 +8,6 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.common.auth.security import verify_jwt_token
 from app.common.util.time import get_now_date
 from app.module.asset.constant import (
-    ASSET_FIELD,
     ASSET_SAVE_TREND_YEAR,
     INFLATION_RATE,
     MARKET_INDEX_KR_MAPPING,
