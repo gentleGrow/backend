@@ -223,11 +223,8 @@ class AssetService:
         for asset in assets:
             stock_daily = stock_daily_map.get((asset.asset_stock.stock.code, asset.asset_stock.trade_date), None)
             if stock_daily is None:
-                stock_daily = lastest_stock_daily_map.get(asset.asset_stock.stock.code, None)
-
-                if stock_daily is None:
-                    continue
-
+                continue
+            
             invest_price = (
                 asset.asset_stock.trade_price
                 * self.exchange_rate_service.get_won_exchange_rate(asset, exchange_rate_map)
@@ -295,7 +292,7 @@ class AssetService:
         self, assets: list[Asset], current_stock_price_map: dict[str, float], exchange_rate_map: dict[str, float]
     ) -> float:
         result = 0.0
-
+        
         for asset in assets:
             result += (
                 current_stock_price_map.get(asset.asset_stock.stock.code)
@@ -318,22 +315,17 @@ class AssetService:
 
         stock_elements_by_name = defaultdict(list)
         for stock_asset in stock_asset_elements:
-            stock_name = stock_asset.종목명.value
+            stock_name = str(stock_asset.종목명.value)
             stock_elements_by_name[stock_name].append(stock_asset)
 
         for stock_name, sub_stock_assets in stock_elements_by_name.items():
+            sub_stock_assets.sort(key=lambda asset: asset.id, reverse=True)
             if stock_name in parent_stock_asset_dict:
                 stock_asset_group = StockAssetGroup(parent=parent_stock_asset_dict[stock_name], sub=sub_stock_assets)
                 result.append(stock_asset_group)
             else:
                 empty_stock_asset_group = StockAssetGroup(
-                    parent=AggregateStockAsset(
-                        종목명=stock_name,
-                        수익률=0.0,
-                        수익금=0.0,
-                        배당금=0.0
-                    ),
-                    sub=sub_stock_assets
+                    parent=AggregateStockAsset(종목명=stock_name, 수익률=0.0, 수익금=0.0, 배당금=0.0), sub=sub_stock_assets
                 )
                 result.append(empty_stock_asset_group)
 
@@ -403,7 +395,6 @@ class AssetService:
     def get_stock_assets(
         self,
         assets: list[Asset],
-        asset_fields: list,
         stock_daily_map: dict[tuple[str, date], StockDaily],
         lastest_stock_daily_map: dict[str, StockDaily],
         dividend_map: dict[str, float],
@@ -521,6 +512,7 @@ class AssetService:
             else None,
             StockAsset.PROFIT_RATE.value: profit_rate,
             StockAsset.PROFIT_AMOUNT.value: profit_amount,
+            StockAsset.TRADE.value: asset.asset_stock.trade,
             StockAsset.TRADE_AMOUNT.value: purchase_amount,
             StockAsset.TRADE_PRICE.value: asset.asset_stock.trade_price,
             StockAsset.PURCHASE_CURRENCY_TYPE.value: asset.asset_stock.purchase_currency_type,

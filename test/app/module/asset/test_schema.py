@@ -70,7 +70,6 @@ class TestAssetStockResponse:
 
         stock_asset_elements: list[StockAssetSchema] = asset_service.get_stock_assets(
             assets,
-            asset_fields,
             stock_daily_map,
             lastest_stock_daily_map,
             dividend_map,

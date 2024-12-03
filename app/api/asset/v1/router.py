@@ -10,7 +10,7 @@ from app.module.asset.dependencies.asset_field_dependency import get_asset_field
 from app.module.asset.dependencies.asset_stock_dependency import get_asset_stock_service
 from app.module.asset.dependencies.common_dependency import get_asset_common_validate
 from app.module.asset.dependencies.dividend_dependency import get_dividend_service
-from app.module.asset.enum import AccountType, AssetType, InvestmentBankType
+from app.module.asset.enum import AccountType, AssetType, InvestmentBankType, TradeType
 from app.module.asset.model import Asset, AssetField, Stock
 from app.module.asset.redis_repository import RedisExchangeRateRepository
 from app.module.asset.repository.asset_field_repository import AssetFieldRepository
@@ -190,7 +190,6 @@ async def get_sample_asset_stock(
     incomplete_stock_asset_elements = asset_service.get_incomplete_stock_assets(incomplete_assets)
     complete_stock_asset_elements: list[StockAssetSchema] = asset_service.get_stock_assets(
         complete_asset,
-        asset_fields,
         stock_daily_map,
         lastest_stock_daily_map,
         dividend_map,
@@ -255,11 +254,11 @@ async def get_asset_stock(
     ) = await asset_query.get_all_data(session, redis_client, full_required_assets)
 
     complete_asset, incomplete_assets = asset_service.separate_assets_by_full_data(assets, stock_daily_map)
-
+    buy_stock_assets = [buy_asset for buy_asset in filter(lambda asset: asset.asset_stock.trade==TradeType.BUY, complete_asset)]
+    
     incomplete_stock_asset_elements = asset_service.get_incomplete_stock_assets(incomplete_assets)
     complete_stock_asset_elements: list[StockAssetSchema] = asset_service.get_stock_assets(
         complete_asset,
-        asset_fields,
         stock_daily_map,
         lastest_stock_daily_map,
         dividend_map,
@@ -268,20 +267,21 @@ async def get_asset_stock(
     )
     full_stock_asset_elements = incomplete_stock_asset_elements + complete_stock_asset_elements
 
+    buy_stock_assets_elements = [buy_asset for buy_asset in filter(lambda asset: asset.매매.value==TradeType.BUY, complete_stock_asset_elements)]
     aggregate_stock_assets: list[AggregateStockAsset] = asset_service.aggregate_stock_assets(
-        complete_stock_asset_elements
+        buy_stock_assets_elements
     )
     stock_assets: list[StockAssetGroup] = asset_service.group_stock_assets(
         full_stock_asset_elements, aggregate_stock_assets
     )
 
     total_asset_amount = asset_service.get_total_asset_amount(
-        complete_asset, current_stock_price_map, exchange_rate_map
+        buy_stock_assets, current_stock_price_map, exchange_rate_map
     )
     total_invest_amount = asset_service.get_total_investment_amount(
-        complete_asset, stock_daily_map, exchange_rate_map, lastest_stock_daily_map
+        buy_stock_assets, stock_daily_map, exchange_rate_map, lastest_stock_daily_map
     )
-    total_dividend_amount = dividend_service.get_total_dividend(complete_asset, exchange_rate_map, dividend_map)
+    total_dividend_amount = dividend_service.get_total_dividend(buy_stock_assets, exchange_rate_map, dividend_map)
 
     dollar_exchange = await RedisExchangeRateRepository.get(redis_client, f"{CurrencyType.KOREA}_{CurrencyType.USA}")
     won_exchange = await RedisExchangeRateRepository.get(redis_client, f"{CurrencyType.USA}_{CurrencyType.KOREA}")

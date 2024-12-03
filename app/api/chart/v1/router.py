@@ -810,7 +810,6 @@ async def get_sample_my_stock(
 
     stock_assets: list[StockAssetSchema] = asset_service.get_stock_assets(
         assets,
-        ASSET_FIELD,
         stock_daily_map,
         lastest_stock_daily_map,
         dividend_map,
@@ -856,7 +855,6 @@ async def get_my_stock(
 
     stock_assets: list[StockAssetSchema] = asset_service.get_stock_assets(
         assets,
-        ASSET_FIELD,
         stock_daily_map,
         lastest_stock_daily_map,
         dividend_map,
