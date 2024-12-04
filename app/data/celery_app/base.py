@@ -39,26 +39,19 @@ celery_task.conf.update(
 celery_task.conf.beat_schedule = {
     "dividend": {
         "task": "app.data.yahoo.dividend.main",
-        "schedule": crontab(hour=1, minute=0),
+        "schedule": crontab(minute=0),
     },
-    "index_night": {
+    "index": {
         "task": "app.data.yahoo.index.main",
-        "schedule": crontab(hour=1, minute=0),
+        "schedule": crontab(minute=0),
     },
-    "index_afternoon": {
-        "task": "app.data.yahoo.index.main",
-        "schedule": crontab(hour=16, minute=0),
-    },
-    "stock_night": {
+    "stock": {
         "task": "app.data.yahoo.stock.main",
-        "schedule": crontab(hour=1, minute=0),
-    },
-    "stock_afternoon": {
-        "task": "app.data.yahoo.stock.main",
-        "schedule": crontab(hour=16, minute=0),
+        "schedule": crontab(minute=0),
     },
     "rich_portfolio": {
         "task": "app.data.investing.rich_portfolio.main",
-        "schedule": crontab(hour=1, minute=0),
+        "schedule": crontab(minute=0),
     },
 }
+

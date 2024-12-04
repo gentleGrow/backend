@@ -231,7 +231,6 @@ async def get_sample_asset_stock(
     )
 
 
-
 @asset_stock_router.get("/assetstock", summary="사용자의 자산 정보를 반환합니다.", response_model=AssetStockResponse)
 async def get_asset_stock(
     token: AccessToken = Depends(verify_jwt_token),
