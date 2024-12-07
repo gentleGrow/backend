@@ -83,9 +83,7 @@ class TestAssetStockResponse:
         )
 
         total_asset_amount = asset_service.get_total_asset_amount(assets, current_stock_price_map, exchange_rate_map)
-        total_invest_amount = asset_service.get_total_investment_amount(
-            assets, stock_daily_map, exchange_rate_map
-        )
+        total_invest_amount = asset_service.get_total_investment_amount(assets, stock_daily_map, exchange_rate_map)
         total_dividend_amount = dividend_service.get_total_dividend(assets, exchange_rate_map, dividend_map)
 
         dollar_exchange = await RedisExchangeRateRepository.get(

@@ -1,13 +1,21 @@
 from collections import defaultdict
 from datetime import date, datetime, timedelta
 from statistics import mean
-from typing import Union, Optional
+from typing import Optional, Union
 
 from pydantic import BaseModel, Field, RootModel
-from app.module.asset.model import Asset
-from app.common.util.time import get_now_datetime, get_now_date
-from app.module.asset.constant import ASSET_SAVE_TREND_YEAR, INFLATION_RATE, MARKET_INDEX_KR_MAPPING, THREE_MONTH_DAY, 억, 만
+
+from app.common.util.time import get_now_date, get_now_datetime
+from app.module.asset.constant import (
+    ASSET_SAVE_TREND_YEAR,
+    INFLATION_RATE,
+    MARKET_INDEX_KR_MAPPING,
+    THREE_MONTH_DAY,
+    만,
+    억,
+)
 from app.module.asset.enum import ASSETNAME, AmountUnit, MarketIndex
+from app.module.asset.model import Asset
 from app.module.chart.enum import IntervalType
 
 
@@ -22,17 +30,21 @@ class AssetSaveTrendResponse(BaseModel):
     async def validate(cls, assets: list[Asset], total_asset_amount: float) -> Optional["AssetSaveTrendResponse"]:
         if not len(assets):
             return AssetSaveTrendResponse(xAxises=[], dates=[], values1={}, values2={}, unit="")
-        
+
         near_assets = cls._filter_near_asset(assets)
-        
+
         if not len(near_assets):
             return cls.no_near_invest_response(total_asset_amount)
-
+        else:
+            return None
 
     @classmethod
     def _filter_near_asset(cls, assets: list[Asset]) -> list[Asset]:
-        return [asset for asset in assets if asset.asset_stock.trade_date > (get_now_date() - timedelta(days=THREE_MONTH_DAY))]
-    
+        return [
+            asset
+            for asset in assets
+            if asset.asset_stock.trade_date > (get_now_date() - timedelta(days=THREE_MONTH_DAY))
+        ]
 
     @classmethod
     def no_near_invest_response(cls, total_asset_amount_all: float) -> "AssetSaveTrendResponse":
@@ -53,7 +65,8 @@ class AssetSaveTrendResponse(BaseModel):
             values1 = {"values": [total_asset_amount_all / 만] * ASSET_SAVE_TREND_YEAR, "name": ASSETNAME.ESTIMATE_ASSET}
             values2 = {
                 "values": [
-                    (total_asset_amount_all * ((1 - INFLATION_RATE * 0.01) ** i)) / 만 for i in range(ASSET_SAVE_TREND_YEAR)
+                    (total_asset_amount_all * ((1 - INFLATION_RATE * 0.01) ** i)) / 만
+                    for i in range(ASSET_SAVE_TREND_YEAR)
                 ],
                 "name": ASSETNAME.REAL_ASSET,
             }
@@ -186,8 +199,14 @@ class EstimateDividendEveryValue(BaseModel):
 
 
 class EstimateDividendEveryResponse(RootModel[dict[str, EstimateDividendEveryValue]]):
-    pass
-
+    @classmethod
+    def validate(cls, assets: list[Asset]) -> Optional["EstimateDividendEveryResponse"]:
+        if not len(assets):
+            return EstimateDividendEveryResponse(
+                {str(date.today().year): EstimateDividendEveryValue(xAxises=[], data=[], unit="", total=0.0)}
+            )
+        else:
+            return None
 
 class EstimateDividendTypeValue(BaseModel):
     name: str
@@ -196,7 +215,14 @@ class EstimateDividendTypeValue(BaseModel):
 
 
 class EstimateDividendTypeResponse(RootModel[list[EstimateDividendTypeValue]]):
-    pass
+    @classmethod
+    def validate(cls, assets: list[Asset]) -> Optional["EstimateDividendEveryResponse"]:
+        if not len(assets):
+            return EstimateDividendTypeResponse(
+                [EstimateDividendTypeValue(name="", current_amount=0.0, percent_rate=0.0)]
+            )
+        else:
+            return None
 
 
 class MyStockResponseValue(BaseModel):

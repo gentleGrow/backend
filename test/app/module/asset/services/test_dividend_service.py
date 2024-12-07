@@ -14,55 +14,6 @@ from app.module.auth.constant import DUMMY_USER_ID
 
 
 class TestDividendService:
-    def test_process_dividends_by_year_month(self, setup_all):
-        # Given
-        dividend_service: DividendService = get_dividend_service()
-
-        total_dividends = {
-            date(2024, 1, 15): 100.0,
-            date(2024, 3, 20): 200.0,
-            date(2024, 7, 5): 300.0,
-            date(2023, 12, 25): 150.0,
-            date(2023, 2, 10): 50.0,
-        }
-
-        expected_result = {
-            "2023": {
-                1: 0.0,
-                2: 50.0,
-                3: 0.0,
-                4: 0.0,
-                5: 0.0,
-                6: 0.0,
-                7: 0.0,
-                8: 0.0,
-                9: 0.0,
-                10: 0.0,
-                11: 0.0,
-                12: 150.0,
-            },
-            "2024": {
-                1: 100.0,
-                2: 0.0,
-                3: 200.0,
-                4: 0.0,
-                5: 0.0,
-                6: 0.0,
-                7: 300.0,
-                8: 0.0,
-                9: 0.0,
-                10: 0.0,
-                11: 0.0,
-                12: 0.0,
-            },
-        }
-
-        # When
-        result = dividend_service.process_dividends_by_year_month(total_dividends)
-
-        # Then
-        assert result == expected_result
-
     async def test_get_last_year_dividends(self, setup_all, session: AsyncSession):
         # Given
         dividend_service: DividendService = get_dividend_service()

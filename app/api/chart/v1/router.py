@@ -6,11 +6,7 @@ from redis.asyncio import Redis
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.common.auth.security import verify_jwt_token
-from app.module.asset.constant import (
-    ASSET_SAVE_TREND_YEAR,
-    MARKET_INDEX_KR_MAPPING,
-    MONTHS
-)
+from app.module.asset.constant import ASSET_SAVE_TREND_YEAR, MARKET_INDEX_KR_MAPPING, MONTHS
 from app.module.asset.dependencies.asset_dependency import get_asset_query, get_asset_service
 from app.module.asset.dependencies.asset_stock_dependency import get_asset_stock_service
 from app.module.asset.dependencies.dividend_dependency import get_dividend_service
@@ -75,7 +71,6 @@ from database.dependency import get_mysql_session_router, get_redis_pool
 chart_router = APIRouter(prefix="/v1")
 
 
-
 @chart_router.get("/sample/asset-save-trend", summary="자산적립 추이", response_model=AssetSaveTrendResponse)
 async def get_sample_asset_save_trend(
     session: AsyncSession = Depends(get_mysql_session_router),
@@ -88,7 +83,7 @@ async def get_sample_asset_save_trend(
 ) -> AssetSaveTrendResponse:
     assets: list = await AssetRepository.get_eager(session, DUMMY_USER_ID, AssetType.STOCK)
     full_required_assets = await asset_service.get_full_required_assets(assets)
-    
+
     (
         stock_daily_map,
         lastest_stock_daily_map,
@@ -99,7 +94,7 @@ async def get_sample_asset_save_trend(
 
     complete_asset, incomplete_assets = asset_service.separate_assets_by_full_data(assets, stock_daily_map)
     complete_buy_asset = asset_service.get_buy_assets(complete_asset)
-    
+
     total_asset_amount = asset_service.get_total_asset_amount(
         complete_buy_asset, current_stock_price_map, exchange_rate_map
     )
@@ -107,14 +102,14 @@ async def get_sample_asset_save_trend(
     validate_response = await AssetSaveTrendResponse.validate(complete_buy_asset, total_asset_amount)
     if validate_response:
         return validate_response
-    
+
     estimate_asset_amount, real_asset_amount, unit = asset_service.get_asset_trend_values(
         complete_buy_asset,
         stock_daily_map,
         dividend_map,
         exchange_rate_map,
         current_stock_price_map,
-        ASSET_SAVE_TREND_YEAR
+        ASSET_SAVE_TREND_YEAR,
     )
 
     return AssetSaveTrendResponse(
@@ -139,7 +134,7 @@ async def get_asset_save_trend(
 ) -> AssetSaveTrendResponse:
     assets: list = await AssetRepository.get_eager(session, token.get("user"), AssetType.STOCK)
     full_required_assets = await asset_service.get_full_required_assets(assets)
-    
+
     (
         stock_daily_map,
         lastest_stock_daily_map,
@@ -150,7 +145,7 @@ async def get_asset_save_trend(
 
     complete_asset, incomplete_assets = asset_service.separate_assets_by_full_data(assets, stock_daily_map)
     complete_buy_asset = asset_service.get_buy_assets(complete_asset)
-    
+
     total_asset_amount = asset_service.get_total_asset_amount(
         complete_buy_asset, current_stock_price_map, exchange_rate_map
     )
@@ -158,14 +153,14 @@ async def get_asset_save_trend(
     validate_response = await AssetSaveTrendResponse.validate(complete_buy_asset, total_asset_amount)
     if validate_response:
         return validate_response
-    
+
     estimate_asset_amount, real_asset_amount, unit = asset_service.get_asset_trend_values(
         complete_buy_asset,
         stock_daily_map,
         dividend_map,
         exchange_rate_map,
         current_stock_price_map,
-        ASSET_SAVE_TREND_YEAR
+        ASSET_SAVE_TREND_YEAR,
     )
 
     return AssetSaveTrendResponse(
@@ -186,50 +181,46 @@ async def get_sample_estimate_dividend(
     category: EstimateDividendType = Query(EstimateDividendType.EVERY, description="every는 모두, type은 종목 별 입니다."),
     session: AsyncSession = Depends(get_mysql_session_router),
     redis_client: Redis = Depends(get_redis_pool),
+    asset_service: AssetService = Depends(get_asset_service),
+    asset_query: AssetQuery = Depends(get_asset_query),
     dividend_service: DividendService = Depends(get_dividend_service),
-    exchange_rate_service: ExchangeRateService = Depends(get_exchange_rate_service),
 ) -> EstimateDividendEveryResponse | EstimateDividendTypeResponse:
-    assets: list[Asset] = await AssetRepository.get_eager(session, DUMMY_USER_ID, AssetType.STOCK)
-    if len(assets) == 0:
-        return (
-            EstimateDividendEveryResponse(
-                {str(date.today().year): EstimateDividendEveryValue(xAxises=[], data=[], unit="", total=0.0)}
-            )
-            if category == EstimateDividendType.EVERY
-            else EstimateDividendTypeResponse(
-                [EstimateDividendTypeValue(name="", current_amount=0.0, percent_rate=0.0)]
-            )
-        )
+    assets: list = await AssetRepository.get_eager(session, DUMMY_USER_ID, AssetType.STOCK)
+    full_required_assets = await asset_service.get_full_required_assets(assets)
 
-    exchange_rate_map: dict[str, float] = await exchange_rate_service.get_exchange_rate_map(redis_client)
+    (
+        stock_daily_map,
+        lastest_stock_daily_map,
+        recent_dividend_map,
+        exchange_rate_map,
+        current_stock_price_map,
+    ) = await asset_query.get_all_data(session, redis_client, full_required_assets)
     dividend_map: dict[tuple[str, date], float] = await dividend_service.get_dividend_map(session, assets)
-    recent_dividend_map: dict[str, float] = await dividend_service.get_recent_map(session, assets)
+
+    complete_asset, incomplete_assets = asset_service.separate_assets_by_full_data(assets, stock_daily_map)
+    complete_buy_asset = asset_service.get_buy_assets(complete_asset)
 
     if category == EstimateDividendType.EVERY:
-        total_dividends: dict[date, float] = dividend_service.get_full_month_estimate_dividend(
-            assets, exchange_rate_map, dividend_map
-        )
-
-        dividend_data_by_year = dividend_service.process_dividends_by_year_month(total_dividends)
-
-        response_data = {}
-        for year, months in dividend_data_by_year.items():
-            data = [months.get(month, 0.0) for month in range(1, 13)]
-            total = sum(data)
-            response_data[year] = EstimateDividendEveryValue(xAxises=MONTHS, data=data, unit="원", total=total)
-
-        return EstimateDividendEveryResponse(response_data)
+        no_asset_response = EstimateDividendEveryResponse.validate(complete_buy_asset)
+        if no_asset_response:
+            return no_asset_response
     else:
-        total_type_dividends: list[tuple[str, float, float]] = await dividend_service.get_composition(
-            assets, exchange_rate_map, recent_dividend_map
+        no_asset_response = EstimateDividendTypeResponse.validate(complete_buy_asset)
+        if no_asset_response:
+            return no_asset_response
+
+
+    if category == EstimateDividendType.EVERY:
+        every_dividend_data:dict[str, EstimateDividendEveryValue] = dividend_service.get_dividend_every_chart_data(
+            complete_buy_asset, exchange_rate_map, dividend_map
+        )
+        return EstimateDividendEveryResponse(every_dividend_data)
+    else:   
+        type_dividend_data: list[EstimateDividendTypeValue] = await dividend_service.get_composition(
+            complete_buy_asset, exchange_rate_map, recent_dividend_map
         )
 
-        return EstimateDividendTypeResponse(
-            [
-                EstimateDividendTypeValue(name=stock_code, current_amount=amount, percent_rate=composition_rate)
-                for stock_code, amount, composition_rate in total_type_dividends
-            ]
-        )
+        return EstimateDividendTypeResponse(type_dividend_data)
 
 
 @chart_router.get(
@@ -240,50 +231,46 @@ async def get_estimate_dividend(
     category: EstimateDividendType = Query(EstimateDividendType.EVERY, description="every는 모두, type은 종목 별 입니다."),
     session: AsyncSession = Depends(get_mysql_session_router),
     redis_client: Redis = Depends(get_redis_pool),
+    asset_service: AssetService = Depends(get_asset_service),
+    asset_query: AssetQuery = Depends(get_asset_query),
     dividend_service: DividendService = Depends(get_dividend_service),
-    exchange_rate_service: ExchangeRateService = Depends(get_exchange_rate_service),
 ) -> EstimateDividendEveryResponse | EstimateDividendTypeResponse:
-    assets: list[Asset] = await AssetRepository.get_eager(session, int(token.get("user")), AssetType.STOCK)
-    if len(assets) == 0:
-        return (
-            EstimateDividendEveryResponse(
-                {str(date.today().year): EstimateDividendEveryValue(xAxises=[], data=[], unit="", total=0.0)}
-            )
-            if category == EstimateDividendType.EVERY
-            else EstimateDividendTypeResponse(
-                [EstimateDividendTypeValue(name="", current_amount=0.0, percent_rate=0.0)]
-            )
-        )
+    assets: list = await AssetRepository.get_eager(session, token.get("user"), AssetType.STOCK)
+    full_required_assets = await asset_service.get_full_required_assets(assets)
 
-    exchange_rate_map: dict[str, float] = await exchange_rate_service.get_exchange_rate_map(redis_client)
+    (
+        stock_daily_map,
+        lastest_stock_daily_map,
+        recent_dividend_map,
+        exchange_rate_map,
+        current_stock_price_map,
+    ) = await asset_query.get_all_data(session, redis_client, full_required_assets)
     dividend_map: dict[tuple[str, date], float] = await dividend_service.get_dividend_map(session, assets)
-    recent_dividend_map: dict[str, float] = await dividend_service.get_recent_map(session, assets)
+
+    complete_asset, incomplete_assets = asset_service.separate_assets_by_full_data(assets, stock_daily_map)
+    complete_buy_asset = asset_service.get_buy_assets(complete_asset)
 
     if category == EstimateDividendType.EVERY:
-        total_dividends: dict[date, float] = dividend_service.get_full_month_estimate_dividend(
-            assets, exchange_rate_map, dividend_map
-        )
-
-        dividend_data_by_year = dividend_service.process_dividends_by_year_month(total_dividends)
-
-        response_data = {}
-        for year, months in dividend_data_by_year.items():
-            data = [months.get(month, 0.0) for month in range(1, 13)]
-            total = sum(data)
-            response_data[year] = EstimateDividendEveryValue(xAxises=MONTHS, data=data, unit="만원", total=total)
-
-        return EstimateDividendEveryResponse(response_data)
+        no_asset_response = EstimateDividendEveryResponse.validate(complete_buy_asset)
+        if no_asset_response:
+            return no_asset_response
     else:
-        total_type_dividends: list[tuple[str, float, float]] = await dividend_service.get_composition(
-            assets, exchange_rate_map, recent_dividend_map
+        no_asset_response = EstimateDividendTypeResponse.validate(complete_buy_asset)
+        if no_asset_response:
+            return no_asset_response
+
+
+    if category == EstimateDividendType.EVERY:
+        every_dividend_data:dict[str, EstimateDividendEveryValue] = dividend_service.get_dividend_every_chart_data(
+            complete_buy_asset, exchange_rate_map, dividend_map
+        )
+        return EstimateDividendEveryResponse(every_dividend_data)
+    else:   
+        type_dividend_data: list[EstimateDividendTypeValue] = await dividend_service.get_composition(
+            complete_buy_asset, exchange_rate_map, recent_dividend_map
         )
 
-        return EstimateDividendTypeResponse(
-            [
-                EstimateDividendTypeValue(name=stock_code, current_amount=amount, percent_rate=composition_rate)
-                for stock_code, amount, composition_rate in total_type_dividends
-            ]
-        )
+        return EstimateDividendTypeResponse(type_dividend_data)
 
 
 @chart_router.get("/sample/performance-analysis", summary="더미 투자 성과 분석", response_model=PerformanceAnalysisResponse)
@@ -645,9 +632,7 @@ async def get_summary(
     ) = await asset_query.get_all_data(session, redis_client, assets)
 
     total_asset_amount = asset_service.get_total_asset_amount(assets, current_stock_price_map, exchange_rate_map)
-    total_investment_amount = asset_service.get_total_investment_amount(
-        assets, stock_daily_map, exchange_rate_map
-    )
+    total_investment_amount = asset_service.get_total_investment_amount(assets, stock_daily_map, exchange_rate_map)
     today_review_rate: float = summary_service.get_today_review_rate(assets, current_stock_price_map, exchange_rate_map)
 
     return SummaryResponse(
@@ -679,9 +664,7 @@ async def get_sample_summary(
     ) = await asset_query.get_all_data(session, redis_client, assets)
 
     total_asset_amount = asset_service.get_total_asset_amount(assets, current_stock_price_map, exchange_rate_map)
-    total_investment_amount = asset_service.get_total_investment_amount(
-        assets, stock_daily_map, exchange_rate_map
-    )
+    total_investment_amount = asset_service.get_total_investment_amount(assets, stock_daily_map, exchange_rate_map)
     today_review_rate: float = summary_service.get_today_review_rate(assets, current_stock_price_map, exchange_rate_map)
 
     return SummaryResponse(
@@ -940,11 +923,3 @@ async def get_people_portfolio():
             ),
         ]
     )
-    
-    
-    
-    
-    
-    
-    
-    

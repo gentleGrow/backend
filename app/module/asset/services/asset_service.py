@@ -7,7 +7,7 @@ from redis.asyncio import Redis
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.common.util.time import get_now_date
-from app.module.asset.constant import REQUIRED_ASSET_FIELD, THREE_MONTH_DAY, INFLATION_RATE, THREE_MONTH, 억, 만
+from app.module.asset.constant import INFLATION_RATE, REQUIRED_ASSET_FIELD, THREE_MONTH, THREE_MONTH_DAY, 만, 억
 from app.module.asset.enum import ASSETNAME, AmountUnit, PurchaseCurrencyType, StockAsset, TradeType
 from app.module.asset.model import Asset, StockDaily
 from app.module.asset.repository.asset_repository import AssetRepository
@@ -19,11 +19,12 @@ from app.module.asset.schema import (
     StockAssetSchema,
     TodayTempStockDaily,
 )
+from app.module.asset.services.asset_stock_service import AssetStockService
 from app.module.asset.services.dividend_service import DividendService
 from app.module.asset.services.exchange_rate_service import ExchangeRateService
 from app.module.asset.services.stock_daily_service import StockDailyService
 from app.module.asset.services.stock_service import StockService
-from app.module.asset.services.asset_stock_service import AssetStockService
+
 
 class AssetService:
     def __init__(
@@ -42,7 +43,6 @@ class AssetService:
 
     def get_buy_assets(self, assets: list[Asset]) -> list[Asset]:
         return [asset for asset in assets if asset.asset_stock.trade == TradeType.BUY]
-
 
     def separate_assets_by_full_data(
         self, assets: list[Asset], stock_daily_map: dict[tuple[str, date], StockDaily]
@@ -112,7 +112,6 @@ class AssetService:
 
         return assets_by_date
 
-
     def get_asset_trend_values(
         self,
         assets: list[Asset],
@@ -120,22 +119,22 @@ class AssetService:
         dividend_map: dict[str, float],
         exchange_rate_map: dict[str, float],
         current_stock_price_map: dict[str, float],
-        trend_year: int
+        trend_year: int,
     ) -> tuple[dict[str, list[float]], dict[str, list[float]], str]:
         near_assets = [near_asset for near_asset in self._filter_near_assets(assets, THREE_MONTH_DAY)]
-        
-        total_asset_amount: float = self.get_total_asset_amount(
-            near_assets, current_stock_price_map, exchange_rate_map
-        )
-        
-        total_invest_amount: float = self.get_total_investment_amount(
-            near_assets, stock_daily_map, exchange_rate_map
-        )
-        
-        total_dividend_amount: float = self.dividend_service.get_total_dividend(near_assets, exchange_rate_map, dividend_map)
 
-        total_profit_rate: float = self.asset_stock_service.get_total_profit_rate(total_asset_amount, total_invest_amount)
-        
+        total_asset_amount: float = self.get_total_asset_amount(near_assets, current_stock_price_map, exchange_rate_map)
+
+        total_invest_amount: float = self.get_total_investment_amount(near_assets, stock_daily_map, exchange_rate_map)
+
+        total_dividend_amount: float = self.dividend_service.get_total_dividend(
+            near_assets, exchange_rate_map, dividend_map
+        )
+
+        total_profit_rate: float = self.asset_stock_service.get_total_profit_rate(
+            total_asset_amount, total_invest_amount
+        )
+
         total_profit_rate_real: float = self.asset_stock_service.get_total_profit_rate_real(
             total_asset_amount, total_invest_amount, INFLATION_RATE
         )
@@ -146,9 +145,8 @@ class AssetService:
 
         return self._calculate_trend_values(
             total_asset_amount, increase_invest_year, total_profit_rate, total_profit_rate_real, trend_year
-        )       
-    
-    
+        )
+
     def get_average_investment_with_dividend_year(
         self, total_invest_amount: float, total_dividend_amount: float, months: float
     ) -> float:
@@ -159,10 +157,9 @@ class AssetService:
             if average_invest_amount_month + average_dividend_month > 0
             else 0.0
         )
-    
-    def _filter_near_assets(cls, assets: list[Asset], days:int) -> list[Asset]:
-        return [asset for asset in assets if asset.asset_stock.trade_date > (get_now_date() - timedelta(days=days))]
 
+    def _filter_near_assets(cls, assets: list[Asset], days: int) -> list[Asset]:
+        return [asset for asset in assets if asset.asset_stock.trade_date > (get_now_date() - timedelta(days=days))]
 
     def _calculate_trend_values(
         self,
@@ -254,7 +251,6 @@ class AssetService:
         closest_date = max([d for d in available_dates if d <= purchase_date], default=None)
 
         return stock_daily_map.get((stock_code, closest_date), None) if closest_date else None
-
 
     async def filter_required_assets(self, assets: list[Asset]) -> list[Asset]:
         return [asset for asset in assets if await self._check_required_field(asset)]

@@ -29,6 +29,7 @@ asset_service = AssetService(
     dividend_service=dividend_service,
 )
 
+
 def get_performance_analysis_service() -> PerformanceAnalysisService:
     return PerformanceAnalysisService(
         exchange_rate_service=exchange_rate_service,

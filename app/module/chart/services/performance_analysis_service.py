@@ -146,7 +146,6 @@ class PerformanceAnalysisService:
         sorted_dates = sorted(dates)
 
         stock_daily_date_map = await self.stock_daily_service.get_date_map_dates(session, assets, sorted_dates)
-        lastest_stock_daily_map = await self.stock_daily_service.get_latest_map(session, assets)
 
         result = {}
 
@@ -155,7 +154,7 @@ class PerformanceAnalysisService:
                 continue
             current_assets = assets_by_date[market_date]
             current_investment_amount = self.asset_service.get_total_investment_amount(
-                current_assets, stock_daily_date_map, exchange_rate_map, lastest_stock_daily_map
+                current_assets, stock_daily_date_map, exchange_rate_map
             )
             if current_assets is None or current_investment_amount == 0.0:
                 result[market_date] = 0.0
