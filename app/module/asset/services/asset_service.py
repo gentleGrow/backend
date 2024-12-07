@@ -443,11 +443,15 @@ class AssetService:
         dividend_map: dict[str, float],
         exchange_rate_map: dict[str, float],
         current_stock_price_map: dict[str, float],
+        always_won:bool=False
     ) -> list[StockAssetSchema]:
         result = []
 
         for asset in assets:
-            apply_exchange_rate = self._get_apply_exchange_rate(asset, exchange_rate_map)
+            if always_won:
+                apply_exchange_rate = self.exchange_rate_service.get_won_exchange_rate(asset, exchange_rate_map)
+            else:
+                apply_exchange_rate = self._get_apply_exchange_rate(asset, exchange_rate_map)
             stock_daily = self._get_matching_stock_daily(
                 asset, stock_daily_map, lastest_stock_daily_map, current_stock_price_map
             )
@@ -597,3 +601,6 @@ class AssetService:
         result[StockAsset.ID.value] = stock_asset_data[StockAsset.ID.value]
         result[StockAsset.PURCHASE_CURRENCY_TYPE.value] = stock_asset_data[StockAsset.PURCHASE_CURRENCY_TYPE.value]
         return result
+
+
+    

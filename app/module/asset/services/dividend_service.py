@@ -2,12 +2,13 @@ from collections import defaultdict
 from datetime import date, timedelta
 
 from sqlalchemy.ext.asyncio import AsyncSession
-from icecream import ic
+
+from app.module.asset.constant import MONTHS, 만
 from app.module.asset.model import Asset, Dividend
 from app.module.asset.repository.dividend_repository import DividendRepository
 from app.module.asset.services.exchange_rate_service import ExchangeRateService
 from app.module.chart.schema import EstimateDividendEveryValue, EstimateDividendTypeValue
-from app.module.asset.constant import MONTHS, 만
+
 
 class DividendService:
     def __init__(self, exchange_rate_service: ExchangeRateService):
@@ -99,8 +100,6 @@ class DividendService:
 
         return total_dividend_amount
 
-
-
     async def get_composition(
         self,
         assets: list[Asset],
@@ -125,15 +124,15 @@ class DividendService:
             total_dividend_sum += dividend * won_exchange_rate * asset.asset_stock.quantity
 
         return [
-                EstimateDividendTypeValue(
-                    name=stock_code, 
-                    current_amount=dividend, 
-                    percent_rate=(dividend / total_dividend_sum) * 100 if total_dividend_sum > 0 else 0.0)
-                for stock_code, dividend in total_dividend.items()
-                if dividend > 0
-            ]
-            
-        
+            EstimateDividendTypeValue(
+                name=stock_code,
+                current_amount=dividend,
+                percent_rate=(dividend / total_dividend_sum) * 100 if total_dividend_sum > 0 else 0.0,
+            )
+            for stock_code, dividend in total_dividend.items()
+            if dividend > 0
+        ]
+
     def get_dividend_every_chart_data(
         self, assets: list[Asset], exchange_rate_map: dict[str, float], dividend_map: dict[tuple[str, date], float]
     ) -> dict[str, EstimateDividendEveryValue]:
@@ -142,21 +141,20 @@ class DividendService:
         )
 
         dividend_data_by_year = self._combine_dividends_by_year_month(total_dividends)
-        
+
         result = {}
         for year, months in dividend_data_by_year.items():
-            over_만 = any(value > 만 for value in months.values())           
+            over_만 = any(value > 만 for value in months.values())
             if over_만:
                 data = [months.get(month, 0.0) / 만 if months.get(month, 0.0) > 0 else 0.0 for month in range(1, 13)]
-                total = sum(data) 
+                total = sum(data)
                 result[year] = EstimateDividendEveryValue(xAxises=MONTHS, data=data, unit="만원", total=total)
             else:
                 data = [months.get(month, 0.0) for month in range(1, 13)]
                 total = sum(data)
                 result[year] = EstimateDividendEveryValue(xAxises=MONTHS, data=data, unit="원", total=total)
-            
-        return result
 
+        return result
 
     def _combine_dividends_by_year_month(self, total_dividends: dict[date, float]) -> dict[str, dict[int, float]]:
         dividend_by_year_month: dict[int, dict[int, float]] = defaultdict(lambda: defaultdict(float))
@@ -169,7 +167,6 @@ class DividendService:
             result[str(year)] = {month: months.get(month, 0.0) for month in range(1, 13)}
 
         return result
-
 
     def _get_full_month_estimate_dividend(
         self, assets: list[Asset], exchange_rate_map: dict[str, float], dividend_map: dict[tuple[str, date], float]
@@ -187,7 +184,6 @@ class DividendService:
                     result[current_date] += dividend_amount * won_exchange_rate * asset.asset_stock.quantity
 
         return result
-
 
     def _get_earliest_dividend_date(self, asset: Asset, dividend_map: dict[tuple[str, date], float]) -> date | None:
         asset_code: str = asset.asset_stock.stock.code

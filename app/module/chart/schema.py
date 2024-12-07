@@ -208,6 +208,7 @@ class EstimateDividendEveryResponse(RootModel[dict[str, EstimateDividendEveryVal
         else:
             return None
 
+
 class EstimateDividendTypeValue(BaseModel):
     name: str
     current_amount: float
