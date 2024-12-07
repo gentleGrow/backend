@@ -9,6 +9,8 @@ PAST_MONTH_DAY = 30
 FULL_PERCENTAGE_RATE = 100.0
 
 
+
+
 INVESTMENT_TIP = [
     {"id": 1, "tip": "초보 투자자는 분산 투자를 고려하세요."},
     {"id": 2, "tip": "장기적인 투자 목표를 설정하세요."},

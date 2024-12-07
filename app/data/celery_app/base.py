@@ -39,7 +39,7 @@ celery_task.conf.update(
 celery_task.conf.beat_schedule = {
     "dividend": {
         "task": "app.data.yahoo.dividend.main",
-        "schedule": crontab(minute=0),
+        "schedule": crontab(hour=1, minute=0),
     },
     "index": {
         "task": "app.data.yahoo.index.main",
@@ -51,7 +51,6 @@ celery_task.conf.beat_schedule = {
     },
     "rich_portfolio": {
         "task": "app.data.investing.rich_portfolio.main",
-        "schedule": crontab(minute=0),
+        "schedule": crontab(hour=1, minute=0),
     },
 }
-

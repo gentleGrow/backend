@@ -25,6 +25,9 @@ DEFAULT_EXCHANGE_RATE = 1.0
 ASSET_SAVE_TREND_YEAR = 15
 INFLATION_RATE = 3.0
 
+억 = 100000000
+만 = 10000
+
 THREE_MONTH_DAY = 90
 THREE_MONTH = 3
 MONTHS = ["1월", "2월", "3월", "4월", "5월", "6월", "7월", "8월", "9월", "10월", "11월", "12월"]

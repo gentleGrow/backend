@@ -213,7 +213,7 @@ async def get_sample_asset_stock(
         buy_stock_assets, current_stock_price_map, exchange_rate_map
     )
     total_invest_amount = asset_service.get_total_investment_amount(
-        buy_stock_assets, stock_daily_map, exchange_rate_map, lastest_stock_daily_map
+        buy_stock_assets, stock_daily_map, exchange_rate_map
     )
     total_dividend_amount = dividend_service.get_total_dividend(buy_stock_assets, exchange_rate_map, dividend_map)
 
@@ -285,7 +285,7 @@ async def get_asset_stock(
         buy_stock_assets, current_stock_price_map, exchange_rate_map
     )
     total_invest_amount = asset_service.get_total_investment_amount(
-        buy_stock_assets, stock_daily_map, exchange_rate_map, lastest_stock_daily_map
+        buy_stock_assets, stock_daily_map, exchange_rate_map
     )
     total_dividend_amount = dividend_service.get_total_dividend(buy_stock_assets, exchange_rate_map, dividend_map)
 

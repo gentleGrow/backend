@@ -1,4 +1,4 @@
-from datetime import date, datetime, timedelta
+from datetime import date, datetime
 from statistics import mean
 
 from fastapi import APIRouter, Depends, Query
@@ -6,14 +6,10 @@ from redis.asyncio import Redis
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.common.auth.security import verify_jwt_token
-from app.common.util.time import get_now_date
 from app.module.asset.constant import (
     ASSET_SAVE_TREND_YEAR,
-    INFLATION_RATE,
     MARKET_INDEX_KR_MAPPING,
-    MONTHS,
-    THREE_MONTH,
-    THREE_MONTH_DAY,
+    MONTHS
 )
 from app.module.asset.dependencies.asset_dependency import get_asset_query, get_asset_service
 from app.module.asset.dependencies.asset_stock_dependency import get_asset_stock_service
@@ -79,214 +75,6 @@ from database.dependency import get_mysql_session_router, get_redis_pool
 chart_router = APIRouter(prefix="/v1")
 
 
-# 임시 dummy api 생성, 추후 개발하겠습니다.
-@chart_router.get("/rich-portfolio", summary="부자들의 포트폴리오", response_model=RichPortfolioResponse)
-async def get_rich_portfolio() -> RichPortfolioResponse:
-    return RichPortfolioResponse(
-        [
-            RichPortfolioValue(
-                name="워렌 버핏",
-                data=[
-                    PortfolioStockData(name="애플", percent_ratio=40.0),
-                    PortfolioStockData(name="뱅크 오브 아메리카", percent_ratio=20.0),
-                    PortfolioStockData(name="코카콜라", percent_ratio=15.0),
-                    PortfolioStockData(name="아메리칸 익스프레스", percent_ratio=10.0),
-                    PortfolioStockData(name="무디스", percent_ratio=10.0),
-                    PortfolioStockData(name="크래프트 하인즈", percent_ratio=5.0),
-                ],
-            ),
-            RichPortfolioValue(
-                name="빌 애크먼",
-                data=[
-                    PortfolioStockData(name="로우스", percent_ratio=25.0),
-                    PortfolioStockData(name="칩톨레", percent_ratio=20.0),
-                    PortfolioStockData(name="힐튼", percent_ratio=15.0),
-                    PortfolioStockData(name="액티비전 블리자드", percent_ratio=10.0),
-                    PortfolioStockData(name="카니발 크루즈", percent_ratio=10.0),
-                    PortfolioStockData(name="도미노 피자", percent_ratio=10.0),
-                    PortfolioStockData(name="넷플릭스", percent_ratio=10.0),
-                ],
-            ),
-            RichPortfolioValue(
-                name="레이 달리오",
-                data=[
-                    PortfolioStockData(name="SPDR S&P 500 ETF", percent_ratio=30.0),
-                    PortfolioStockData(name="SPDR 골드 ETF", percent_ratio=20.0),
-                    PortfolioStockData(name="바이두", percent_ratio=15.0),
-                    PortfolioStockData(name="알리바바", percent_ratio=15.0),
-                    PortfolioStockData(name="징둥닷컴", percent_ratio=10.0),
-                    PortfolioStockData(name="텐센트", percent_ratio=10.0),
-                ],
-            ),
-            RichPortfolioValue(
-                name="찰리 멍거",
-                data=[
-                    PortfolioStockData(name="알리바바", percent_ratio=30.0),
-                    PortfolioStockData(name="뱅크 오브 아메리카", percent_ratio=25.0),
-                    PortfolioStockData(name="코카콜라", percent_ratio=15.0),
-                    PortfolioStockData(name="크래프트 하인즈", percent_ratio=10.0),
-                    PortfolioStockData(name="애플", percent_ratio=10.0),
-                    PortfolioStockData(name="디즈니", percent_ratio=10.0),
-                ],
-            ),
-            RichPortfolioValue(
-                name="조지 소로스",
-                data=[
-                    PortfolioStockData(name="테슬라", percent_ratio=20.0),
-                    PortfolioStockData(name="애플", percent_ratio=20.0),
-                    PortfolioStockData(name="엔비디아", percent_ratio=15.0),
-                    PortfolioStockData(name="아마존", percent_ratio=15.0),
-                    PortfolioStockData(name="마이크로소프트", percent_ratio=10.0),
-                    PortfolioStockData(name="구글", percent_ratio=10.0),
-                    PortfolioStockData(name="넷플릭스", percent_ratio=10.0),
-                ],
-            ),
-            RichPortfolioValue(
-                name="피터 린치",
-                data=[
-                    PortfolioStockData(name="페덱스", percent_ratio=25.0),
-                    PortfolioStockData(name="UPS", percent_ratio=20.0),
-                    PortfolioStockData(name="애플", percent_ratio=20.0),
-                    PortfolioStockData(name="디즈니", percent_ratio=15.0),
-                    PortfolioStockData(name="테슬라", percent_ratio=10.0),
-                    PortfolioStockData(name="마이크로소프트", percent_ratio=10.0),
-                ],
-            ),
-            RichPortfolioValue(
-                name="제프 베이조스",
-                data=[
-                    PortfolioStockData(name="아마존", percent_ratio=50.0),
-                    PortfolioStockData(name="블루 오리진", percent_ratio=20.0),
-                    PortfolioStockData(name="워싱턴 포스트", percent_ratio=10.0),
-                    PortfolioStockData(name="애플", percent_ratio=10.0),
-                    PortfolioStockData(name="테슬라", percent_ratio=5.0),
-                    PortfolioStockData(name="구글", percent_ratio=5.0),
-                ],
-            ),
-        ]
-    )
-
-
-# 임시 dummy api 생성, 추후 개발하겠습니다.
-@chart_router.get("/people-portfolio", summary="포트폴리오 구경하기", response_model=PeoplePortfolioResponse)
-async def get_people_portfolio():
-    return PeoplePortfolioResponse(
-        [
-            PeoplePortfolioValue(
-                name="배당주 포트폴리오",
-                data=[
-                    PortfolioStockData(name="코카콜라", percent_ratio=10.5),
-                    PortfolioStockData(name="펩시코", percent_ratio=8.4),
-                    PortfolioStockData(name="존슨앤존슨", percent_ratio=7.2),
-                    PortfolioStockData(name="프록터 앤 갬블", percent_ratio=6.3),
-                    PortfolioStockData(name="맥도날드", percent_ratio=5.7),
-                    PortfolioStockData(name="화이자", percent_ratio=4.9),
-                    PortfolioStockData(name="머크", percent_ratio=4.3),
-                    PortfolioStockData(name="AT&T", percent_ratio=3.8),
-                    PortfolioStockData(name="버라이즌", percent_ratio=3.2),
-                    PortfolioStockData(name="IBM", percent_ratio=2.9),
-                ],
-            ),
-            PeoplePortfolioValue(
-                name="성장주 포트폴리오",
-                data=[
-                    PortfolioStockData(name="애플", percent_ratio=20.1),
-                    PortfolioStockData(name="아마존", percent_ratio=18.3),
-                    PortfolioStockData(name="구글", percent_ratio=17.2),
-                    PortfolioStockData(name="마이크로소프트", percent_ratio=15.5),
-                    PortfolioStockData(name="엔비디아", percent_ratio=12.3),
-                    PortfolioStockData(name="테슬라", percent_ratio=8.9),
-                    PortfolioStockData(name="메타", percent_ratio=5.0),
-                    PortfolioStockData(name="넷플릭스", percent_ratio=2.7),
-                ],
-            ),
-            PeoplePortfolioValue(
-                name="국내 포트폴리오",
-                data=[
-                    PortfolioStockData(name="삼성전자", percent_ratio=25.6),
-                    PortfolioStockData(name="SK하이닉스", percent_ratio=19.8),
-                    PortfolioStockData(name="LG화학", percent_ratio=12.4),
-                    PortfolioStockData(name="NAVER", percent_ratio=9.3),
-                    PortfolioStockData(name="카카오", percent_ratio=8.7),
-                    PortfolioStockData(name="셀트리온", percent_ratio=7.4),
-                    PortfolioStockData(name="현대차", percent_ratio=6.2),
-                    PortfolioStockData(name="삼성SDI", percent_ratio=5.1),
-                ],
-            ),
-            PeoplePortfolioValue(
-                name="안전자산 포트폴리오",
-                data=[
-                    PortfolioStockData(name="SPDR 골드 트러스트", percent_ratio=35.0),
-                    PortfolioStockData(name="바클레이즈 미국 채권", percent_ratio=25.0),
-                    PortfolioStockData(name="뱅가드 리츠", percent_ratio=15.0),
-                    PortfolioStockData(name="팁스 (물가연동채)", percent_ratio=10.0),
-                    PortfolioStockData(name="애그리게이트 채권", percent_ratio=8.0),
-                    PortfolioStockData(name="중기채권 (IEF)", percent_ratio=7.0),
-                ],
-            ),
-            PeoplePortfolioValue(
-                name="소형주 포트폴리오",
-                data=[
-                    PortfolioStockData(name="리제네론", percent_ratio=14.7),
-                    PortfolioStockData(name="빌드", percent_ratio=13.4),
-                    PortfolioStockData(name="코덱스시스", percent_ratio=11.9),
-                    PortfolioStockData(name="크라토스", percent_ratio=10.5),
-                    PortfolioStockData(name="NMI 홀딩스", percent_ratio=9.1),
-                    PortfolioStockData(name="트랜스메딕스", percent_ratio=8.8),
-                    PortfolioStockData(name="브룸", percent_ratio=8.4),
-                    PortfolioStockData(name="캐네디언솔라", percent_ratio=7.6),
-                    PortfolioStockData(name="이뮤노메딕스", percent_ratio=6.5),
-                    PortfolioStockData(name="래피드7", percent_ratio=5.1),
-                ],
-            ),
-            PeoplePortfolioValue(
-                name="테크주 포트폴리오",
-                data=[
-                    PortfolioStockData(name="애플", percent_ratio=22.0),
-                    PortfolioStockData(name="마이크로소프트", percent_ratio=18.3),
-                    PortfolioStockData(name="구글", percent_ratio=16.1),
-                    PortfolioStockData(name="아마존", percent_ratio=15.5),
-                    PortfolioStockData(name="엔비디아", percent_ratio=12.2),
-                    PortfolioStockData(name="테슬라", percent_ratio=9.8),
-                    PortfolioStockData(name="메타", percent_ratio=6.1),
-                ],
-            ),
-        ]
-    )
-
-
-@chart_router.get("/rich-pick", summary="미국 부자들이 선택한 종목 TOP10", response_model=RichPickResponse)
-async def get_rich_pick(
-    session: AsyncSession = Depends(get_mysql_session_router),
-    redis_client: Redis = Depends(get_redis_pool),
-    rich_service: RichService = Depends(get_rich_service),
-    stock_daily_service: StockDailyService = Depends(get_stock_daily_service),
-    stock_service: StockService = Depends(get_stock_service),
-    exchange_rate_service: ExchangeRateService = Depends(get_exchange_rate_service),
-) -> RichPickResponse:
-    top_10_stock_codes, stock_name_map = await rich_service.get_rich_top_10_pick(session, redis_client)
-    lastest_stock_daily_map = await stock_daily_service.get_latest_map_by_codes(session, top_10_stock_codes)
-    current_stock_price_map: dict[str, float] = await stock_service.get_current_stock_price_by_code(
-        redis_client, lastest_stock_daily_map, top_10_stock_codes
-    )
-    exchange_rate_map = await exchange_rate_service.get_exchange_rate_map(redis_client)
-    stock_daily_profit: dict[str, float] = stock_service.get_daily_profit(
-        lastest_stock_daily_map, current_stock_price_map, top_10_stock_codes
-    )
-    won_exchange_rate = exchange_rate_service.get_exchange_rate(CurrencyType.USA, CurrencyType.KOREA, exchange_rate_map)
-    stock_korea_price = {stock_code: price * won_exchange_rate for stock_code, price in current_stock_price_map.items()}
-
-    return RichPickResponse(
-        [
-            RichPickValue(
-                name=stock_name_map.get(stock_code),
-                price=stock_korea_price[stock_code],
-                rate=stock_daily_profit[stock_code],
-            )
-            for stock_code in top_10_stock_codes
-        ]
-    )
-
 
 @chart_router.get("/sample/asset-save-trend", summary="자산적립 추이", response_model=AssetSaveTrendResponse)
 async def get_sample_asset_save_trend(
@@ -298,62 +86,42 @@ async def get_sample_asset_save_trend(
     asset_stock_service: AssetStockService = Depends(get_asset_stock_service),
     save_trend_service: SaveTrendService = Depends(get_save_trend_service),
 ) -> AssetSaveTrendResponse:
-    asset_all: list = await AssetRepository.get_eager(session, DUMMY_USER_ID, AssetType.STOCK)
-    if len(asset_all) == 0:
-        return AssetSaveTrendResponse(xAxises=[], dates=[], values1={}, values2={}, unit="")
-
-    (
-        stock_daily_map_all,
-        lastest_stock_daily_map_all,
-        dividend_map_all,
-        exchange_rate_map_all,
-        current_stock_price_map_all,
-    ) = await asset_query.get_all_data(session, redis_client, asset_all)
-
-    total_asset_amount_all = asset_service.get_total_asset_amount(
-        asset_all, current_stock_price_map_all, exchange_rate_map_all
-    )
-
-    asset_3month: list = await AssetRepository.get_eager_by_range(
-        session, DUMMY_USER_ID, AssetType.STOCK, (get_now_date() - timedelta(days=THREE_MONTH_DAY), get_now_date())
-    )
-    if len(asset_3month) == 0:
-        return AssetSaveTrendResponse.no_near_invest_response(total_asset_amount_all)
-
+    assets: list = await AssetRepository.get_eager(session, DUMMY_USER_ID, AssetType.STOCK)
+    full_required_assets = await asset_service.get_full_required_assets(assets)
+    
     (
         stock_daily_map,
         lastest_stock_daily_map,
         dividend_map,
         exchange_rate_map,
         current_stock_price_map,
-    ) = await asset_query.get_all_data(session, redis_client, asset_3month)
+    ) = await asset_query.get_all_data(session, redis_client, full_required_assets)
 
-    total_asset_amount: float = asset_service.get_total_asset_amount(
-        asset_3month, current_stock_price_map, exchange_rate_map
-    )
-    total_invest_amount: float = asset_service.get_total_investment_amount(
-        asset_3month, stock_daily_map, exchange_rate_map, lastest_stock_daily_map
-    )
-    total_dividend_amount: float = dividend_service.get_total_dividend(asset_3month, exchange_rate_map, dividend_map)
-
-    total_profit_rate = asset_stock_service.get_total_profit_rate(total_asset_amount, total_invest_amount)
-    total_profit_rate_real = asset_stock_service.get_total_profit_rate_real(
-        total_asset_amount, total_invest_amount, INFLATION_RATE
+    complete_asset, incomplete_assets = asset_service.separate_assets_by_full_data(assets, stock_daily_map)
+    complete_buy_asset = asset_service.get_buy_assets(complete_asset)
+    
+    total_asset_amount = asset_service.get_total_asset_amount(
+        complete_buy_asset, current_stock_price_map, exchange_rate_map
     )
 
-    increase_invest_year = asset_service.get_average_investment_with_dividend_year(
-        total_invest_amount, total_dividend_amount, THREE_MONTH
-    )
-
-    values1, values2, unit = asset_service.calculate_trend_values(
-        total_asset_amount, increase_invest_year, total_profit_rate, total_profit_rate_real, ASSET_SAVE_TREND_YEAR
+    validate_response = await AssetSaveTrendResponse.validate(complete_buy_asset, total_asset_amount)
+    if validate_response:
+        return validate_response
+    
+    estimate_asset_amount, real_asset_amount, unit = asset_service.get_asset_trend_values(
+        complete_buy_asset,
+        stock_daily_map,
+        dividend_map,
+        exchange_rate_map,
+        current_stock_price_map,
+        ASSET_SAVE_TREND_YEAR
     )
 
     return AssetSaveTrendResponse(
         xAxises=save_trend_service.get_x_axises(ASSET_SAVE_TREND_YEAR),
         dates=save_trend_service.get_dates(ASSET_SAVE_TREND_YEAR),
-        values1=values1,
-        values2=values2,
+        values1=estimate_asset_amount,
+        values2=real_asset_amount,
         unit=unit,
     )
 
@@ -369,62 +137,42 @@ async def get_asset_save_trend(
     asset_stock_service: AssetStockService = Depends(get_asset_stock_service),
     save_trend_service: SaveTrendService = Depends(get_save_trend_service),
 ) -> AssetSaveTrendResponse:
-    asset_all: list = await AssetRepository.get_eager(session, token.get("user"), AssetType.STOCK)
-    if len(asset_all) == 0:
-        return AssetSaveTrendResponse(xAxises=[], dates=[], values1={}, values2={}, unit="")
-
-    (
-        stock_daily_map_all,
-        lastest_stock_daily_map_all,
-        dividend_map_all,
-        exchange_rate_map_all,
-        current_stock_price_map_all,
-    ) = await asset_query.get_all_data(session, redis_client, asset_all)
-
-    total_asset_amount_all = asset_service.get_total_asset_amount(
-        asset_all, current_stock_price_map_all, exchange_rate_map_all
-    )
-
-    asset_3month: list = await AssetRepository.get_eager_by_range(
-        session, token.get("user"), AssetType.STOCK, (get_now_date() - timedelta(days=THREE_MONTH_DAY), get_now_date())
-    )
-    if len(asset_3month) == 0:
-        return AssetSaveTrendResponse.no_near_invest_response(total_asset_amount_all)
-
+    assets: list = await AssetRepository.get_eager(session, token.get("user"), AssetType.STOCK)
+    full_required_assets = await asset_service.get_full_required_assets(assets)
+    
     (
         stock_daily_map,
         lastest_stock_daily_map,
         dividend_map,
         exchange_rate_map,
         current_stock_price_map,
-    ) = await asset_query.get_all_data(session, redis_client, asset_3month)
+    ) = await asset_query.get_all_data(session, redis_client, full_required_assets)
 
-    total_asset_amount: float = asset_service.get_total_asset_amount(
-        asset_3month, current_stock_price_map, exchange_rate_map
-    )
-    total_invest_amount: float = asset_service.get_total_investment_amount(
-        asset_3month, stock_daily_map, exchange_rate_map, lastest_stock_daily_map
-    )
-    total_dividend_amount: float = dividend_service.get_total_dividend(asset_3month, exchange_rate_map, dividend_map)
-
-    total_profit_rate = asset_stock_service.get_total_profit_rate(total_asset_amount, total_invest_amount)
-    total_profit_rate_real = asset_stock_service.get_total_profit_rate_real(
-        total_asset_amount, total_invest_amount, INFLATION_RATE
+    complete_asset, incomplete_assets = asset_service.separate_assets_by_full_data(assets, stock_daily_map)
+    complete_buy_asset = asset_service.get_buy_assets(complete_asset)
+    
+    total_asset_amount = asset_service.get_total_asset_amount(
+        complete_buy_asset, current_stock_price_map, exchange_rate_map
     )
 
-    increase_invest_year = asset_service.get_average_investment_with_dividend_year(
-        total_invest_amount, total_dividend_amount, THREE_MONTH
-    )
-
-    values1, values2, unit = asset_service.calculate_trend_values(
-        total_asset_amount, increase_invest_year, total_profit_rate, total_profit_rate_real, ASSET_SAVE_TREND_YEAR
+    validate_response = await AssetSaveTrendResponse.validate(complete_buy_asset, total_asset_amount)
+    if validate_response:
+        return validate_response
+    
+    estimate_asset_amount, real_asset_amount, unit = asset_service.get_asset_trend_values(
+        complete_buy_asset,
+        stock_daily_map,
+        dividend_map,
+        exchange_rate_map,
+        current_stock_price_map,
+        ASSET_SAVE_TREND_YEAR
     )
 
     return AssetSaveTrendResponse(
         xAxises=save_trend_service.get_x_axises(ASSET_SAVE_TREND_YEAR),
         dates=save_trend_service.get_dates(ASSET_SAVE_TREND_YEAR),
-        values1=values1,
-        values2=values2,
+        values1=estimate_asset_amount,
+        values2=real_asset_amount,
         unit=unit,
     )
 
@@ -898,7 +646,7 @@ async def get_summary(
 
     total_asset_amount = asset_service.get_total_asset_amount(assets, current_stock_price_map, exchange_rate_map)
     total_investment_amount = asset_service.get_total_investment_amount(
-        assets, stock_daily_map, exchange_rate_map, lastest_stock_daily_map
+        assets, stock_daily_map, exchange_rate_map
     )
     today_review_rate: float = summary_service.get_today_review_rate(assets, current_stock_price_map, exchange_rate_map)
 
@@ -932,7 +680,7 @@ async def get_sample_summary(
 
     total_asset_amount = asset_service.get_total_asset_amount(assets, current_stock_price_map, exchange_rate_map)
     total_investment_amount = asset_service.get_total_investment_amount(
-        assets, stock_daily_map, exchange_rate_map, lastest_stock_daily_map
+        assets, stock_daily_map, exchange_rate_map
     )
     today_review_rate: float = summary_service.get_today_review_rate(assets, current_stock_price_map, exchange_rate_map)
 
@@ -983,3 +731,220 @@ async def get_market_index(
             if market_index_value is not None
         ]
     )
+
+
+@chart_router.get("/rich-pick", summary="미국 부자들이 선택한 종목 TOP10", response_model=RichPickResponse)
+async def get_rich_pick(
+    session: AsyncSession = Depends(get_mysql_session_router),
+    redis_client: Redis = Depends(get_redis_pool),
+    rich_service: RichService = Depends(get_rich_service),
+    stock_daily_service: StockDailyService = Depends(get_stock_daily_service),
+    stock_service: StockService = Depends(get_stock_service),
+    exchange_rate_service: ExchangeRateService = Depends(get_exchange_rate_service),
+) -> RichPickResponse:
+    top_10_stock_codes, stock_name_map = await rich_service.get_rich_top_10_pick(session, redis_client)
+    lastest_stock_daily_map = await stock_daily_service.get_latest_map_by_codes(session, top_10_stock_codes)
+    current_stock_price_map: dict[str, float] = await stock_service.get_current_stock_price_by_code(
+        redis_client, lastest_stock_daily_map, top_10_stock_codes
+    )
+    exchange_rate_map = await exchange_rate_service.get_exchange_rate_map(redis_client)
+    stock_daily_profit: dict[str, float] = stock_service.get_daily_profit(
+        lastest_stock_daily_map, current_stock_price_map, top_10_stock_codes
+    )
+    won_exchange_rate = exchange_rate_service.get_exchange_rate(CurrencyType.USA, CurrencyType.KOREA, exchange_rate_map)
+    stock_korea_price = {stock_code: price * won_exchange_rate for stock_code, price in current_stock_price_map.items()}
+
+    return RichPickResponse(
+        [
+            RichPickValue(
+                name=stock_name_map.get(stock_code),
+                price=stock_korea_price[stock_code],
+                rate=stock_daily_profit[stock_code],
+            )
+            for stock_code in top_10_stock_codes
+        ]
+    )
+
+
+# 임시 dummy api 생성, 추후 개발하겠습니다.
+@chart_router.get("/rich-portfolio", summary="부자들의 포트폴리오", response_model=RichPortfolioResponse)
+async def get_rich_portfolio() -> RichPortfolioResponse:
+    return RichPortfolioResponse(
+        [
+            RichPortfolioValue(
+                name="워렌 버핏",
+                data=[
+                    PortfolioStockData(name="애플", percent_ratio=40.0),
+                    PortfolioStockData(name="뱅크 오브 아메리카", percent_ratio=20.0),
+                    PortfolioStockData(name="코카콜라", percent_ratio=15.0),
+                    PortfolioStockData(name="아메리칸 익스프레스", percent_ratio=10.0),
+                    PortfolioStockData(name="무디스", percent_ratio=10.0),
+                    PortfolioStockData(name="크래프트 하인즈", percent_ratio=5.0),
+                ],
+            ),
+            RichPortfolioValue(
+                name="빌 애크먼",
+                data=[
+                    PortfolioStockData(name="로우스", percent_ratio=25.0),
+                    PortfolioStockData(name="칩톨레", percent_ratio=20.0),
+                    PortfolioStockData(name="힐튼", percent_ratio=15.0),
+                    PortfolioStockData(name="액티비전 블리자드", percent_ratio=10.0),
+                    PortfolioStockData(name="카니발 크루즈", percent_ratio=10.0),
+                    PortfolioStockData(name="도미노 피자", percent_ratio=10.0),
+                    PortfolioStockData(name="넷플릭스", percent_ratio=10.0),
+                ],
+            ),
+            RichPortfolioValue(
+                name="레이 달리오",
+                data=[
+                    PortfolioStockData(name="SPDR S&P 500 ETF", percent_ratio=30.0),
+                    PortfolioStockData(name="SPDR 골드 ETF", percent_ratio=20.0),
+                    PortfolioStockData(name="바이두", percent_ratio=15.0),
+                    PortfolioStockData(name="알리바바", percent_ratio=15.0),
+                    PortfolioStockData(name="징둥닷컴", percent_ratio=10.0),
+                    PortfolioStockData(name="텐센트", percent_ratio=10.0),
+                ],
+            ),
+            RichPortfolioValue(
+                name="찰리 멍거",
+                data=[
+                    PortfolioStockData(name="알리바바", percent_ratio=30.0),
+                    PortfolioStockData(name="뱅크 오브 아메리카", percent_ratio=25.0),
+                    PortfolioStockData(name="코카콜라", percent_ratio=15.0),
+                    PortfolioStockData(name="크래프트 하인즈", percent_ratio=10.0),
+                    PortfolioStockData(name="애플", percent_ratio=10.0),
+                    PortfolioStockData(name="디즈니", percent_ratio=10.0),
+                ],
+            ),
+            RichPortfolioValue(
+                name="조지 소로스",
+                data=[
+                    PortfolioStockData(name="테슬라", percent_ratio=20.0),
+                    PortfolioStockData(name="애플", percent_ratio=20.0),
+                    PortfolioStockData(name="엔비디아", percent_ratio=15.0),
+                    PortfolioStockData(name="아마존", percent_ratio=15.0),
+                    PortfolioStockData(name="마이크로소프트", percent_ratio=10.0),
+                    PortfolioStockData(name="구글", percent_ratio=10.0),
+                    PortfolioStockData(name="넷플릭스", percent_ratio=10.0),
+                ],
+            ),
+            RichPortfolioValue(
+                name="피터 린치",
+                data=[
+                    PortfolioStockData(name="페덱스", percent_ratio=25.0),
+                    PortfolioStockData(name="UPS", percent_ratio=20.0),
+                    PortfolioStockData(name="애플", percent_ratio=20.0),
+                    PortfolioStockData(name="디즈니", percent_ratio=15.0),
+                    PortfolioStockData(name="테슬라", percent_ratio=10.0),
+                    PortfolioStockData(name="마이크로소프트", percent_ratio=10.0),
+                ],
+            ),
+            RichPortfolioValue(
+                name="제프 베이조스",
+                data=[
+                    PortfolioStockData(name="아마존", percent_ratio=50.0),
+                    PortfolioStockData(name="블루 오리진", percent_ratio=20.0),
+                    PortfolioStockData(name="워싱턴 포스트", percent_ratio=10.0),
+                    PortfolioStockData(name="애플", percent_ratio=10.0),
+                    PortfolioStockData(name="테슬라", percent_ratio=5.0),
+                    PortfolioStockData(name="구글", percent_ratio=5.0),
+                ],
+            ),
+        ]
+    )
+
+
+# 임시 dummy api 생성, 추후 개발하겠습니다.
+@chart_router.get("/people-portfolio", summary="포트폴리오 구경하기", response_model=PeoplePortfolioResponse)
+async def get_people_portfolio():
+    return PeoplePortfolioResponse(
+        [
+            PeoplePortfolioValue(
+                name="배당주 포트폴리오",
+                data=[
+                    PortfolioStockData(name="코카콜라", percent_ratio=10.5),
+                    PortfolioStockData(name="펩시코", percent_ratio=8.4),
+                    PortfolioStockData(name="존슨앤존슨", percent_ratio=7.2),
+                    PortfolioStockData(name="프록터 앤 갬블", percent_ratio=6.3),
+                    PortfolioStockData(name="맥도날드", percent_ratio=5.7),
+                    PortfolioStockData(name="화이자", percent_ratio=4.9),
+                    PortfolioStockData(name="머크", percent_ratio=4.3),
+                    PortfolioStockData(name="AT&T", percent_ratio=3.8),
+                    PortfolioStockData(name="버라이즌", percent_ratio=3.2),
+                    PortfolioStockData(name="IBM", percent_ratio=2.9),
+                ],
+            ),
+            PeoplePortfolioValue(
+                name="성장주 포트폴리오",
+                data=[
+                    PortfolioStockData(name="애플", percent_ratio=20.1),
+                    PortfolioStockData(name="아마존", percent_ratio=18.3),
+                    PortfolioStockData(name="구글", percent_ratio=17.2),
+                    PortfolioStockData(name="마이크로소프트", percent_ratio=15.5),
+                    PortfolioStockData(name="엔비디아", percent_ratio=12.3),
+                    PortfolioStockData(name="테슬라", percent_ratio=8.9),
+                    PortfolioStockData(name="메타", percent_ratio=5.0),
+                    PortfolioStockData(name="넷플릭스", percent_ratio=2.7),
+                ],
+            ),
+            PeoplePortfolioValue(
+                name="국내 포트폴리오",
+                data=[
+                    PortfolioStockData(name="삼성전자", percent_ratio=25.6),
+                    PortfolioStockData(name="SK하이닉스", percent_ratio=19.8),
+                    PortfolioStockData(name="LG화학", percent_ratio=12.4),
+                    PortfolioStockData(name="NAVER", percent_ratio=9.3),
+                    PortfolioStockData(name="카카오", percent_ratio=8.7),
+                    PortfolioStockData(name="셀트리온", percent_ratio=7.4),
+                    PortfolioStockData(name="현대차", percent_ratio=6.2),
+                    PortfolioStockData(name="삼성SDI", percent_ratio=5.1),
+                ],
+            ),
+            PeoplePortfolioValue(
+                name="안전자산 포트폴리오",
+                data=[
+                    PortfolioStockData(name="SPDR 골드 트러스트", percent_ratio=35.0),
+                    PortfolioStockData(name="바클레이즈 미국 채권", percent_ratio=25.0),
+                    PortfolioStockData(name="뱅가드 리츠", percent_ratio=15.0),
+                    PortfolioStockData(name="팁스 (물가연동채)", percent_ratio=10.0),
+                    PortfolioStockData(name="애그리게이트 채권", percent_ratio=8.0),
+                    PortfolioStockData(name="중기채권 (IEF)", percent_ratio=7.0),
+                ],
+            ),
+            PeoplePortfolioValue(
+                name="소형주 포트폴리오",
+                data=[
+                    PortfolioStockData(name="리제네론", percent_ratio=14.7),
+                    PortfolioStockData(name="빌드", percent_ratio=13.4),
+                    PortfolioStockData(name="코덱스시스", percent_ratio=11.9),
+                    PortfolioStockData(name="크라토스", percent_ratio=10.5),
+                    PortfolioStockData(name="NMI 홀딩스", percent_ratio=9.1),
+                    PortfolioStockData(name="트랜스메딕스", percent_ratio=8.8),
+                    PortfolioStockData(name="브룸", percent_ratio=8.4),
+                    PortfolioStockData(name="캐네디언솔라", percent_ratio=7.6),
+                    PortfolioStockData(name="이뮤노메딕스", percent_ratio=6.5),
+                    PortfolioStockData(name="래피드7", percent_ratio=5.1),
+                ],
+            ),
+            PeoplePortfolioValue(
+                name="테크주 포트폴리오",
+                data=[
+                    PortfolioStockData(name="애플", percent_ratio=22.0),
+                    PortfolioStockData(name="마이크로소프트", percent_ratio=18.3),
+                    PortfolioStockData(name="구글", percent_ratio=16.1),
+                    PortfolioStockData(name="아마존", percent_ratio=15.5),
+                    PortfolioStockData(name="엔비디아", percent_ratio=12.2),
+                    PortfolioStockData(name="테슬라", percent_ratio=9.8),
+                    PortfolioStockData(name="메타", percent_ratio=6.1),
+                ],
+            ),
+        ]
+    )
+    
+    
+    
+    
+    
+    
+    
+    

@@ -189,7 +189,6 @@ class PerformanceAnalysisService:
         assets_by_date: dict = self.asset_service.asset_list_from_days(assets, interval.get_days())
         exchange_rate_map = await self.exchange_rate_service.get_exchange_rate_map(redis_client)
         stock_daily_map = await self.stock_daily_service.get_map_range(session, assets)
-        lastest_stock_daily_map = await self.stock_daily_service.get_latest_map(session, assets)
 
         result = {}
         current_assets = None
@@ -204,7 +203,7 @@ class PerformanceAnalysisService:
                 current_assets = current_loop_assets
 
                 current_investment_amount = self.asset_service.get_total_investment_amount(
-                    current_assets, stock_daily_map, exchange_rate_map, lastest_stock_daily_map
+                    current_assets, stock_daily_map, exchange_rate_map
                 )
             if current_assets is None or current_investment_amount is None:
                 result[market_datetime] = 0.0

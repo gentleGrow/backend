@@ -7,8 +7,8 @@ from redis.asyncio import Redis
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.common.util.time import get_now_date
-from app.module.asset.constant import REQUIRED_ASSET_FIELD
-from app.module.asset.enum import ASSETNAME, AmountUnit, PurchaseCurrencyType, StockAsset
+from app.module.asset.constant import REQUIRED_ASSET_FIELD, THREE_MONTH_DAY, INFLATION_RATE, THREE_MONTH, 억, 만
+from app.module.asset.enum import ASSETNAME, AmountUnit, PurchaseCurrencyType, StockAsset, TradeType
 from app.module.asset.model import Asset, StockDaily
 from app.module.asset.repository.asset_repository import AssetRepository
 from app.module.asset.repository.stock_repository import StockRepository
@@ -23,20 +23,26 @@ from app.module.asset.services.dividend_service import DividendService
 from app.module.asset.services.exchange_rate_service import ExchangeRateService
 from app.module.asset.services.stock_daily_service import StockDailyService
 from app.module.asset.services.stock_service import StockService
-
+from app.module.asset.services.asset_stock_service import AssetStockService
 
 class AssetService:
     def __init__(
         self,
         stock_daily_service: StockDailyService,
+        asset_stock_service: AssetStockService,
         exchange_rate_service: ExchangeRateService,
         stock_service: StockService,
         dividend_service: DividendService,
     ):
         self.stock_daily_service = stock_daily_service
+        self.asset_stock_service = asset_stock_service
         self.exchange_rate_service = exchange_rate_service
         self.stock_service = stock_service
         self.dividend_service = dividend_service
+
+    def get_buy_assets(self, assets: list[Asset]) -> list[Asset]:
+        return [asset for asset in assets if asset.asset_stock.trade == TradeType.BUY]
+
 
     def separate_assets_by_full_data(
         self, assets: list[Asset], stock_daily_map: dict[tuple[str, date], StockDaily]
@@ -106,7 +112,59 @@ class AssetService:
 
         return assets_by_date
 
-    def calculate_trend_values(
+
+    def get_asset_trend_values(
+        self,
+        assets: list[Asset],
+        stock_daily_map: dict[tuple[str, date], StockDaily],
+        dividend_map: dict[str, float],
+        exchange_rate_map: dict[str, float],
+        current_stock_price_map: dict[str, float],
+        trend_year: int
+    ) -> tuple[dict[str, list[float]], dict[str, list[float]], str]:
+        near_assets = [near_asset for near_asset in self._filter_near_assets(assets, THREE_MONTH_DAY)]
+        
+        total_asset_amount: float = self.get_total_asset_amount(
+            near_assets, current_stock_price_map, exchange_rate_map
+        )
+        
+        total_invest_amount: float = self.get_total_investment_amount(
+            near_assets, stock_daily_map, exchange_rate_map
+        )
+        
+        total_dividend_amount: float = self.dividend_service.get_total_dividend(near_assets, exchange_rate_map, dividend_map)
+
+        total_profit_rate: float = self.asset_stock_service.get_total_profit_rate(total_asset_amount, total_invest_amount)
+        
+        total_profit_rate_real: float = self.asset_stock_service.get_total_profit_rate_real(
+            total_asset_amount, total_invest_amount, INFLATION_RATE
+        )
+
+        increase_invest_year: float = self.get_average_investment_with_dividend_year(
+            total_invest_amount, total_dividend_amount, THREE_MONTH
+        )
+
+        return self._calculate_trend_values(
+            total_asset_amount, increase_invest_year, total_profit_rate, total_profit_rate_real, trend_year
+        )       
+    
+    
+    def get_average_investment_with_dividend_year(
+        self, total_invest_amount: float, total_dividend_amount: float, months: float
+    ) -> float:
+        average_invest_amount_month = total_invest_amount / months if total_invest_amount > 0.0 else 0.0
+        average_dividend_month = total_dividend_amount / months if total_dividend_amount > 0.0 else 0.0
+        return (
+            (average_invest_amount_month + average_dividend_month) * 12
+            if average_invest_amount_month + average_dividend_month > 0
+            else 0.0
+        )
+    
+    def _filter_near_assets(cls, assets: list[Asset], days:int) -> list[Asset]:
+        return [asset for asset in assets if asset.asset_stock.trade_date > (get_now_date() - timedelta(days=days))]
+
+
+    def _calculate_trend_values(
         self,
         total_asset_amount: float,
         increase_invest_year: float,
@@ -114,31 +172,31 @@ class AssetService:
         total_profit_rate_real: float,
         years: int,
     ) -> tuple[dict[str, list[float]], dict[str, list[float]], str]:
-        values1: dict[str, Any] = {"values": [], "name": ASSETNAME.ESTIMATE_ASSET}
-        values2: dict[str, Any] = {"values": [], "name": ASSETNAME.REAL_ASSET}
+        estimate_asset_amount: dict[str, Any] = {"values": [], "name": ASSETNAME.ESTIMATE_ASSET}
+        real_asset_amount: dict[str, Any] = {"values": [], "name": ASSETNAME.REAL_ASSET}
 
-        current_value1 = total_asset_amount
-        current_value2 = total_asset_amount
+        current_estimate_asset_value = total_asset_amount
+        current_real_asset_value = total_asset_amount
 
         for _ in range(years):
-            current_value1 += increase_invest_year
-            current_value1 *= 1 + total_profit_rate / 100
-            values1["values"].append(current_value1)
+            current_estimate_asset_value += increase_invest_year
+            current_estimate_asset_value *= 1 + total_profit_rate / 100
+            estimate_asset_amount["values"].append(current_estimate_asset_value)
 
-            current_value2 += increase_invest_year
-            current_value2 *= 1 + total_profit_rate_real / 100
-            values2["values"].append(current_value2)
+            current_real_asset_value += increase_invest_year
+            current_real_asset_value *= 1 + total_profit_rate_real / 100
+            real_asset_amount["values"].append(current_real_asset_value)
 
-        if total_asset_amount >= 100000000:
-            values1["values"] = [v / 100000000 for v in values1["values"]]
-            values2["values"] = [v / 100000000 for v in values2["values"]]
+        if total_asset_amount >= 억 or current_estimate_asset_value >= 억:
+            estimate_asset_amount["values"] = [v / 억 for v in estimate_asset_amount["values"]]
+            real_asset_amount["values"] = [v / 억 for v in real_asset_amount["values"]]
             unit = AmountUnit.BILLION_WON
         else:
-            values1["values"] = [v / 10000 for v in values1["values"]]
-            values2["values"] = [v / 10000 for v in values2["values"]]
+            estimate_asset_amount["values"] = [v / 만 for v in estimate_asset_amount["values"]]
+            real_asset_amount["values"] = [v / 만 for v in real_asset_amount["values"]]
             unit = AmountUnit.MILLION_WON
 
-        return values1, values2, unit
+        return estimate_asset_amount, real_asset_amount, unit
 
     async def get_asset_map(self, session: AsyncSession, asset_id: int) -> dict[int, Asset] | None:
         asset = await AssetRepository.get_asset_by_id(session, asset_id)
@@ -197,16 +255,6 @@ class AssetService:
 
         return stock_daily_map.get((stock_code, closest_date), None) if closest_date else None
 
-    def get_average_investment_with_dividend_year(
-        self, total_invest_amount: float, total_dividend_amount: float, months: float
-    ) -> float:
-        average_invest_amount_month = total_invest_amount / months if total_invest_amount > 0.0 else 0.0
-        average_dividend_month = total_dividend_amount / months if total_dividend_amount > 0.0 else 0.0
-        return (
-            (average_invest_amount_month + average_dividend_month) * 12
-            if average_invest_amount_month + average_dividend_month > 0
-            else 0.0
-        )
 
     async def filter_required_assets(self, assets: list[Asset]) -> list[Asset]:
         return [asset for asset in assets if await self._check_required_field(asset)]
@@ -216,7 +264,6 @@ class AssetService:
         assets: list[Asset],
         stock_daily_map: dict[tuple[str, date], StockDaily],
         exchange_rate_map: dict[str, float],
-        lastest_stock_daily_map: dict[str, StockDaily],
     ) -> float:
         result = 0.0
 

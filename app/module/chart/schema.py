@@ -1,12 +1,12 @@
 from collections import defaultdict
-from datetime import date, datetime
+from datetime import date, datetime, timedelta
 from statistics import mean
-from typing import Union
+from typing import Union, Optional
 
 from pydantic import BaseModel, Field, RootModel
-
-from app.common.util.time import get_now_datetime
-from app.module.asset.constant import ASSET_SAVE_TREND_YEAR, INFLATION_RATE, MARKET_INDEX_KR_MAPPING
+from app.module.asset.model import Asset
+from app.common.util.time import get_now_datetime, get_now_date
+from app.module.asset.constant import ASSET_SAVE_TREND_YEAR, INFLATION_RATE, MARKET_INDEX_KR_MAPPING, THREE_MONTH_DAY, 억, 만
 from app.module.asset.enum import ASSETNAME, AmountUnit, MarketIndex
 from app.module.chart.enum import IntervalType
 
@@ -18,26 +18,42 @@ class AssetSaveTrendResponse(BaseModel):
     values2: dict[str, Union[list[float], str]]
     unit: str
 
-    @staticmethod
-    def no_near_invest_response(total_asset_amount_all: float) -> "AssetSaveTrendResponse":
-        if total_asset_amount_all >= 100000000:
+    @classmethod
+    async def validate(cls, assets: list[Asset], total_asset_amount: float) -> Optional["AssetSaveTrendResponse"]:
+        if not len(assets):
+            return AssetSaveTrendResponse(xAxises=[], dates=[], values1={}, values2={}, unit="")
+        
+        near_assets = cls._filter_near_asset(assets)
+        
+        if not len(near_assets):
+            return cls.no_near_invest_response(total_asset_amount)
+
+
+    @classmethod
+    def _filter_near_asset(cls, assets: list[Asset]) -> list[Asset]:
+        return [asset for asset in assets if asset.asset_stock.trade_date > (get_now_date() - timedelta(days=THREE_MONTH_DAY))]
+    
+
+    @classmethod
+    def no_near_invest_response(cls, total_asset_amount_all: float) -> "AssetSaveTrendResponse":
+        if total_asset_amount_all >= 억:
             values1 = {
-                "values": [total_asset_amount_all / 100000000] * ASSET_SAVE_TREND_YEAR,
+                "values": [total_asset_amount_all / 억] * ASSET_SAVE_TREND_YEAR,
                 "name": ASSETNAME.ESTIMATE_ASSET,
             }
             values2 = {
                 "values": [
-                    (total_asset_amount_all * ((1 - INFLATION_RATE * 0.01) ** i)) / 100000000
+                    (total_asset_amount_all * ((1 - INFLATION_RATE * 0.01) ** i)) / 억
                     for i in range(ASSET_SAVE_TREND_YEAR)
                 ],
                 "name": ASSETNAME.REAL_ASSET,
             }
             unit = AmountUnit.BILLION_WON
         else:
-            values1 = {"values": [total_asset_amount_all] * ASSET_SAVE_TREND_YEAR, "name": ASSETNAME.ESTIMATE_ASSET}
+            values1 = {"values": [total_asset_amount_all / 만] * ASSET_SAVE_TREND_YEAR, "name": ASSETNAME.ESTIMATE_ASSET}
             values2 = {
                 "values": [
-                    (total_asset_amount_all * ((1 - INFLATION_RATE * 0.01) ** i)) for i in range(ASSET_SAVE_TREND_YEAR)
+                    (total_asset_amount_all * ((1 - INFLATION_RATE * 0.01) ** i)) / 만 for i in range(ASSET_SAVE_TREND_YEAR)
                 ],
                 "name": ASSETNAME.REAL_ASSET,
             }
