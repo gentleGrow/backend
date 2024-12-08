@@ -1,6 +1,6 @@
 from datetime import date, datetime
 from statistics import mean
-
+from icecream import ic
 from fastapi import APIRouter, Depends, Query
 from redis.asyncio import Redis
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -41,7 +41,6 @@ from app.module.chart.schema import (
     AssetSaveTrendResponse,
     ChartTipResponse,
     CompositionResponse,
-    CompositionResponseValue,
     EstimateDividendEveryResponse,
     EstimateDividendEveryValue,
     EstimateDividendTypeResponse,
@@ -360,7 +359,7 @@ async def get_my_stock(
             for stock_asset in stock_assets
         ]
     )
-    
+
 
 @chart_router.get("/sample/composition", summary="종목 구성", response_model=CompositionResponse)
 async def get_sample_composition(
@@ -384,11 +383,11 @@ async def get_sample_composition(
 
     complete_asset, incomplete_assets = asset_service.separate_assets_by_full_data(assets, stock_daily_map)
     complete_buy_asset = asset_service.get_buy_assets(complete_asset)
-    
+
     no_asset_response = CompositionResponse.validate(complete_buy_asset)
     if no_asset_response:
         return no_asset_response
-    
+
     if type is CompositionType.COMPOSITION:
         stock_composition_data = composition_service.get_asset_stock_composition(
             complete_buy_asset, current_stock_price_map, exchange_rate_map
@@ -412,7 +411,7 @@ async def get_composition(
     asset_query: AssetQuery = Depends(get_asset_query),
     composition_service: CompositionService = Depends(get_composition_service),
 ) -> CompositionResponse:
-    assets: list = await AssetRepository.get_eager(session, token.get('user'), AssetType.STOCK)
+    assets: list = await AssetRepository.get_eager(session, token.get("user"), AssetType.STOCK)
     full_required_assets = await asset_service.get_full_required_assets(assets)
 
     (
@@ -425,11 +424,11 @@ async def get_composition(
 
     complete_asset, incomplete_assets = asset_service.separate_assets_by_full_data(assets, stock_daily_map)
     complete_buy_asset = asset_service.get_buy_assets(complete_asset)
-    
+
     no_asset_response = CompositionResponse.validate(complete_buy_asset)
     if no_asset_response:
         return no_asset_response
-    
+
     if type is CompositionType.COMPOSITION:
         stock_composition_data = composition_service.get_asset_stock_composition(
             complete_buy_asset, current_stock_price_map, exchange_rate_map
@@ -441,6 +440,85 @@ async def get_composition(
         )
 
         return CompositionResponse(account_composition_data)
+
+
+@chart_router.get("/summary", summary="오늘의 리뷰, 나의 총자산, 나의 투자 금액, 수익금", response_model=SummaryResponse)
+async def get_summary(
+    token: AccessToken = Depends(verify_jwt_token),
+    session: AsyncSession = Depends(get_mysql_session_router),
+    redis_client: Redis = Depends(get_redis_pool),
+    asset_query: AssetQuery = Depends(get_asset_query),
+    asset_service: AssetService = Depends(get_asset_service),
+    summary_service: SummaryService = Depends(get_summary_service),
+) -> SummaryResponse:
+    assets: list = await AssetRepository.get_eager(session, token.get("user"), AssetType.STOCK)
+    full_required_assets = await asset_service.get_full_required_assets(assets)
+
+    (
+        stock_daily_map,
+        lastest_stock_daily_map,
+        dividend_map,
+        exchange_rate_map,
+        current_stock_price_map,
+    ) = await asset_query.get_all_data(session, redis_client, full_required_assets)
+
+    complete_asset, incomplete_assets = asset_service.separate_assets_by_full_data(assets, stock_daily_map)
+    complete_buy_asset = asset_service.get_buy_assets(complete_asset)
+
+    no_asset_response = SummaryResponse.validate(complete_buy_asset)
+    if no_asset_response:
+        return no_asset_response
+
+    total_asset_amount = asset_service.get_total_asset_amount(complete_buy_asset, current_stock_price_map, exchange_rate_map)
+    total_investment_amount = asset_service.get_total_investment_amount(complete_buy_asset, stock_daily_map, exchange_rate_map)
+    today_review_rate, increase_asset_amount = summary_service.get_today_review_rate(complete_buy_asset, current_stock_price_map, exchange_rate_map)
+
+    return SummaryResponse(
+        increase_asset_amount=increase_asset_amount,
+        today_review_rate=today_review_rate,
+        total_asset_amount=total_asset_amount,
+        total_investment_amount=total_investment_amount,
+        profit=ProfitDetail.parse(total_asset_amount, total_investment_amount),
+    )
+
+
+@chart_router.get("/sample/summary", summary="오늘의 리뷰, 나의 총자산, 나의 투자 금액, 수익금", response_model=SummaryResponse)
+async def get_sample_summary(
+    session: AsyncSession = Depends(get_mysql_session_router),
+    redis_client: Redis = Depends(get_redis_pool),
+    asset_service: AssetService = Depends(get_asset_service),
+    asset_query: AssetQuery = Depends(get_asset_query),
+    summary_service: SummaryService = Depends(get_summary_service),
+) -> SummaryResponse:
+    assets: list = await AssetRepository.get_eager(session, DUMMY_USER_ID, AssetType.STOCK)
+    full_required_assets = await asset_service.get_full_required_assets(assets)
+
+    (
+        stock_daily_map,
+        lastest_stock_daily_map,
+        dividend_map,
+        exchange_rate_map,
+        current_stock_price_map,
+    ) = await asset_query.get_all_data(session, redis_client, full_required_assets)
+
+    complete_asset, incomplete_assets = asset_service.separate_assets_by_full_data(assets, stock_daily_map)
+    complete_buy_asset = asset_service.get_buy_assets(complete_asset)
+
+    no_asset_response = SummaryResponse.validate(complete_buy_asset)
+    if no_asset_response:
+        return no_asset_response
+
+    total_asset_amount = asset_service.get_total_asset_amount(complete_buy_asset, current_stock_price_map, exchange_rate_map)
+    total_investment_amount = asset_service.get_total_investment_amount(complete_buy_asset, stock_daily_map, exchange_rate_map)
+    today_review_rate, increase_asset_amount = summary_service.get_today_review_rate(complete_buy_asset, current_stock_price_map, exchange_rate_map)
+
+    return SummaryResponse(
+        increase_asset_amount=increase_asset_amount,
+        today_review_rate=today_review_rate,
+        total_asset_amount=total_asset_amount,
+        total_investment_amount=total_investment_amount,
+        profit=ProfitDetail.parse(total_asset_amount, total_investment_amount),
+    )
 
 
 @chart_router.get("/sample/performance-analysis", summary="더미 투자 성과 분석", response_model=PerformanceAnalysisResponse)
@@ -594,71 +672,6 @@ async def get_performance_analysis(
         return PerformanceAnalysisResponse.get_performance_analysis_response(
             market_analysis_result_month, user_analysis_result_month, interval
         )
-
-
-@chart_router.get("/summary", summary="오늘의 리뷰, 나의 총자산, 나의 투자 금액, 수익금", response_model=SummaryResponse)
-async def get_summary(
-    token: AccessToken = Depends(verify_jwt_token),
-    session: AsyncSession = Depends(get_mysql_session_router),
-    redis_client: Redis = Depends(get_redis_pool),
-    asset_query: AssetQuery = Depends(get_asset_query),
-    asset_service: AssetService = Depends(get_asset_service),
-    summary_service: SummaryService = Depends(get_summary_service),
-) -> SummaryResponse:
-    assets: list[Asset] = await AssetRepository.get_eager(session, token.get("user"), AssetType.STOCK)
-    if not assets:
-        return SummaryResponse.default()
-
-    (
-        stock_daily_map,
-        lastest_stock_daily_map,
-        dividend_map,
-        exchange_rate_map,
-        current_stock_price_map,
-    ) = await asset_query.get_all_data(session, redis_client, assets)
-
-    total_asset_amount = asset_service.get_total_asset_amount(assets, current_stock_price_map, exchange_rate_map)
-    total_investment_amount = asset_service.get_total_investment_amount(assets, stock_daily_map, exchange_rate_map)
-    today_review_rate: float = summary_service.get_today_review_rate(assets, current_stock_price_map, exchange_rate_map)
-
-    return SummaryResponse(
-        today_review_rate=today_review_rate,
-        total_asset_amount=total_asset_amount,
-        total_investment_amount=total_investment_amount,
-        profit=ProfitDetail.parse(total_asset_amount, total_investment_amount),
-    )
-
-
-@chart_router.get("/sample/summary", summary="오늘의 리뷰, 나의 총자산, 나의 투자 금액, 수익금", response_model=SummaryResponse)
-async def get_sample_summary(
-    session: AsyncSession = Depends(get_mysql_session_router),
-    redis_client: Redis = Depends(get_redis_pool),
-    asset_service: AssetService = Depends(get_asset_service),
-    asset_query: AssetQuery = Depends(get_asset_query),
-    summary_service: SummaryService = Depends(get_summary_service),
-) -> SummaryResponse:
-    assets: list[Asset] = await AssetRepository.get_eager(session, DUMMY_USER_ID, AssetType.STOCK)
-    if not assets:
-        return SummaryResponse.default()
-
-    (
-        stock_daily_map,
-        lastest_stock_daily_map,
-        dividend_map,
-        exchange_rate_map,
-        current_stock_price_map,
-    ) = await asset_query.get_all_data(session, redis_client, assets)
-
-    total_asset_amount = asset_service.get_total_asset_amount(assets, current_stock_price_map, exchange_rate_map)
-    total_investment_amount = asset_service.get_total_investment_amount(assets, stock_daily_map, exchange_rate_map)
-    today_review_rate: float = summary_service.get_today_review_rate(assets, current_stock_price_map, exchange_rate_map)
-
-    return SummaryResponse(
-        today_review_rate=today_review_rate,
-        total_asset_amount=total_asset_amount,
-        total_investment_amount=total_investment_amount,
-        profit=ProfitDetail.parse(total_asset_amount, total_investment_amount),
-    )
 
 
 @chart_router.get("/tip", summary="오늘의 투자 tip", response_model=ChartTipResponse)

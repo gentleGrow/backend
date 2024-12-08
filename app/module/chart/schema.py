@@ -98,19 +98,24 @@ class ProfitDetail(BaseModel):
 
 
 class SummaryResponse(BaseModel):
-    today_review_rate: float = Field(..., description="오늘의 review")
+    increase_asset_amount: float = Field(..., description="오늘의 review 증가액")
+    today_review_rate: float = Field(..., description="오늘의 review 수익금")
     total_asset_amount: float = Field(..., description="나의 총 자산")
     total_investment_amount: float = Field(..., description="나의 투자 금액")
     profit: ProfitDetail = Field(..., description="수익 정보")
 
     @classmethod
-    def default(cls) -> "SummaryResponse":
-        return cls(
-            today_review_rate=0.0,
-            total_asset_amount=0.0,
-            total_investment_amount=0.0,
-            profit=ProfitDetail(profit_amount=0.0, profit_rate=0.0),
-        )
+    def validate(cls, assets:list[Asset]) -> "SummaryResponse":
+        if not len(assets):
+            return cls(
+                increase_asset_amount=0.0,
+                today_review_rate=0.0,
+                total_asset_amount=0.0,
+                total_investment_amount=0.0,
+                profit=ProfitDetail(profit_amount=0.0, profit_rate=0.0),
+            )
+        else:
+            return None
 
 
 class MarketIndiceResponseValue(BaseModel):

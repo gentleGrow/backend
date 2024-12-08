@@ -1,9 +1,10 @@
 from collections import defaultdict
 
+from app.module.asset.enum import AccountType
 from app.module.asset.model import Asset
 from app.module.asset.services.exchange_rate_service import ExchangeRateService
-from app.module.asset.enum import AccountType
 from app.module.chart.schema import CompositionResponseValue
+
 
 class CompositionService:
     def __init__(self, exchange_rate_service: ExchangeRateService):
@@ -34,9 +35,7 @@ class CompositionService:
 
             result.append(
                 CompositionResponseValue(
-                    name=stock_data["name"],
-                    percent_rate=proportion,
-                    current_amount=stock_data["total_value"]
+                    name=stock_data["name"], percent_rate=proportion, current_amount=stock_data["total_value"]
                 )
             )
 
@@ -67,9 +66,7 @@ class CompositionService:
 
             result.append(
                 CompositionResponseValue(
-                    name=stock_data["name"],
-                    percent_rate=proportion,
-                    current_amount=stock_data["total_value"]
+                    name=stock_data["name"], percent_rate=proportion, current_amount=stock_data["total_value"]
                 )
             )
 
