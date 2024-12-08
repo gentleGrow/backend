@@ -14,7 +14,7 @@ from app.module.asset.dependencies.exchange_rate_dependency import get_exchange_
 from app.module.asset.dependencies.realtime_index_dependency import get_realtime_index_service
 from app.module.asset.dependencies.stock_daily_dependency import get_stock_daily_service
 from app.module.asset.dependencies.stock_dependency import get_stock_service
-from app.module.asset.enum import AssetType, CurrencyType, StockAsset
+from app.module.asset.enum import AssetType, CurrencyType
 from app.module.asset.model import Asset
 from app.module.asset.repository.asset_repository import AssetRepository
 from app.module.asset.schema import MarketIndexData, StockAssetSchema
@@ -269,8 +269,8 @@ async def get_estimate_dividend(
         )
 
         return EstimateDividendTypeResponse(type_dividend_data)
-    
-    
+
+
 @chart_router.get("/sample/my-stock", summary="내 보유 주식", response_model=MyStockResponse)
 async def get_sample_my_stock(
     session: AsyncSession = Depends(get_mysql_session_router),
@@ -299,7 +299,7 @@ async def get_sample_my_stock(
         dividend_map,
         exchange_rate_map,
         current_stock_price_map,
-        always_won=True
+        always_won=True,
     )
 
     return MyStockResponse(
@@ -324,7 +324,7 @@ async def get_my_stock(
     asset_query: AssetQuery = Depends(get_asset_query),
     asset_service: AssetService = Depends(get_asset_service),
 ) -> MyStockResponse:
-    assets: list = await AssetRepository.get_eager(session, token.get('user'), AssetType.STOCK)
+    assets: list = await AssetRepository.get_eager(session, token.get("user"), AssetType.STOCK)
     full_required_assets = await asset_service.get_full_required_assets(assets)
 
     (
@@ -345,7 +345,7 @@ async def get_my_stock(
         dividend_map,
         exchange_rate_map,
         current_stock_price_map,
-        always_won=True
+        always_won=True,
     )
 
     return MyStockResponse(
@@ -360,6 +360,87 @@ async def get_my_stock(
             for stock_asset in stock_assets
         ]
     )
+    
+
+@chart_router.get("/sample/composition", summary="종목 구성", response_model=CompositionResponse)
+async def get_sample_composition(
+    type: CompositionType = Query(CompositionType.COMPOSITION, description="composition은 종목 별, account는 계좌 별 입니다."),
+    session: AsyncSession = Depends(get_mysql_session_router),
+    redis_client: Redis = Depends(get_redis_pool),
+    asset_service: AssetService = Depends(get_asset_service),
+    asset_query: AssetQuery = Depends(get_asset_query),
+    composition_service: CompositionService = Depends(get_composition_service),
+) -> CompositionResponse:
+    assets: list = await AssetRepository.get_eager(session, DUMMY_USER_ID, AssetType.STOCK)
+    full_required_assets = await asset_service.get_full_required_assets(assets)
+
+    (
+        stock_daily_map,
+        lastest_stock_daily_map,
+        dividend_map,
+        exchange_rate_map,
+        current_stock_price_map,
+    ) = await asset_query.get_all_data(session, redis_client, full_required_assets)
+
+    complete_asset, incomplete_assets = asset_service.separate_assets_by_full_data(assets, stock_daily_map)
+    complete_buy_asset = asset_service.get_buy_assets(complete_asset)
+    
+    no_asset_response = CompositionResponse.validate(complete_buy_asset)
+    if no_asset_response:
+        return no_asset_response
+    
+    if type is CompositionType.COMPOSITION:
+        stock_composition_data = composition_service.get_asset_stock_composition(
+            complete_buy_asset, current_stock_price_map, exchange_rate_map
+        )
+        return CompositionResponse(stock_composition_data)
+    else:
+        account_composition_data = composition_service.get_asset_stock_account(
+            complete_buy_asset, current_stock_price_map, exchange_rate_map
+        )
+
+        return CompositionResponse(account_composition_data)
+
+
+@chart_router.get("/composition", summary="종목 구성", response_model=CompositionResponse)
+async def get_composition(
+    token: AccessToken = Depends(verify_jwt_token),
+    type: CompositionType = Query(CompositionType.COMPOSITION, description="composition은 종목 별, account는 계좌 별 입니다."),
+    session: AsyncSession = Depends(get_mysql_session_router),
+    redis_client: Redis = Depends(get_redis_pool),
+    asset_service: AssetService = Depends(get_asset_service),
+    asset_query: AssetQuery = Depends(get_asset_query),
+    composition_service: CompositionService = Depends(get_composition_service),
+) -> CompositionResponse:
+    assets: list = await AssetRepository.get_eager(session, token.get('user'), AssetType.STOCK)
+    full_required_assets = await asset_service.get_full_required_assets(assets)
+
+    (
+        stock_daily_map,
+        lastest_stock_daily_map,
+        dividend_map,
+        exchange_rate_map,
+        current_stock_price_map,
+    ) = await asset_query.get_all_data(session, redis_client, full_required_assets)
+
+    complete_asset, incomplete_assets = asset_service.separate_assets_by_full_data(assets, stock_daily_map)
+    complete_buy_asset = asset_service.get_buy_assets(complete_asset)
+    
+    no_asset_response = CompositionResponse.validate(complete_buy_asset)
+    if no_asset_response:
+        return no_asset_response
+    
+    if type is CompositionType.COMPOSITION:
+        stock_composition_data = composition_service.get_asset_stock_composition(
+            complete_buy_asset, current_stock_price_map, exchange_rate_map
+        )
+        return CompositionResponse(stock_composition_data)
+    else:
+        account_composition_data = composition_service.get_asset_stock_account(
+            complete_buy_asset, current_stock_price_map, exchange_rate_map
+        )
+
+        return CompositionResponse(account_composition_data)
 
 
 @chart_router.get("/sample/performance-analysis", summary="더미 투자 성과 분석", response_model=PerformanceAnalysisResponse)
@@ -512,101 +593,6 @@ async def get_performance_analysis(
 
         return PerformanceAnalysisResponse.get_performance_analysis_response(
             market_analysis_result_month, user_analysis_result_month, interval
-        )
-
-
-@chart_router.get("/sample/composition", summary="종목 구성", response_model=CompositionResponse)
-async def get_sample_composition(
-    type: CompositionType = Query(CompositionType.COMPOSITION, description="composition은 종목 별, account는 계좌 별 입니다."),
-    session: AsyncSession = Depends(get_mysql_session_router),
-    redis_client: Redis = Depends(get_redis_pool),
-    stock_daily_service: StockDailyService = Depends(get_stock_daily_service),
-    stock_service: StockService = Depends(get_stock_service),
-    composition_service: CompositionService = Depends(get_composition_service),
-    exchange_rate_service: ExchangeRateService = Depends(get_exchange_rate_service),
-) -> CompositionResponse:
-    assets: list[Asset] = await AssetRepository.get_eager(session, DUMMY_USER_ID, AssetType.STOCK)
-    if len(assets) == 0:
-        return CompositionResponse([CompositionResponseValue(name="자산 없음", percent_rate=0.0, current_amount=0.0)])
-
-    lastest_stock_daily_map = await stock_daily_service.get_latest_map(session, assets)
-    current_stock_price_map = await stock_service.get_current_stock_price_by_code(
-        redis_client, lastest_stock_daily_map, [asset.asset_stock.stock.code for asset in assets]
-    )
-    exchange_rate_map = await exchange_rate_service.get_exchange_rate_map(redis_client)
-
-    if type is CompositionType.COMPOSITION:
-        stock_composition_data = composition_service.get_asset_stock_composition(
-            assets, current_stock_price_map, exchange_rate_map
-        )
-        return CompositionResponse(
-            [
-                CompositionResponseValue(
-                    name=item["name"], percent_rate=item["percent_rate"], current_amount=item["current_amount"]
-                )
-                for item in stock_composition_data
-            ]
-        )
-    else:
-        account_composition_data = composition_service.get_asset_stock_account(
-            assets, current_stock_price_map, exchange_rate_map
-        )
-
-        return CompositionResponse(
-            [
-                CompositionResponseValue(
-                    name=item["name"], percent_rate=item["percent_rate"], current_amount=item["current_amount"]
-                )
-                for item in account_composition_data
-            ]
-        )
-
-
-@chart_router.get("/composition", summary="종목 구성", response_model=CompositionResponse)
-async def get_composition(
-    token: AccessToken = Depends(verify_jwt_token),
-    type: CompositionType = Query(CompositionType.COMPOSITION, description="composition은 종목 별, account는 계좌 별 입니다."),
-    session: AsyncSession = Depends(get_mysql_session_router),
-    redis_client: Redis = Depends(get_redis_pool),
-    stock_daily_service: StockDailyService = Depends(get_stock_daily_service),
-    stock_service: StockService = Depends(get_stock_service),
-    composition_service: CompositionService = Depends(get_composition_service),
-    exchange_rate_service: ExchangeRateService = Depends(get_exchange_rate_service),
-) -> CompositionResponse:
-    assets: list[Asset] = await AssetRepository.get_eager(session, token.get("user"), AssetType.STOCK)
-    if len(assets) == 0:
-        return CompositionResponse([CompositionResponseValue(name="자산 없음", percent_rate=0.0, current_amount=0.0)])
-
-    lastest_stock_daily_map = await stock_daily_service.get_latest_map(session, assets)
-    current_stock_price_map = await stock_service.get_current_stock_price_by_code(
-        redis_client, lastest_stock_daily_map, [asset.asset_stock.stock.code for asset in assets]
-    )
-    exchange_rate_map = await exchange_rate_service.get_exchange_rate_map(redis_client)
-
-    if type is CompositionType.COMPOSITION:
-        stock_composition_data = composition_service.get_asset_stock_composition(
-            assets, current_stock_price_map, exchange_rate_map
-        )
-        return CompositionResponse(
-            [
-                CompositionResponseValue(
-                    name=item["name"], percent_rate=item["percent_rate"], current_amount=item["current_amount"]
-                )
-                for item in stock_composition_data
-            ]
-        )
-    else:
-        account_composition_data = composition_service.get_asset_stock_account(
-            assets, current_stock_price_map, exchange_rate_map
-        )
-
-        return CompositionResponse(
-            [
-                CompositionResponseValue(
-                    name=item["name"], percent_rate=item["percent_rate"], current_amount=item["current_amount"]
-                )
-                for item in account_composition_data
-            ]
         )
 
 

@@ -443,7 +443,7 @@ class AssetService:
         dividend_map: dict[str, float],
         exchange_rate_map: dict[str, float],
         current_stock_price_map: dict[str, float],
-        always_won:bool=False
+        always_won: bool = False,
     ) -> list[StockAssetSchema]:
         result = []
 
@@ -601,6 +601,3 @@ class AssetService:
         result[StockAsset.ID.value] = stock_asset_data[StockAsset.ID.value]
         result[StockAsset.PURCHASE_CURRENCY_TYPE.value] = stock_asset_data[StockAsset.PURCHASE_CURRENCY_TYPE.value]
         return result
-
-
-    

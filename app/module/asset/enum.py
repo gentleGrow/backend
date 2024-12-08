@@ -112,6 +112,7 @@ class AccountType(StrEnum):
     IRP = "IRP"
     PENSION = "개인연금"
     REGULAR = "일반계좌"
+    NONE = "기타"
 
 
 class AssetType(StrEnum):

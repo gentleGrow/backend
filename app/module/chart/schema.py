@@ -131,7 +131,12 @@ class CompositionResponseValue(BaseModel):
 
 
 class CompositionResponse(RootModel[list[CompositionResponseValue]]):
-    pass
+    @classmethod
+    def validate(cls, assets: list[Asset]) -> Optional["CompositionResponse"]:
+        if not len(assets):
+            return CompositionResponse([])
+        else:
+            return None
 
 
 class PerformanceAnalysisResponse(BaseModel):
