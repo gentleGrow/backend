@@ -1,7 +1,7 @@
 from datetime import date, datetime
 
 from sqlalchemy.ext.asyncio import AsyncSession
-
+from icecream import ic
 from app.module.asset.enum import AssetType, CurrencyType, PurchaseCurrencyType, TradeType
 from app.module.asset.model import Asset, AssetStock, StockDaily
 from app.module.asset.repository.asset_repository import AssetRepository

@@ -2,7 +2,7 @@ from collections import defaultdict
 from datetime import date, datetime, timedelta
 from statistics import mean
 from typing import Optional, Union
-
+from icecream import ic
 from pydantic import BaseModel, Field, RootModel
 
 from app.common.util.time import get_now_date, get_now_datetime
@@ -168,6 +168,34 @@ class PerformanceAnalysisResponse(BaseModel):
         else:
             return None
 
+    @classmethod
+    def parse(
+        cls,
+        market_analysis_data: dict[datetime,float] | dict[date,float],
+        user_analysis_data: dict[datetime, float] | dict[date, float],
+        interval_times: list[datetime] | list[date],
+        interval: IntervalType
+    ) -> "PerformanceAnalysisResponse":        
+        if interval is IntervalType.FIVEDAY:
+                return cls(
+                xAxises=[interval_time.strftime("%m.%d") for interval_time in interval_times],
+                dates = [interval_time.strftime("%Y.%m.%d %H:%M") for interval_time in interval_times],
+                values1={"values": [user_analysis_data[interval_time.replace(tzinfo=None)] for interval_time in interval_times], "name": "내 수익률"},
+                values2={"values": [market_analysis_data[interval_time.replace(tzinfo=None)] for interval_time in interval_times], "name": "코스피"},
+                unit="%",
+                myReturnRate=mean([user_analysis_data[interval_time.replace(tzinfo=None)] for interval_time in interval_times]),
+                contrastMarketReturns=mean([market_analysis_data[interval_time.replace(tzinfo=None)] for interval_time in interval_times]),
+            ) 
+        else:            
+            return cls(
+                xAxises=[interval_time.strftime("%m.%d") for interval_time in interval_times],
+                dates = [interval_time.strftime("%Y.%m.%d") for interval_time in interval_times],
+                values1={"values": [user_analysis_data[interval_time] for interval_time in interval_times], "name": "내 수익률"},
+                values2={"values": [market_analysis_data[interval_time] for interval_time in interval_times], "name": "코스피"},
+                unit="%",
+                myReturnRate=mean([user_analysis_data[interval_time] for interval_time in interval_times]),
+                contrastMarketReturns=mean([market_analysis_data[interval_time] for interval_time in interval_times]),
+            )
 
 class EstimateDividendEveryValue(BaseModel):
     xAxises: list[str] = Field(..., description="월별 표시 (1월, 2월, ...)")

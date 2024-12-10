@@ -69,15 +69,15 @@ class IntervalType(StrEnum):
 
     def get_chart_datetime_interval(self) -> list[datetime]:
         start_datetime = self._get_start_datetime()
-        end_datetime = get_now_datetime()
+        end_datetime = get_now_datetime().replace(hour=0, minute=0)
         result = []
 
         current_datetime = start_datetime
         while current_datetime <= end_datetime:
             if current_datetime.weekday() not in (5, 6):
                 result.append(current_datetime)
-            current_datetime += timedelta(days=1)
-
+            current_datetime += timedelta(minutes=30)
+    
         return result
 
 
@@ -95,7 +95,7 @@ class IntervalType(StrEnum):
         else:
             timediff = 30
 
-        result = get_now_datetime() - timedelta(days=timediff)
+        result = get_now_datetime().replace(hour=0, minute=0) - timedelta(days=timediff)
         days_between = [(result + timedelta(days=i)).weekday() for i in range(5)]
         if 5 in days_between:
             result -= timedelta(days=1)

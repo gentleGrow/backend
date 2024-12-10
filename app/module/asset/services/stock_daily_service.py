@@ -46,3 +46,4 @@ class StockDailyService:
         )
 
         return {(daily.code, daily.date): daily for daily in stock_dailies}
+
