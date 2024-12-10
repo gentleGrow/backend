@@ -118,14 +118,14 @@ class SummaryResponse(BaseModel):
             return None
 
 
-class MarketIndiceResponseValue(BaseModel):
+class MarketIndiceValue(BaseModel):
     name: str = Field(..., example=f"{', '.join([e.value for e in MarketIndex])}")
     name_kr: str = Field(..., description="한국어 지수 이름", example=f"{', '.join(MARKET_INDEX_KR_MAPPING.values())}")
     current_value: float = Field(..., description="현재 지수")
     change_percent: float = Field(..., description="1일 기준 변동성")
 
 
-class MarketIndiceResponse(RootModel[list[MarketIndiceResponseValue]]):
+class MarketIndiceResponse(RootModel[list[MarketIndiceValue]]):
     pass
 
 

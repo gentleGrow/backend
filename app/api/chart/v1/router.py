@@ -8,19 +8,16 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.common.auth.security import verify_jwt_token
 from app.module.asset.constant import ASSET_SAVE_TREND_YEAR, MARKET_INDEX_KR_MAPPING
 from app.module.asset.dependencies.asset_dependency import get_asset_query, get_asset_service
-from app.module.asset.dependencies.asset_stock_dependency import get_asset_stock_service
 from app.module.asset.dependencies.dividend_dependency import get_dividend_service
 from app.module.asset.dependencies.exchange_rate_dependency import get_exchange_rate_service
 from app.module.asset.dependencies.realtime_index_dependency import get_realtime_index_service
 from app.module.asset.dependencies.stock_daily_dependency import get_stock_daily_service
 from app.module.asset.dependencies.stock_dependency import get_stock_service
 from app.module.asset.enum import AssetType, CurrencyType
-from app.module.asset.model import Asset
 from app.module.asset.repository.asset_repository import AssetRepository
 from app.module.asset.schema import MarketIndexData, StockAssetSchema
 from app.module.asset.services.asset.asset_query import AssetQuery
 from app.module.asset.services.asset_service import AssetService
-from app.module.asset.services.asset_stock_service import AssetStockService
 from app.module.asset.services.dividend_service import DividendService
 from app.module.asset.services.exchange_rate_service import ExchangeRateService
 from app.module.asset.services.realtime_index_service import RealtimeIndexService
@@ -46,7 +43,7 @@ from app.module.chart.schema import (
     EstimateDividendTypeResponse,
     EstimateDividendTypeValue,
     MarketIndiceResponse,
-    MarketIndiceResponseValue,
+    MarketIndiceValue,
     MyStockResponse,
     MyStockResponseValue,
     PeoplePortfolioResponse,
@@ -76,8 +73,6 @@ async def get_sample_asset_save_trend(
     redis_client: Redis = Depends(get_redis_pool),
     asset_service: AssetService = Depends(get_asset_service),
     asset_query: AssetQuery = Depends(get_asset_query),
-    dividend_service: DividendService = Depends(get_dividend_service),
-    asset_stock_service: AssetStockService = Depends(get_asset_stock_service),
     save_trend_service: SaveTrendService = Depends(get_save_trend_service),
 ) -> AssetSaveTrendResponse:
     assets: list = await AssetRepository.get_eager(session, DUMMY_USER_ID, AssetType.STOCK)
@@ -127,8 +122,6 @@ async def get_asset_save_trend(
     redis_client: Redis = Depends(get_redis_pool),
     asset_service: AssetService = Depends(get_asset_service),
     asset_query: AssetQuery = Depends(get_asset_query),
-    dividend_service: DividendService = Depends(get_dividend_service),
-    asset_stock_service: AssetStockService = Depends(get_asset_stock_service),
     save_trend_service: SaveTrendService = Depends(get_save_trend_service),
 ) -> AssetSaveTrendResponse:
     assets: list = await AssetRepository.get_eager(session, token.get("user"), AssetType.STOCK)
@@ -521,6 +514,18 @@ async def get_sample_summary(
     )
 
 
+@chart_router.get("/indice", summary="현재 시장 지수", response_model=MarketIndiceResponse)
+async def get_market_index(
+    redis_client: Redis = Depends(get_redis_pool),
+    realtime_index_service: RealtimeIndexService = Depends(get_realtime_index_service),
+) -> MarketIndiceResponse:
+    market_index_data: list[MarketIndexData] = await realtime_index_service.get_current_market_index_value(
+        redis_client
+    )
+
+    return MarketIndiceResponse(market_index_data)
+
+
 @chart_router.get("/sample/performance-analysis", summary="더미 투자 성과 분석", response_model=PerformanceAnalysisResponse)
 async def get_sample_performance_analysis(
     interval: IntervalType = Query(IntervalType.ONEMONTH, description="기간 별, 투자 성관 분석 데이터가 제공 됩니다."),
@@ -672,47 +677,6 @@ async def get_performance_analysis(
         return PerformanceAnalysisResponse.get_performance_analysis_response(
             market_analysis_result_month, user_analysis_result_month, interval
         )
-
-
-@chart_router.get("/tip", summary="오늘의 투자 tip", response_model=ChartTipResponse)
-async def get_today_tip(
-    session: AsyncSession = Depends(get_mysql_session_router),
-    redis_client: Redis = Depends(get_redis_pool),
-) -> ChartTipResponse:
-    today_tip_id = await RedisTipRepository.get(redis_client, TIP_TODAY_ID_REDIS_KEY)
-
-    if today_tip_id is None:
-        return ChartTipResponse(DEFAULT_TIP)
-
-    invest_tip = await TipRepository.get(session, int(today_tip_id))
-
-    if invest_tip is None:
-        return ChartTipResponse(DEFAULT_TIP)
-
-    return ChartTipResponse(invest_tip.tip)
-
-
-@chart_router.get("/indice", summary="현재 시장 지수", response_model=MarketIndiceResponse)
-async def get_market_index(
-    redis_client: Redis = Depends(get_redis_pool),
-    realtime_index_service: RealtimeIndexService = Depends(get_realtime_index_service),
-) -> MarketIndiceResponse:
-    market_index_values: list[MarketIndexData] = await realtime_index_service.get_current_market_index_value(
-        redis_client
-    )
-
-    return MarketIndiceResponse(
-        [
-            MarketIndiceResponseValue(
-                name=market_index_value.name,
-                name_kr=MARKET_INDEX_KR_MAPPING.get(market_index_value.name, "N/A"),
-                current_value=float(market_index_value.current_value),
-                change_percent=float(market_index_value.change_percent),
-            )
-            for market_index_value in market_index_values
-            if market_index_value is not None
-        ]
-    )
 
 
 @chart_router.get("/rich-pick", summary="미국 부자들이 선택한 종목 TOP10", response_model=RichPickResponse)
@@ -922,3 +886,12 @@ async def get_people_portfolio():
             ),
         ]
     )
+
+
+# 삭제될 예정입니다.
+@chart_router.get("/tip", summary="오늘의 투자 tip", response_model=ChartTipResponse)
+async def get_today_tip(
+    session: AsyncSession = Depends(get_mysql_session_router),
+    redis_client: Redis = Depends(get_redis_pool),
+) -> ChartTipResponse:
+    return ChartTipResponse(DEFAULT_TIP)
