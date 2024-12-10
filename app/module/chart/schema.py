@@ -152,6 +152,22 @@ class PerformanceAnalysisResponse(BaseModel):
     unit: str
     myReturnRate: float
     contrastMarketReturns: float
+    
+    @classmethod
+    def validate(cls, assets:list[Asset]) -> Optional["PerformanceAnalysisResponse"]:
+        if not len(assets):
+            return cls(
+                xAxises=[],
+                dates=[],
+                values1={},
+                values2={},
+                unit='',
+                myReturnRate=0.0,
+                contrastMarketReturns=0.0
+            )
+        else:
+            return None
+
 
     @staticmethod
     def get_performance_analysis_response(
