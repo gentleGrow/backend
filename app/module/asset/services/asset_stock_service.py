@@ -19,7 +19,7 @@ class AssetStockService:
         current_amount: float,
         past_amount: float,
     ) -> float:
-        return ((current_amount - past_amount) / past_amount) * 100 if past_amount > 0 else 0.0
+        return ((current_amount - past_amount) / past_amount) * 100 if current_amount > 0 and past_amount > 0 else 0.0
 
     def get_total_profit_rate_real(
         self, total_asset_amount: float, total_invest_amount: float, real_value_rate: float

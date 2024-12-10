@@ -169,54 +169,6 @@ class PerformanceAnalysisResponse(BaseModel):
             return None
 
 
-    @staticmethod
-    def get_performance_analysis_response(
-        market_analysis_result: dict[date, float], user_analysis_result: dict[date, float], interval: IntervalType
-    ) -> "PerformanceAnalysisResponse":
-        market_analysis_monthly = defaultdict(list)
-        user_analysis_monthly = defaultdict(list)
-
-        for d, value in market_analysis_result.items():
-            year_month = d.strftime("%Y.%m")
-            market_analysis_monthly[year_month].append(value)
-
-        for d, value in user_analysis_result.items():
-            year_month = d.strftime("%Y.%m")
-            user_analysis_monthly[year_month].append(value)
-
-        sorted_dates = sorted(market_analysis_monthly.keys())
-
-        averaged_market_analysis = [mean(market_analysis_monthly[year_month]) for year_month in sorted_dates]
-        averaged_user_analysis = [mean(user_analysis_monthly[year_month]) for year_month in sorted_dates]
-
-        formatted_year_months = [datetime.strptime(d, "%Y.%m").strftime("%Y.%m") for d in sorted_dates]
-        formatted_xAxises = [datetime.strptime(d, "%Y.%m").strftime("%y.%m") for d in sorted_dates]
-
-        if interval == IntervalType.ONEYEAR:
-            formatted_xAxises = []
-            previous_year = None
-            for sort_date in sorted_dates:
-                current_date = datetime.strptime(sort_date, "%Y.%m")
-                current_year = current_date.strftime("%y")
-                current_month = current_date.strftime("%m")
-
-                if current_year != previous_year:
-                    formatted_xAxises.append(f"{current_year}.{current_month}")
-                    previous_year = current_year
-                else:
-                    formatted_xAxises.append(current_month)
-
-        return PerformanceAnalysisResponse(
-            xAxises=formatted_xAxises,
-            dates=formatted_year_months,
-            values1={"values": averaged_user_analysis, "name": "내 수익률"},
-            values2={"values": averaged_market_analysis, "name": "코스피"},
-            unit="%",
-            myReturnRate=mean(averaged_user_analysis),
-            contrastMarketReturns=mean(averaged_market_analysis),
-        )
-
-
 class EstimateDividendEveryValue(BaseModel):
     xAxises: list[str] = Field(..., description="월별 표시 (1월, 2월, ...)")
     data: list[float] = Field(..., description="월별 배당금 데이터")

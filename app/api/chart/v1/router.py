@@ -2,18 +2,24 @@ from datetime import date, datetime
 from statistics import mean
 from icecream import ic
 from fastapi import APIRouter, Depends, Query
+from app.module.asset.services.stock_minutely_service import StockMinutelyService
+from app.module.asset.dependencies.stock_minutely_dependency import get_stock_minutely_service
 from redis.asyncio import Redis
 from sqlalchemy.ext.asyncio import AsyncSession
-
+from app.module.asset.services.index_daily_service import IndexDailyService
+from app.module.asset.dependencies.index_daily_dependency import get_index_daily_service
+from app.module.asset.services.index_minutely_service import IndexMinutelyService
 from app.common.auth.security import verify_jwt_token
 from app.module.asset.constant import ASSET_SAVE_TREND_YEAR
+from app.module.asset.dependencies.index_minutely_dependency import get_index_minutely_service
 from app.module.asset.dependencies.asset_dependency import get_asset_query, get_asset_service
 from app.module.asset.dependencies.dividend_dependency import get_dividend_service
 from app.module.asset.dependencies.exchange_rate_dependency import get_exchange_rate_service
 from app.module.asset.dependencies.realtime_index_dependency import get_realtime_index_service
 from app.module.asset.dependencies.stock_daily_dependency import get_stock_daily_service
 from app.module.asset.dependencies.stock_dependency import get_stock_service
-from app.module.asset.enum import AssetType, CurrencyType
+from app.module.asset.enum import AssetType, CurrencyType, MarketIndex
+from app.module.asset.model import MarketIndexMinutely
 from app.module.asset.repository.asset_repository import AssetRepository
 from app.module.asset.schema import MarketIndexData, StockAssetSchema
 from app.module.asset.services.asset.asset_query import AssetQuery
@@ -464,14 +470,14 @@ async def get_sample_performance_analysis(
         market_analysis_result_short: dict[
             datetime, float
         ] = await performance_analysis_service.get_market_analysis_short(
-            session, redis_client, start_datetime, end_datetime, interval  # type: ignore # interval가 date 혹은 datetime 반환
+            session, redis_client, start_datetime, end_datetime, interval.get_interval()
         )
 
         user_analysis_result_short: dict[datetime, float] = await performance_analysis_service.get_user_analysis_short(
             session,
             redis_client,
-            start_datetime,  # type: ignore # interval가 date 혹은 datetime 반환
-            end_datetime,  # type: ignore # interval가 date 혹은 datetime 반환
+            start_datetime,  
+            end_datetime,  
             DUMMY_USER_ID,
             interval,
             market_analysis_result_short,
@@ -514,7 +520,11 @@ async def get_performance_analysis(
     interval: IntervalType = Query(IntervalType.ONEMONTH, description="기간 별, 투자 성관 분석 데이터가 제공 됩니다."),
     session: AsyncSession = Depends(get_mysql_session_router),
     asset_query: AssetQuery = Depends(get_asset_query),
+    realtime_index_service: RealtimeIndexService = Depends(get_realtime_index_service),
+    index_daily_service: IndexDailyService = Depends(get_index_daily_service),
+    stock_minutely_service: StockMinutelyService = Depends(get_stock_minutely_service),
     asset_service: AssetService = Depends(get_asset_service),
+    index_minutely_service: IndexMinutelyService = Depends(get_index_minutely_service),
     redis_client: Redis = Depends(get_redis_pool),
     performance_analysis_service: PerformanceAnalysisService = Depends(get_performance_analysis_service),
 ) -> PerformanceAnalysisResponse:
@@ -536,75 +546,76 @@ async def get_performance_analysis(
     if no_len_response:
         return no_len_response
 
-    
-
-    if interval is IntervalType.ONEMONTH:
-        start_date, end_date = interval.get_start_end_time()
-        market_analysis_result: dict[date, float] = await performance_analysis_service.get_market_analysis(
-            session, redis_client, start_date, end_date
-        )
-        user_analysis_result: dict[date, float] = await performance_analysis_service.get_user_analysis(
-            session, redis_client, start_date, end_date, token.get("user"), market_analysis_result
-        )
-        sorted_dates = sorted(market_analysis_result.keys())
-
-        return PerformanceAnalysisResponse(
-            xAxises=[date.strftime("%m.%d") for date in sorted_dates],
-            dates=[date.strftime("%Y.%m.%d") for date in sorted_dates],
-            values1={"values": [user_analysis_result[date] for date in sorted_dates], "name": "내 수익률"},
-            values2={"values": [market_analysis_result[date] for date in sorted_dates], "name": "코스피"},
-            unit="%",
-            myReturnRate=mean([user_analysis_result[date] for date in sorted_dates]),
-            contrastMarketReturns=mean([market_analysis_result[date] for date in sorted_dates]),
-        )
-    elif interval in IntervalType.FIVEDAY:
-        start_datetime, end_datetime = interval.get_start_end_time()
-
-        market_analysis_result_short: dict[
-            datetime, float
-        ] = await performance_analysis_service.get_market_analysis_short(
-            session, redis_client, start_datetime, end_datetime, interval  # type: ignore # interval가 date 혹은 datetime 반환
-        )
-        user_analysis_result_short: dict[datetime, float] = await performance_analysis_service.get_user_analysis_short(
+    current_kospi_price = await realtime_index_service.get_current_index_price(redis_client, MarketIndex.KOSPI)
+    market_analysis_data, user_analysis_data = await performance_analysis_service.performance_analysis_chart_data(
+            complete_buy_asset,
             session,
-            redis_client,
-            start_datetime,  # type: ignore # interval가 date 혹은 datetime 반환
-            end_datetime,  # type: ignore # interval가 date 혹은 datetime 반환
-            token.get("user"),
-            interval,
-            market_analysis_result_short,
+            current_kospi_price,
+            stock_daily_map,
+            exchange_rate_map, 
+            current_stock_price_map, 
+            interval
         )
 
-        sorted_datetimes = sorted(market_analysis_result_short.keys())
 
-        return PerformanceAnalysisResponse(
-            xAxises=[datetime.strftime("%m.%d") for datetime in sorted_datetimes],
-            dates=[datetime.strftime("%Y.%m.%d %H:%M") for datetime in sorted_datetimes],
-            values1={
-                "values": [user_analysis_result_short[datetime] for datetime in sorted_datetimes],
-                "name": "내 수익률",
-            },
-            values2={
-                "values": [market_analysis_result_short[datetime] for datetime in sorted_datetimes],
-                "name": "코스피",
-            },
-            unit="%",
-            myReturnRate=mean([user_analysis_result_short[datetime] for datetime in sorted_datetimes]),
-            contrastMarketReturns=mean([market_analysis_result_short[datetime] for datetime in sorted_datetimes]),
-        )
-    else:
-        start_date, end_date = interval.get_start_end_time()
-        market_analysis_result_month: dict[date, float] = await performance_analysis_service.get_market_analysis(
-            session, redis_client, start_date, end_date
-        )
-        user_analysis_result_month: dict[date, float] = await performance_analysis_service.get_user_analysis(
-            session, redis_client, start_date, end_date, token.get("user"), market_analysis_result_month
-        )
+    # if interval in IntervalType.FIVEDAY:
+    #     interval_datetimes = interval.get_chart_datetime_interval()
+    #     market_index_minutely_map: dict[datetime, MarketIndexMinutely] = await index_minutely_service.get_index_range_map(
+    #                 session, MarketIndex.KOSPI, (interval_datetimes[0], interval_datetimes[-1])
+    #             )
+    #     stock_datetime_price_map: dict[tuple[str, datetime], float] = await stock_minutely_service.get_datetime_interval_map(session,interval_datetimes[0],interval_datetimes[-1], complete_buy_asset)
 
-        return PerformanceAnalysisResponse.get_performance_analysis_response(
-            market_analysis_result_month, user_analysis_result_month, interval
-        )
+    #     market_analysis_result_short: dict[
+    #         datetime, float
+    #     ] = performance_analysis_service.get_market_analysis_short(
+    #         market_index_minutely_map, current_kospi_price, interval_datetimes, interval.get_interval()
+    #     )
 
+    #     user_analysis_result_short: dict[datetime, float] = performance_analysis_service.get_user_analysis_short(
+    #         complete_buy_asset,
+    #         stock_daily_map,
+    #         stock_datetime_price_map,
+    #         exchange_rate_map,
+    #         interval_datetimes,
+    #         current_stock_price_map,
+    #         interval.get_interval()
+    #     )
+
+    #     return PerformanceAnalysisResponse(
+    #         xAxises=[interval_datetime.strftime("%m.%d") for interval_datetime in interval_datetimes],
+    #         dates=[interval_datetime.strftime("%Y.%m.%d %H:%M") for interval_datetime in interval_datetimes],
+    #         values1={
+    #             "values": [user_analysis_result_short[interval_datetime] for interval_datetime in interval_datetimes],
+    #             "name": "내 수익률",
+    #         },
+    #         values2={
+    #             "values": [market_analysis_result_short[interval_datetime] for interval_datetime in interval_datetimes],
+    #             "name": "코스피",
+    #         },
+    #         unit="%",
+    #         myReturnRate=mean([user_analysis_result_short[interval_datetime] for interval_datetime in interval_datetimes]),
+    #         contrastMarketReturns=mean([market_analysis_result_short[interval_datetime] for interval_datetime in interval_datetimes]),
+    #     )
+    # else:
+    #     interval_dates = interval.get_chart_date_interval(interval)
+    #     market_index_date_map = await index_daily_service.get_market_index_date_map(session, (interval_dates[0], interval_dates[-1]), MarketIndex.KOSPI)
+
+    #     market_analysis_result: dict[date, float] = performance_analysis_service.get_market_analysis(
+    #         market_index_date_map, current_kospi_price, interval_dates
+    #     )
+    #     user_analysis_result: dict[date, float] = performance_analysis_service.get_user_analysis(
+    #         complete_buy_asset, stock_daily_map, current_stock_price_map, exchange_rate_map, interval_dates
+    #     )
+
+    #     return PerformanceAnalysisResponse(
+    #         xAxises=[interval_date.strftime("%m.%d") for interval_date in interval_dates],
+    #         dates=[interval_date.strftime("%Y.%m.%d") for interval_date in interval_dates],
+    #         values1={"values": [user_analysis_result[interval_date] for interval_date in interval_dates], "name": "내 수익률"},
+    #         values2={"values": [market_analysis_result[interval_date] for interval_date in interval_dates], "name": "코스피"},
+    #         unit="%",
+    #         myReturnRate=mean([user_analysis_result[interval_date] for interval_date in interval_dates]),
+    #         contrastMarketReturns=mean([market_analysis_result[interval_date] for interval_date in interval_dates]),
+    #     )
 
 
 @chart_router.get("/sample/my-stock", summary="내 보유 주식", response_model=MyStockResponse)

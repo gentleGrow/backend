@@ -25,18 +25,16 @@ class MarketIndexMinutelyRepository:
         return result.scalars().all()
 
     @staticmethod
-    async def get_by_range_interval_minute(
+    async def get_by_range_minute(
         session: AsyncSession,
         date_range: tuple,
         name: str,
-        interval: int,
     ) -> list[MarketIndexMinutely]:
-        start_date, end_date = date_range
+        start_datetime, end_datetime = date_range
 
         stmt = select(MarketIndexMinutely).where(
-            MarketIndexMinutely.datetime.between(start_date, end_date),
-            MarketIndexMinutely.name == name,
-            (extract("minute", MarketIndexMinutely.datetime) % interval == 0),
+            MarketIndexMinutely.datetime.between(start_datetime, end_datetime),
+            MarketIndexMinutely.name == name
         )
 
         result = await session.execute(stmt)
