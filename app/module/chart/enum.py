@@ -1,5 +1,6 @@
 from datetime import date, datetime, timedelta
 from enum import StrEnum
+
 import pandas as pd
 from dateutil.relativedelta import relativedelta
 
@@ -31,7 +32,6 @@ class IntervalType(StrEnum):
         else:
             return [asset for asset in assets if asset.asset_stock.trade_date > start_date]
 
-
     def get_chart_month_interval(self) -> list[date]:
         if self == IntervalType.THREEMONTH:
             interval_months = 3
@@ -41,17 +41,15 @@ class IntervalType(StrEnum):
             interval_months = 12
         else:
             interval_months = 12
-            
+
         today = pd.Timestamp.today().normalize()
         start_date = (today - pd.DateOffset(months=interval_months - 1)).replace(day=1)
-        
-        dates = pd.date_range(start=start_date, end=today, freq='B')
+
+        dates = pd.date_range(start=start_date, end=today, freq="B")
 
         valid_months = {(start_date + pd.DateOffset(months=i)).month for i in range(interval_months)}
-        
-        return [d.date() for d in dates if d.month in valid_months]
-    
 
+        return [d.date() for d in dates if d.month in valid_months]
 
     def get_chart_date_interval(self) -> list[date]:
         start_date = self._get_start_date()

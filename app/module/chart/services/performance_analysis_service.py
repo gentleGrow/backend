@@ -52,7 +52,7 @@ class PerformanceAnalysisService:
         interval: IntervalType,
     ) -> tuple[dict[datetime, float], dict[datetime, float], list[datetime]] | tuple[
         dict[date, float], dict[date, float], list[date]
-    ]:
+    ] | tuple[dict[tuple[int, int], float], dict[tuple[int, int], float], list[date]]:
         if interval is IntervalType.FIVEDAY:
             interval_datetimes = interval.get_chart_datetime_interval()
             market_index_minutely_map: dict[
@@ -94,7 +94,7 @@ class PerformanceAnalysisService:
             market_analysis_data_days: dict[date, float] = self._get_market_analysis_days(
                 market_index_date_map, current_index_price, interval_dates
             )
-            
+
             user_analysis_data_days: dict[date, float] = self._get_user_analysis_days(
                 assets, stock_daily_map_full, current_stock_price_map, exchange_rate_map, interval_dates
             )
@@ -102,7 +102,7 @@ class PerformanceAnalysisService:
             return market_analysis_data_days, user_analysis_data_days, interval_dates
         else:
             interval_dates = interval.get_chart_month_interval()
-            
+
             market_index_date_map = await self.index_daily_service.get_market_index_date_map(
                 session, (interval_dates[0], interval_dates[-1]), MarketIndex.KOSPI
             )
@@ -113,14 +113,13 @@ class PerformanceAnalysisService:
             market_analysis_data: dict[tuple[int, int], float] = self._get_market_analysis(
                 market_index_date_map, current_index_price, interval_dates
             )
-            
+
             user_analysis_data: dict[tuple[int, int], float] = self._get_user_analysis(
                 assets, stock_daily_map_full, current_stock_price_map, exchange_rate_map, interval_dates
             )
 
             return market_analysis_data, user_analysis_data, interval_dates
-        
-        
+
     def _get_user_analysis(
         self,
         assets: list[Asset],
@@ -150,14 +149,16 @@ class PerformanceAnalysisService:
             total_invest_amount = self.asset_stock_service.get_total_investment_amount(
                 current_assets, stock_daily_map, exchange_rate_map
             )
-            total_profit = self.asset_stock_service.get_total_profit_rate(
-                            total_asset_amount, total_invest_amount
-                        )
+            total_profit = self.asset_stock_service.get_total_profit_rate(total_asset_amount, total_invest_amount)
 
             avg_profits[(interval_date.year, interval_date.month)].append(total_profit)
+        
+        return {
+            year_month: mean([profit for profit in profits if profit]) if any(profit for profit in profits) else 0
+            for year_month, profits in avg_profits.items()
+        }
 
-        return {year_month: mean(profits) for year_month, profits in avg_profits.items()} 
-    
+
     def _get_target_dates(self, assets: list[Asset], interval_dates: list[date]) -> list[date]:
         result = interval_dates.copy()
         oldest_date = result[0]
@@ -165,8 +166,7 @@ class PerformanceAnalysisService:
             if asset.asset_stock.trade_date < oldest_date:
                 result.append(asset.asset_stock.trade_date)
         return result
-    
-    
+
     def _get_market_analysis(
         self,
         market_index_date_map: dict[date, MarketIndexDaily],
@@ -182,10 +182,14 @@ class PerformanceAnalysisService:
                 current_profit = self.asset_stock_service.get_total_profit_rate(
                     current_index_price, market_index.close_price
                 )
-                
+
                 avg_profits[(interval_date.year, interval_date.month)].append(current_profit)
-        
-        return {year_month: mean(profits) for year_month, profits in avg_profits.items()}
+
+        return {
+            year_month: mean([profit for profit in profits if profit]) if any(profit for profit in profits) else 0
+            for year_month, profits in avg_profits.items()
+        }
+
 
 
     def _get_market_analysis_days(

@@ -517,7 +517,7 @@ async def get_performance_analysis(
         return no_len_response
 
     current_kospi_price = await realtime_index_service.get_current_index_price(redis_client, MarketIndex.KOSPI)
-    
+
     (
         market_analysis_data,
         user_analysis_data,

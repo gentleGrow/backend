@@ -164,8 +164,8 @@ class PerformanceAnalysisResponse(BaseModel):
     @classmethod
     def parse(
         cls,
-        market_analysis_data: dict[datetime, float] | dict[date, float],
-        user_analysis_data: dict[datetime, float] | dict[date, float],
+        market_analysis_data: dict[datetime, float] | dict[date, float] | dict[tuple[int, int], float],
+        user_analysis_data: dict[datetime, float] | dict[date, float] | dict[tuple[int, int], float],
         interval_times: list[datetime] | list[date],
         interval: IntervalType,
     ) -> "PerformanceAnalysisResponse":
@@ -210,7 +210,7 @@ class PerformanceAnalysisResponse(BaseModel):
                 contrastMarketReturns=mean([market_analysis_data[interval_time] for interval_time in interval_times]),  # type: ignore # IntervalType.FIVEDAY 조건에 의해 date 보장
             )
         else:
-            interval_year_month = set([(interval_time.year, interval_time.month) for interval_time in interval_times])
+            interval_year_month = sorted(set([(interval_time.year, interval_time.month) for interval_time in interval_times]))
             return cls(
                 xAxises=[f"{str(year)[-2:]}.{month}" for year, month in interval_year_month],
                 dates=[f"{year}.{month}" for year, month in interval_year_month],
@@ -227,7 +227,6 @@ class PerformanceAnalysisResponse(BaseModel):
                 contrastMarketReturns=mean([market_analysis_data[interval_time] for interval_time in interval_year_month]),  # type: ignore # IntervalType.FIVEDAY 조건에 의해 date 보장
             )
 
-        
 
 class EstimateDividendEveryValue(BaseModel):
     xAxises: list[str] = Field(..., description="월별 표시 (1월, 2월, ...)")
