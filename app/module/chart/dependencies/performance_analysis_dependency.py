@@ -23,6 +23,7 @@ dividend_service = DividendService(exchange_rate_service=exchange_rate_service)
 
 asset_service = AssetService(
     stock_daily_service=stock_daily_service,
+    asset_stock_service=asset_stock_service,
     exchange_rate_service=exchange_rate_service,
     stock_service=stock_service,
     dividend_service=dividend_service,

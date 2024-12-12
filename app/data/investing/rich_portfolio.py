@@ -28,17 +28,19 @@ from app.module.auth.repository import UserRepository
 from app.module.chart.constant import TIP_EXPIRE_SECOND
 from app.module.chart.redis_repository import RedisRichPortfolioRepository
 from database.dependency import get_mysql_session, get_redis_pool
+from database.enum import EnvironmentType
 
 load_dotenv()
 ENVIRONMENT = getenv("ENVIRONMENT", None)
 
 
-logger = logging.getLogger("stock")
+logger = logging.getLogger("rich_portfolio")
 logger.setLevel(logging.INFO)
 
-file_handler = logging.FileHandler("/home/backend/rich_portfolio.log", delay=False)
-file_handler.setFormatter(logging.Formatter("%(asctime)s - %(levelname)s - %(message)s"))
-logger.addHandler(file_handler)
+if ENVIRONMENT == EnvironmentType.PROD:
+    file_handler = logging.FileHandler("/home/backend/rich_portfolio.log", delay=False)
+    file_handler.setFormatter(logging.Formatter("%(asctime)s - %(levelname)s - %(message)s"))
+    logger.addHandler(file_handler)
 
 
 async def fetch_rich_porfolio(redis_client: Redis, session: AsyncSession, person: str):

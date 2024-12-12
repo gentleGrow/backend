@@ -1,6 +1,6 @@
 from datetime import datetime
 
-from sqlalchemy import delete, extract, select
+from sqlalchemy import delete, select
 from sqlalchemy.dialects.mysql import insert
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -15,18 +15,16 @@ class StockMinutelyRepository:
         await session.commit()
 
     @staticmethod
-    async def get_by_range_interval_minute(
+    async def get_by_range_minute(
         session: AsyncSession,
         date_range: tuple,
         codes: list[str],
-        interval: int,
     ) -> list[StockMinutely]:
-        start_date, end_date = date_range
+        start_datetime, end_datetime = date_range
 
         stmt = select(StockMinutely).where(
-            StockMinutely.datetime.between(start_date, end_date),
+            StockMinutely.datetime.between(start_datetime, end_datetime),
             StockMinutely.code.in_(codes),
-            (extract("minute", StockMinutely.datetime) % interval == 0),
         )
 
         result = await session.execute(stmt)

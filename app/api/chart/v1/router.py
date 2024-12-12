@@ -1,34 +1,22 @@
-from datetime import date, datetime, timedelta
-from statistics import mean
+from datetime import date
 
 from fastapi import APIRouter, Depends, Query
 from redis.asyncio import Redis
 from sqlalchemy.ext.asyncio import AsyncSession
-
+from icecream import ic
 from app.common.auth.security import verify_jwt_token
-from app.common.util.time import get_now_date
-from app.module.asset.constant import (
-    ASSET_FIELD,
-    ASSET_SAVE_TREND_YEAR,
-    INFLATION_RATE,
-    MARKET_INDEX_KR_MAPPING,
-    MONTHS,
-    THREE_MONTH,
-    THREE_MONTH_DAY,
-)
-from app.module.asset.dependencies.asset_dependency import get_asset_service
-from app.module.asset.dependencies.asset_stock_dependency import get_asset_stock_service
+from app.module.asset.constant import ASSET_SAVE_TREND_YEAR
+from app.module.asset.dependencies.asset_dependency import get_asset_query, get_asset_service
 from app.module.asset.dependencies.dividend_dependency import get_dividend_service
 from app.module.asset.dependencies.exchange_rate_dependency import get_exchange_rate_service
 from app.module.asset.dependencies.realtime_index_dependency import get_realtime_index_service
 from app.module.asset.dependencies.stock_daily_dependency import get_stock_daily_service
 from app.module.asset.dependencies.stock_dependency import get_stock_service
-from app.module.asset.enum import AssetType, CurrencyType, StockAsset
-from app.module.asset.model import Asset
+from app.module.asset.enum import AssetType, CurrencyType, MarketIndex
 from app.module.asset.repository.asset_repository import AssetRepository
-from app.module.asset.schema import MarketIndexData
+from app.module.asset.schema import MarketIndexData, StockAssetSchema
+from app.module.asset.services.asset.asset_query import AssetQuery
 from app.module.asset.services.asset_service import AssetService
-from app.module.asset.services.asset_stock_service import AssetStockService
 from app.module.asset.services.dividend_service import DividendService
 from app.module.asset.services.exchange_rate_service import ExchangeRateService
 from app.module.asset.services.realtime_index_service import RealtimeIndexService
@@ -36,27 +24,22 @@ from app.module.asset.services.stock_daily_service import StockDailyService
 from app.module.asset.services.stock_service import StockService
 from app.module.auth.constant import DUMMY_USER_ID
 from app.module.auth.schema import AccessToken
-from app.module.chart.constant import DEFAULT_TIP, TIP_TODAY_ID_REDIS_KEY
+from app.module.chart.constant import DEFAULT_TIP
 from app.module.chart.dependencies.composition_dependency import get_composition_service
 from app.module.chart.dependencies.performance_analysis_dependency import get_performance_analysis_service
 from app.module.chart.dependencies.rich_dependency import get_rich_service
-from app.module.chart.dependencies.rich_portfolio_dependency import get_rich_portfolio_service
 from app.module.chart.dependencies.save_trend_dependency import get_save_trend_service
 from app.module.chart.dependencies.summary_dependency import get_summary_service
 from app.module.chart.enum import CompositionType, EstimateDividendType, IntervalType
-from app.module.chart.redis_repository import RedisTipRepository
-from app.module.chart.repository import TipRepository
 from app.module.chart.schema import (
     AssetSaveTrendResponse,
     ChartTipResponse,
     CompositionResponse,
-    CompositionResponseValue,
     EstimateDividendEveryResponse,
     EstimateDividendEveryValue,
     EstimateDividendTypeResponse,
     EstimateDividendTypeValue,
     MarketIndiceResponse,
-    MarketIndiceResponseValue,
     MyStockResponse,
     MyStockResponseValue,
     PeoplePortfolioResponse,
@@ -72,7 +55,6 @@ from app.module.chart.schema import (
 )
 from app.module.chart.services.composition_service import CompositionService
 from app.module.chart.services.performance_analysis_service import PerformanceAnalysisService
-from app.module.chart.services.rich_portfolio_service import RichPortfolioService
 from app.module.chart.services.rich_service import RichService
 from app.module.chart.services.save_trend_service import SaveTrendService
 from app.module.chart.services.summary_service import SummaryService
@@ -81,23 +63,688 @@ from database.dependency import get_mysql_session_router, get_redis_pool
 chart_router = APIRouter(prefix="/v1")
 
 
-@chart_router.get("/rich-portfolio", summary="부자들의 포트폴리오", response_model=RichPortfolioResponse)
-async def get_rich_portfolio(
+@chart_router.get("/sample/asset-save-trend", summary="자산적립 추이", response_model=AssetSaveTrendResponse)
+async def get_sample_asset_save_trend(
+    session: AsyncSession = Depends(get_mysql_session_router),
     redis_client: Redis = Depends(get_redis_pool),
-    rich_portfolio_service: RichPortfolioService = Depends(get_rich_portfolio_service),
-) -> RichPortfolioResponse:
-    rich_portfolio_map: dict = await rich_portfolio_service.get_rich_porfolio_map(redis_client)
+    asset_service: AssetService = Depends(get_asset_service),
+    asset_query: AssetQuery = Depends(get_asset_query),
+    save_trend_service: SaveTrendService = Depends(get_save_trend_service),
+) -> AssetSaveTrendResponse:
+    assets: list = await AssetRepository.get_eager(session, DUMMY_USER_ID, AssetType.STOCK)
+    full_required_assets = await asset_service.get_full_required_assets(assets)
 
+    (
+        stock_daily_map,
+        lastest_stock_daily_map,
+        dividend_map,
+        exchange_rate_map,
+        current_stock_price_map,
+    ) = await asset_query.get_all_data(session, redis_client, full_required_assets)
+
+    complete_asset, incomplete_assets = asset_service.separate_assets_by_full_data(assets, stock_daily_map)
+    complete_buy_asset = asset_service.get_buy_assets(complete_asset)
+
+    total_asset_amount = asset_service.get_total_asset_amount(
+        complete_buy_asset, current_stock_price_map, exchange_rate_map
+    )
+
+    validate_response = await AssetSaveTrendResponse.validate(complete_buy_asset, total_asset_amount)
+    if validate_response:
+        return validate_response
+
+    estimate_asset_amount, real_asset_amount, unit = asset_service.get_asset_trend_values(
+        complete_buy_asset,
+        stock_daily_map,
+        dividend_map,
+        exchange_rate_map,
+        current_stock_price_map,
+        ASSET_SAVE_TREND_YEAR,
+    )
+
+    return AssetSaveTrendResponse(
+        xAxises=save_trend_service.get_x_axises(ASSET_SAVE_TREND_YEAR),
+        dates=save_trend_service.get_dates(ASSET_SAVE_TREND_YEAR),
+        values1=estimate_asset_amount,
+        values2=real_asset_amount,
+        unit=unit,
+    )
+
+
+@chart_router.get("/asset-save-trend", summary="자산적립 추이", response_model=AssetSaveTrendResponse)
+async def get_asset_save_trend(
+    token: AccessToken = Depends(verify_jwt_token),
+    session: AsyncSession = Depends(get_mysql_session_router),
+    redis_client: Redis = Depends(get_redis_pool),
+    asset_service: AssetService = Depends(get_asset_service),
+    asset_query: AssetQuery = Depends(get_asset_query),
+    save_trend_service: SaveTrendService = Depends(get_save_trend_service),
+) -> AssetSaveTrendResponse:
+    assets: list = await AssetRepository.get_eager(session, token.get("user"), AssetType.STOCK)
+    full_required_assets = await asset_service.get_full_required_assets(assets)
+
+    (
+        stock_daily_map,
+        lastest_stock_daily_map,
+        dividend_map,
+        exchange_rate_map,
+        current_stock_price_map,
+    ) = await asset_query.get_all_data(session, redis_client, full_required_assets)
+
+    complete_asset, incomplete_assets = asset_service.separate_assets_by_full_data(assets, stock_daily_map)
+    complete_buy_asset = asset_service.get_buy_assets(complete_asset)
+
+    total_asset_amount = asset_service.get_total_asset_amount(
+        complete_buy_asset, current_stock_price_map, exchange_rate_map
+    )
+
+    validate_response = await AssetSaveTrendResponse.validate(complete_buy_asset, total_asset_amount)
+    if validate_response:
+        return validate_response
+
+    estimate_asset_amount, real_asset_amount, unit = asset_service.get_asset_trend_values(
+        complete_buy_asset,
+        stock_daily_map,
+        dividend_map,
+        exchange_rate_map,
+        current_stock_price_map,
+        ASSET_SAVE_TREND_YEAR,
+    )
+
+    return AssetSaveTrendResponse(
+        xAxises=save_trend_service.get_x_axises(ASSET_SAVE_TREND_YEAR),
+        dates=save_trend_service.get_dates(ASSET_SAVE_TREND_YEAR),
+        values1=estimate_asset_amount,
+        values2=real_asset_amount,
+        unit=unit,
+    )
+
+
+@chart_router.get(
+    "/sample/estimate-dividend",
+    summary="더미 예상 배당액",
+    response_model=EstimateDividendEveryResponse | EstimateDividendTypeResponse,
+)
+async def get_sample_estimate_dividend(
+    category: EstimateDividendType = Query(EstimateDividendType.EVERY, description="every는 모두, type은 종목 별 입니다."),
+    session: AsyncSession = Depends(get_mysql_session_router),
+    redis_client: Redis = Depends(get_redis_pool),
+    asset_service: AssetService = Depends(get_asset_service),
+    asset_query: AssetQuery = Depends(get_asset_query),
+    dividend_service: DividendService = Depends(get_dividend_service),
+) -> EstimateDividendEveryResponse | EstimateDividendTypeResponse:
+    assets: list = await AssetRepository.get_eager(session, DUMMY_USER_ID, AssetType.STOCK)
+    full_required_assets = await asset_service.get_full_required_assets(assets)
+
+    (
+        stock_daily_map,
+        lastest_stock_daily_map,
+        recent_dividend_map,
+        exchange_rate_map,
+        current_stock_price_map,
+    ) = await asset_query.get_all_data(session, redis_client, full_required_assets)
+    dividend_map: dict[tuple[str, date], float] = await dividend_service.get_dividend_map(session, assets)
+
+    complete_asset, incomplete_assets = asset_service.separate_assets_by_full_data(assets, stock_daily_map)
+    complete_buy_asset = asset_service.get_buy_assets(complete_asset)
+
+    if category == EstimateDividendType.EVERY:
+        no_asset_response = EstimateDividendEveryResponse.validate(complete_buy_asset)
+        if no_asset_response:
+            return no_asset_response
+    else:
+        no_asset_response = EstimateDividendTypeResponse.validate(complete_buy_asset)
+        if no_asset_response:
+            return no_asset_response
+
+    if category == EstimateDividendType.EVERY:
+        every_dividend_data: dict[str, EstimateDividendEveryValue] = dividend_service.get_dividend_every_chart_data(
+            complete_buy_asset, exchange_rate_map, dividend_map
+        )
+        return EstimateDividendEveryResponse(every_dividend_data)
+    else:
+        type_dividend_data: list[EstimateDividendTypeValue] = await dividend_service.get_composition(
+            complete_buy_asset, exchange_rate_map, recent_dividend_map
+        )
+
+        return EstimateDividendTypeResponse(type_dividend_data)
+
+
+@chart_router.get(
+    "/estimate-dividend", summary="예상 배당액", response_model=EstimateDividendEveryResponse | EstimateDividendTypeResponse
+)
+async def get_estimate_dividend(
+    token: AccessToken = Depends(verify_jwt_token),
+    category: EstimateDividendType = Query(EstimateDividendType.EVERY, description="every는 모두, type은 종목 별 입니다."),
+    session: AsyncSession = Depends(get_mysql_session_router),
+    redis_client: Redis = Depends(get_redis_pool),
+    asset_service: AssetService = Depends(get_asset_service),
+    asset_query: AssetQuery = Depends(get_asset_query),
+    dividend_service: DividendService = Depends(get_dividend_service),
+) -> EstimateDividendEveryResponse | EstimateDividendTypeResponse:
+    assets: list = await AssetRepository.get_eager(session, token.get("user"), AssetType.STOCK)
+    full_required_assets = await asset_service.get_full_required_assets(assets)
+
+    (
+        stock_daily_map,
+        lastest_stock_daily_map,
+        recent_dividend_map,
+        exchange_rate_map,
+        current_stock_price_map,
+    ) = await asset_query.get_all_data(session, redis_client, full_required_assets)
+    dividend_map: dict[tuple[str, date], float] = await dividend_service.get_dividend_map(session, assets)
+
+    complete_asset, incomplete_assets = asset_service.separate_assets_by_full_data(assets, stock_daily_map)
+    complete_buy_asset = asset_service.get_buy_assets(complete_asset)
+
+    if category == EstimateDividendType.EVERY:
+        no_asset_response = EstimateDividendEveryResponse.validate(complete_buy_asset)
+        if no_asset_response:
+            return no_asset_response
+    else:
+        no_asset_response = EstimateDividendTypeResponse.validate(complete_buy_asset)
+        if no_asset_response:
+            return no_asset_response
+
+    if category == EstimateDividendType.EVERY:
+        every_dividend_data: dict[str, EstimateDividendEveryValue] = dividend_service.get_dividend_every_chart_data(
+            complete_buy_asset, exchange_rate_map, dividend_map
+        )
+        return EstimateDividendEveryResponse(every_dividend_data)
+    else:
+        type_dividend_data: list[EstimateDividendTypeValue] = await dividend_service.get_composition(
+            complete_buy_asset, exchange_rate_map, recent_dividend_map
+        )
+
+        return EstimateDividendTypeResponse(type_dividend_data)
+
+
+@chart_router.get("/sample/composition", summary="종목 구성", response_model=CompositionResponse)
+async def get_sample_composition(
+    type: CompositionType = Query(CompositionType.COMPOSITION, description="composition은 종목 별, account는 계좌 별 입니다."),
+    session: AsyncSession = Depends(get_mysql_session_router),
+    redis_client: Redis = Depends(get_redis_pool),
+    asset_service: AssetService = Depends(get_asset_service),
+    asset_query: AssetQuery = Depends(get_asset_query),
+    composition_service: CompositionService = Depends(get_composition_service),
+) -> CompositionResponse:
+    assets: list = await AssetRepository.get_eager(session, DUMMY_USER_ID, AssetType.STOCK)
+    full_required_assets = await asset_service.get_full_required_assets(assets)
+
+    (
+        stock_daily_map,
+        lastest_stock_daily_map,
+        dividend_map,
+        exchange_rate_map,
+        current_stock_price_map,
+    ) = await asset_query.get_all_data(session, redis_client, full_required_assets)
+
+    complete_asset, incomplete_assets = asset_service.separate_assets_by_full_data(assets, stock_daily_map)
+    complete_buy_asset = asset_service.get_buy_assets(complete_asset)
+
+    no_asset_response = CompositionResponse.validate(complete_buy_asset)
+    if no_asset_response:
+        return no_asset_response
+
+    if type is CompositionType.COMPOSITION:
+        stock_composition_data = composition_service.get_asset_stock_composition(
+            complete_buy_asset, current_stock_price_map, exchange_rate_map
+        )
+        return CompositionResponse(stock_composition_data)
+    else:
+        account_composition_data = composition_service.get_asset_stock_account(
+            complete_buy_asset, current_stock_price_map, exchange_rate_map
+        )
+
+        return CompositionResponse(account_composition_data)
+
+
+@chart_router.get("/composition", summary="종목 구성", response_model=CompositionResponse)
+async def get_composition(
+    token: AccessToken = Depends(verify_jwt_token),
+    type: CompositionType = Query(CompositionType.COMPOSITION, description="composition은 종목 별, account는 계좌 별 입니다."),
+    session: AsyncSession = Depends(get_mysql_session_router),
+    redis_client: Redis = Depends(get_redis_pool),
+    asset_service: AssetService = Depends(get_asset_service),
+    asset_query: AssetQuery = Depends(get_asset_query),
+    composition_service: CompositionService = Depends(get_composition_service),
+) -> CompositionResponse:
+    assets: list = await AssetRepository.get_eager(session, token.get("user"), AssetType.STOCK)
+    full_required_assets = await asset_service.get_full_required_assets(assets)
+
+    (
+        stock_daily_map,
+        lastest_stock_daily_map,
+        dividend_map,
+        exchange_rate_map,
+        current_stock_price_map,
+    ) = await asset_query.get_all_data(session, redis_client, full_required_assets)
+
+    complete_asset, incomplete_assets = asset_service.separate_assets_by_full_data(assets, stock_daily_map)
+    complete_buy_asset = asset_service.get_buy_assets(complete_asset)
+
+    no_asset_response = CompositionResponse.validate(complete_buy_asset)
+    if no_asset_response:
+        return no_asset_response
+
+    if type is CompositionType.COMPOSITION:
+        stock_composition_data = composition_service.get_asset_stock_composition(
+            complete_buy_asset, current_stock_price_map, exchange_rate_map
+        )
+        return CompositionResponse(stock_composition_data)
+    else:
+        account_composition_data = composition_service.get_asset_stock_account(
+            complete_buy_asset, current_stock_price_map, exchange_rate_map
+        )
+
+        return CompositionResponse(account_composition_data)
+
+
+@chart_router.get("/summary", summary="오늘의 리뷰, 나의 총자산, 나의 투자 금액, 수익금", response_model=SummaryResponse)
+async def get_summary(
+    token: AccessToken = Depends(verify_jwt_token),
+    session: AsyncSession = Depends(get_mysql_session_router),
+    redis_client: Redis = Depends(get_redis_pool),
+    asset_query: AssetQuery = Depends(get_asset_query),
+    asset_service: AssetService = Depends(get_asset_service),
+    summary_service: SummaryService = Depends(get_summary_service),
+) -> SummaryResponse:
+    assets: list = await AssetRepository.get_eager(session, token.get("user"), AssetType.STOCK)
+    full_required_assets = await asset_service.get_full_required_assets(assets)
+
+    (
+        stock_daily_map,
+        lastest_stock_daily_map,
+        dividend_map,
+        exchange_rate_map,
+        current_stock_price_map,
+    ) = await asset_query.get_all_data(session, redis_client, full_required_assets)
+
+    complete_asset, incomplete_assets = asset_service.separate_assets_by_full_data(assets, stock_daily_map)
+    complete_buy_asset = asset_service.get_buy_assets(complete_asset)
+
+    no_asset_response = SummaryResponse.validate(complete_buy_asset)
+    if no_asset_response:
+        return no_asset_response
+
+    total_asset_amount = asset_service.get_total_asset_amount(
+        complete_buy_asset, current_stock_price_map, exchange_rate_map
+    )
+    total_investment_amount = asset_service.get_total_investment_amount(
+        complete_buy_asset, stock_daily_map, exchange_rate_map
+    )
+    today_review_rate, increase_asset_amount = summary_service.get_today_review_rate(
+        complete_buy_asset, current_stock_price_map, exchange_rate_map
+    )
+
+    # 협의 후 바로 추가할 인자입니다.
+    return SummaryResponse(
+        # increase_asset_amount=increase_asset_amount,
+        today_review_rate=today_review_rate,
+        total_asset_amount=total_asset_amount,
+        total_investment_amount=total_investment_amount,
+        profit=ProfitDetail.parse(total_asset_amount, total_investment_amount),
+    )
+
+
+@chart_router.get("/sample/summary", summary="오늘의 리뷰, 나의 총자산, 나의 투자 금액, 수익금", response_model=SummaryResponse)
+async def get_sample_summary(
+    session: AsyncSession = Depends(get_mysql_session_router),
+    redis_client: Redis = Depends(get_redis_pool),
+    asset_service: AssetService = Depends(get_asset_service),
+    asset_query: AssetQuery = Depends(get_asset_query),
+    summary_service: SummaryService = Depends(get_summary_service),
+) -> SummaryResponse:
+    assets: list = await AssetRepository.get_eager(session, DUMMY_USER_ID, AssetType.STOCK)
+    full_required_assets = await asset_service.get_full_required_assets(assets)
+
+    (
+        stock_daily_map,
+        lastest_stock_daily_map,
+        dividend_map,
+        exchange_rate_map,
+        current_stock_price_map,
+    ) = await asset_query.get_all_data(session, redis_client, full_required_assets)
+
+    complete_asset, incomplete_assets = asset_service.separate_assets_by_full_data(assets, stock_daily_map)
+    complete_buy_asset = asset_service.get_buy_assets(complete_asset)
+
+    no_asset_response = SummaryResponse.validate(complete_buy_asset)
+    if no_asset_response:
+        return no_asset_response
+
+    total_asset_amount = asset_service.get_total_asset_amount(
+        complete_buy_asset, current_stock_price_map, exchange_rate_map
+    )
+    total_investment_amount = asset_service.get_total_investment_amount(
+        complete_buy_asset, stock_daily_map, exchange_rate_map
+    )
+    today_review_rate, increase_asset_amount = summary_service.get_today_review_rate(
+        complete_buy_asset, current_stock_price_map, exchange_rate_map
+    )
+
+    # 협의 후 바로 추가할 인자입니다.
+    return SummaryResponse(
+        # increase_asset_amount=increase_asset_amount,
+        today_review_rate=today_review_rate,
+        total_asset_amount=total_asset_amount,
+        total_investment_amount=total_investment_amount,
+        profit=ProfitDetail.parse(total_asset_amount, total_investment_amount),
+    )
+
+
+@chart_router.get("/indice", summary="현재 시장 지수", response_model=MarketIndiceResponse)
+async def get_market_index(
+    redis_client: Redis = Depends(get_redis_pool),
+    realtime_index_service: RealtimeIndexService = Depends(get_realtime_index_service),
+) -> MarketIndiceResponse:
+    market_index_data: list[MarketIndexData] = await realtime_index_service.get_current_market_index_value(redis_client)
+
+    return MarketIndiceResponse(market_index_data)
+
+
+@chart_router.get("/sample/performance-analysis", summary="더미 투자 성과 분석", response_model=PerformanceAnalysisResponse)
+async def get_sample_performance_analysis(
+    interval: IntervalType = Query(IntervalType.ONEMONTH, description="기간 별, 투자 성관 분석 데이터가 제공 됩니다."),
+    session: AsyncSession = Depends(get_mysql_session_router),
+    asset_query: AssetQuery = Depends(get_asset_query),
+    realtime_index_service: RealtimeIndexService = Depends(get_realtime_index_service),
+    asset_service: AssetService = Depends(get_asset_service),
+    redis_client: Redis = Depends(get_redis_pool),
+    performance_analysis_service: PerformanceAnalysisService = Depends(get_performance_analysis_service),
+) -> PerformanceAnalysisResponse:
+    assets: list = await AssetRepository.get_eager(session, DUMMY_USER_ID, AssetType.STOCK)
+    full_required_assets = await asset_service.get_full_required_assets(assets)
+
+    (
+        stock_daily_map,
+        lastest_stock_daily_map,
+        dividend_map,
+        exchange_rate_map,
+        current_stock_price_map,
+    ) = await asset_query.get_all_data(session, redis_client, full_required_assets)
+
+    complete_asset, incomplete_assets = asset_service.separate_assets_by_full_data(assets, stock_daily_map)
+    complete_buy_asset = asset_service.get_buy_assets(complete_asset)
+
+    no_len_response = PerformanceAnalysisResponse.validate(complete_buy_asset)
+    if no_len_response:
+        return no_len_response
+
+    current_kospi_price = await realtime_index_service.get_current_index_price(redis_client, MarketIndex.KOSPI)
+    (
+        market_analysis_data,
+        user_analysis_data,
+        interval_times,
+    ) = await performance_analysis_service.performance_analysis_chart_data(
+        complete_buy_asset,
+        session,
+        current_kospi_price,
+        stock_daily_map,
+        exchange_rate_map,
+        current_stock_price_map,
+        interval,
+    )
+
+    return PerformanceAnalysisResponse.parse(market_analysis_data, user_analysis_data, interval_times, interval)
+
+
+@chart_router.get("/performance-analysis", summary="투자 성과 분석", response_model=PerformanceAnalysisResponse)
+async def get_performance_analysis(
+    token: AccessToken = Depends(verify_jwt_token),
+    interval: IntervalType = Query(IntervalType.ONEMONTH, description="기간 별, 투자 성관 분석 데이터가 제공 됩니다."),
+    session: AsyncSession = Depends(get_mysql_session_router),
+    asset_query: AssetQuery = Depends(get_asset_query),
+    realtime_index_service: RealtimeIndexService = Depends(get_realtime_index_service),
+    asset_service: AssetService = Depends(get_asset_service),
+    redis_client: Redis = Depends(get_redis_pool),
+    performance_analysis_service: PerformanceAnalysisService = Depends(get_performance_analysis_service),
+) -> PerformanceAnalysisResponse:
+    assets: list = await AssetRepository.get_eager(session, token.get("user"), AssetType.STOCK)
+    full_required_assets = await asset_service.get_full_required_assets(assets)
+
+    (
+        stock_daily_map,
+        lastest_stock_daily_map,
+        dividend_map,
+        exchange_rate_map,
+        current_stock_price_map,
+    ) = await asset_query.get_all_data(session, redis_client, full_required_assets)
+
+    complete_asset, incomplete_assets = asset_service.separate_assets_by_full_data(assets, stock_daily_map)
+    complete_buy_asset = asset_service.get_buy_assets(complete_asset)
+
+    no_len_response = PerformanceAnalysisResponse.validate(complete_buy_asset)
+    if no_len_response:
+        return no_len_response
+
+    current_kospi_price = await realtime_index_service.get_current_index_price(redis_client, MarketIndex.KOSPI)
+
+    (
+        market_analysis_data,
+        user_analysis_data,
+        interval_times,
+    ) = await performance_analysis_service.performance_analysis_chart_data(
+        complete_buy_asset,
+        session,
+        current_kospi_price,
+        stock_daily_map,
+        exchange_rate_map,
+        current_stock_price_map,
+        interval,
+    )
+
+    return PerformanceAnalysisResponse.parse(market_analysis_data, user_analysis_data, interval_times, interval)
+
+
+@chart_router.get("/sample/my-stock", summary="내 보유 주식", response_model=MyStockResponse)
+async def get_sample_my_stock(
+    session: AsyncSession = Depends(get_mysql_session_router),
+    redis_client: Redis = Depends(get_redis_pool),
+    asset_query: AssetQuery = Depends(get_asset_query),
+    asset_service: AssetService = Depends(get_asset_service),
+) -> MyStockResponse:
+    assets: list = await AssetRepository.get_eager(session, DUMMY_USER_ID, AssetType.STOCK)
+    full_required_assets = await asset_service.get_full_required_assets(assets)
+
+    (
+        stock_daily_map,
+        lastest_stock_daily_map,
+        dividend_map,
+        exchange_rate_map,
+        current_stock_price_map,
+    ) = await asset_query.get_all_data(session, redis_client, full_required_assets)
+
+    complete_asset, incomplete_assets = asset_service.separate_assets_by_full_data(assets, stock_daily_map)
+    complete_buy_asset = asset_service.get_buy_assets(complete_asset)
+
+    stock_assets: list[StockAssetSchema] = asset_service.get_stock_assets(
+        complete_buy_asset,
+        stock_daily_map,
+        lastest_stock_daily_map,
+        dividend_map,
+        exchange_rate_map,
+        current_stock_price_map,
+        always_won=True,
+    )
+
+    return MyStockResponse(
+        [
+            MyStockResponseValue(
+                name=stock_asset.종목명.value,
+                current_price=stock_asset.현재가.value,
+                profit_rate=stock_asset.수익률.value,
+                profit_amount=stock_asset.수익금.value,
+                quantity=stock_asset.수량.value,
+            )
+            for stock_asset in stock_assets
+        ]
+    )
+
+
+@chart_router.get("/my-stock", summary="내 보유 주식", response_model=MyStockResponse)
+async def get_my_stock(
+    token: AccessToken = Depends(verify_jwt_token),
+    session: AsyncSession = Depends(get_mysql_session_router),
+    redis_client: Redis = Depends(get_redis_pool),
+    asset_query: AssetQuery = Depends(get_asset_query),
+    asset_service: AssetService = Depends(get_asset_service),
+) -> MyStockResponse:
+    assets: list = await AssetRepository.get_eager(session, token.get("user"), AssetType.STOCK)
+    full_required_assets = await asset_service.get_full_required_assets(assets)
+
+    (
+        stock_daily_map,
+        lastest_stock_daily_map,
+        dividend_map,
+        exchange_rate_map,
+        current_stock_price_map,
+    ) = await asset_query.get_all_data(session, redis_client, full_required_assets)
+
+    complete_asset, incomplete_assets = asset_service.separate_assets_by_full_data(assets, stock_daily_map)
+    complete_buy_asset = asset_service.get_buy_assets(complete_asset)
+
+    stock_assets: list[StockAssetSchema] = asset_service.get_stock_assets(
+        complete_buy_asset,
+        stock_daily_map,
+        lastest_stock_daily_map,
+        dividend_map,
+        exchange_rate_map,
+        current_stock_price_map,
+        always_won=True,
+    )
+
+    return MyStockResponse(
+        [
+            MyStockResponseValue(
+                name=stock_asset.종목명.value,
+                current_price=stock_asset.현재가.value,
+                profit_rate=stock_asset.수익률.value,
+                profit_amount=stock_asset.수익금.value,
+                quantity=stock_asset.수량.value,
+            )
+            for stock_asset in stock_assets
+        ]
+    )
+
+
+@chart_router.get("/rich-pick", summary="미국 부자들이 선택한 종목 TOP10", response_model=RichPickResponse)
+async def get_rich_pick(
+    session: AsyncSession = Depends(get_mysql_session_router),
+    redis_client: Redis = Depends(get_redis_pool),
+    rich_service: RichService = Depends(get_rich_service),
+    stock_daily_service: StockDailyService = Depends(get_stock_daily_service),
+    stock_service: StockService = Depends(get_stock_service),
+    exchange_rate_service: ExchangeRateService = Depends(get_exchange_rate_service),
+) -> RichPickResponse:
+    top_10_stock_codes, stock_name_map = await rich_service.get_rich_top_10_pick(session, redis_client)
+    lastest_stock_daily_map = await stock_daily_service.get_latest_map_by_codes(session, top_10_stock_codes)
+    current_stock_price_map: dict[str, float] = await stock_service.get_current_stock_price_by_code(
+        redis_client, lastest_stock_daily_map, top_10_stock_codes
+    )
+    exchange_rate_map = await exchange_rate_service.get_exchange_rate_map(redis_client)
+    stock_daily_profit: dict[str, float] = stock_service.get_daily_profit(
+        lastest_stock_daily_map, current_stock_price_map, top_10_stock_codes
+    )
+    won_exchange_rate = exchange_rate_service.get_exchange_rate(CurrencyType.USA, CurrencyType.KOREA, exchange_rate_map)
+    stock_korea_price = {stock_code: price * won_exchange_rate for stock_code, price in current_stock_price_map.items()}
+
+    return RichPickResponse(
+        [
+            RichPickValue(
+                name=stock_name_map.get(stock_code),
+                price=stock_korea_price[stock_code],
+                rate=stock_daily_profit[stock_code],
+            )
+            for stock_code in top_10_stock_codes
+        ]
+    )
+
+
+# 임시 dummy api 생성, 추후 개발하겠습니다.
+@chart_router.get("/rich-portfolio", summary="부자들의 포트폴리오", response_model=RichPortfolioResponse)
+async def get_rich_portfolio() -> RichPortfolioResponse:
     return RichPortfolioResponse(
         [
             RichPortfolioValue(
-                name=person,
+                name="워렌 버핏",
                 data=[
-                    PortfolioStockData(name=stock, percent_ratio=float(percent.strip("%")))
-                    for stock, percent in portfolio.items()
+                    PortfolioStockData(name="애플", percent_ratio=40.0),
+                    PortfolioStockData(name="뱅크 오브 아메리카", percent_ratio=20.0),
+                    PortfolioStockData(name="코카콜라", percent_ratio=15.0),
+                    PortfolioStockData(name="아메리칸 익스프레스", percent_ratio=10.0),
+                    PortfolioStockData(name="무디스", percent_ratio=10.0),
+                    PortfolioStockData(name="크래프트 하인즈", percent_ratio=5.0),
                 ],
-            )
-            for person, portfolio in rich_portfolio_map.items()
+            ),
+            RichPortfolioValue(
+                name="빌 애크먼",
+                data=[
+                    PortfolioStockData(name="로우스", percent_ratio=25.0),
+                    PortfolioStockData(name="칩톨레", percent_ratio=20.0),
+                    PortfolioStockData(name="힐튼", percent_ratio=15.0),
+                    PortfolioStockData(name="액티비전 블리자드", percent_ratio=10.0),
+                    PortfolioStockData(name="카니발 크루즈", percent_ratio=10.0),
+                    PortfolioStockData(name="도미노 피자", percent_ratio=10.0),
+                    PortfolioStockData(name="넷플릭스", percent_ratio=10.0),
+                ],
+            ),
+            RichPortfolioValue(
+                name="레이 달리오",
+                data=[
+                    PortfolioStockData(name="SPDR S&P 500 ETF", percent_ratio=30.0),
+                    PortfolioStockData(name="SPDR 골드 ETF", percent_ratio=20.0),
+                    PortfolioStockData(name="바이두", percent_ratio=15.0),
+                    PortfolioStockData(name="알리바바", percent_ratio=15.0),
+                    PortfolioStockData(name="징둥닷컴", percent_ratio=10.0),
+                    PortfolioStockData(name="텐센트", percent_ratio=10.0),
+                ],
+            ),
+            RichPortfolioValue(
+                name="찰리 멍거",
+                data=[
+                    PortfolioStockData(name="알리바바", percent_ratio=30.0),
+                    PortfolioStockData(name="뱅크 오브 아메리카", percent_ratio=25.0),
+                    PortfolioStockData(name="코카콜라", percent_ratio=15.0),
+                    PortfolioStockData(name="크래프트 하인즈", percent_ratio=10.0),
+                    PortfolioStockData(name="애플", percent_ratio=10.0),
+                    PortfolioStockData(name="디즈니", percent_ratio=10.0),
+                ],
+            ),
+            RichPortfolioValue(
+                name="조지 소로스",
+                data=[
+                    PortfolioStockData(name="테슬라", percent_ratio=20.0),
+                    PortfolioStockData(name="애플", percent_ratio=20.0),
+                    PortfolioStockData(name="엔비디아", percent_ratio=15.0),
+                    PortfolioStockData(name="아마존", percent_ratio=15.0),
+                    PortfolioStockData(name="마이크로소프트", percent_ratio=10.0),
+                    PortfolioStockData(name="구글", percent_ratio=10.0),
+                    PortfolioStockData(name="넷플릭스", percent_ratio=10.0),
+                ],
+            ),
+            RichPortfolioValue(
+                name="피터 린치",
+                data=[
+                    PortfolioStockData(name="페덱스", percent_ratio=25.0),
+                    PortfolioStockData(name="UPS", percent_ratio=20.0),
+                    PortfolioStockData(name="애플", percent_ratio=20.0),
+                    PortfolioStockData(name="디즈니", percent_ratio=15.0),
+                    PortfolioStockData(name="테슬라", percent_ratio=10.0),
+                    PortfolioStockData(name="마이크로소프트", percent_ratio=10.0),
+                ],
+            ),
+            RichPortfolioValue(
+                name="제프 베이조스",
+                data=[
+                    PortfolioStockData(name="아마존", percent_ratio=50.0),
+                    PortfolioStockData(name="블루 오리진", percent_ratio=20.0),
+                    PortfolioStockData(name="워싱턴 포스트", percent_ratio=10.0),
+                    PortfolioStockData(name="애플", percent_ratio=10.0),
+                    PortfolioStockData(name="테슬라", percent_ratio=5.0),
+                    PortfolioStockData(name="구글", percent_ratio=5.0),
+                ],
+            ),
         ]
     )
 
@@ -190,653 +837,10 @@ async def get_people_portfolio():
     )
 
 
-@chart_router.get("/sample/asset-save-trend", summary="자산적립 추이", response_model=AssetSaveTrendResponse)
-async def get_sample_asset_save_trend(
-    session: AsyncSession = Depends(get_mysql_session_router),
-    redis_client: Redis = Depends(get_redis_pool),
-    asset_service: AssetService = Depends(get_asset_service),
-    dividend_service: DividendService = Depends(get_dividend_service),
-    asset_stock_service: AssetStockService = Depends(get_asset_stock_service),
-    save_trend_service: SaveTrendService = Depends(get_save_trend_service),
-) -> AssetSaveTrendResponse:
-    asset_all: list = await AssetRepository.get_eager(session, DUMMY_USER_ID, AssetType.STOCK)
-    if len(asset_all) == 0:
-        return AssetSaveTrendResponse(xAxises=[], dates=[], values1={}, values2={}, unit="")
-    total_asset_amount_all = await asset_service.get_total_asset_amount(session, redis_client, asset_all)
-
-    asset_3month: list = await AssetRepository.get_eager_by_range(
-        session, DUMMY_USER_ID, AssetType.STOCK, (get_now_date() - timedelta(days=THREE_MONTH_DAY), get_now_date())
-    )
-    if len(asset_3month) == 0:
-        return AssetSaveTrendResponse.no_near_invest_response(total_asset_amount_all)
-
-    total_asset_amount: float = await asset_service.get_total_asset_amount(session, redis_client, asset_3month)
-    total_invest_amount: float = await asset_service.get_total_investment_amount(session, redis_client, asset_3month)
-    total_dividend_amount: float = await dividend_service.get_total_dividend(session, redis_client, asset_3month)
-
-    total_profit_rate = asset_stock_service.get_total_profit_rate(total_asset_amount, total_invest_amount)
-    total_profit_rate_real = asset_stock_service.get_total_profit_rate_real(
-        total_asset_amount, total_invest_amount, INFLATION_RATE
-    )
-
-    increase_invest_year = asset_service.get_average_investment_with_dividend_year(
-        total_invest_amount, total_dividend_amount, THREE_MONTH
-    )
-
-    values1, values2, unit = asset_service.calculate_trend_values(
-        total_asset_amount_all, increase_invest_year, total_profit_rate, total_profit_rate_real, ASSET_SAVE_TREND_YEAR
-    )
-
-    return AssetSaveTrendResponse(
-        xAxises=save_trend_service.get_x_axises(ASSET_SAVE_TREND_YEAR),
-        dates=save_trend_service.get_dates(ASSET_SAVE_TREND_YEAR),
-        values1=values1,
-        values2=values2,
-        unit=unit,
-    )
-
-
-@chart_router.get("/asset-save-trend", summary="자산적립 추이", response_model=AssetSaveTrendResponse)
-async def get_asset_save_trend(
-    token: AccessToken = Depends(verify_jwt_token),
-    session: AsyncSession = Depends(get_mysql_session_router),
-    redis_client: Redis = Depends(get_redis_pool),
-    asset_service: AssetService = Depends(get_asset_service),
-    dividend_service: DividendService = Depends(get_dividend_service),
-    asset_stock_service: AssetStockService = Depends(get_asset_stock_service),
-    save_trend_service: SaveTrendService = Depends(get_save_trend_service),
-) -> AssetSaveTrendResponse:
-    asset_all: list = await AssetRepository.get_eager(session, token.get("user"), AssetType.STOCK)
-    if len(asset_all) == 0:
-        return AssetSaveTrendResponse(xAxises=[], dates=[], values1={}, values2={}, unit="")
-    total_asset_amount_all = await asset_service.get_total_asset_amount(session, redis_client, asset_all)
-
-    asset_3month: list = await AssetRepository.get_eager_by_range(
-        session, token.get("user"), AssetType.STOCK, (get_now_date() - timedelta(days=THREE_MONTH_DAY), get_now_date())
-    )
-    if len(asset_3month) == 0:
-        return AssetSaveTrendResponse.no_near_invest_response(total_asset_amount_all)
-
-    total_asset_amount: float = await asset_service.get_total_asset_amount(session, redis_client, asset_3month)
-    total_invest_amount: float = await asset_service.get_total_investment_amount(session, redis_client, asset_3month)
-    total_dividend_amount: float = await dividend_service.get_total_dividend(session, redis_client, asset_3month)
-
-    total_profit_rate = asset_stock_service.get_total_profit_rate(total_asset_amount, total_invest_amount)
-    total_profit_rate_real = asset_stock_service.get_total_profit_rate_real(
-        total_asset_amount, total_invest_amount, INFLATION_RATE
-    )
-
-    increase_invest_year = asset_service.get_average_investment_with_dividend_year(
-        total_invest_amount, total_dividend_amount, THREE_MONTH
-    )
-
-    values1, values2, unit = asset_service.calculate_trend_values(
-        total_asset_amount, increase_invest_year, total_profit_rate, total_profit_rate_real, ASSET_SAVE_TREND_YEAR
-    )
-
-    return AssetSaveTrendResponse(
-        xAxises=save_trend_service.get_x_axises(ASSET_SAVE_TREND_YEAR),
-        dates=save_trend_service.get_dates(ASSET_SAVE_TREND_YEAR),
-        values1=values1,
-        values2=values2,
-        unit=unit,
-    )
-
-
-@chart_router.get(
-    "/sample/estimate-dividend",
-    summary="더미 예상 배당액",
-    response_model=EstimateDividendEveryResponse | EstimateDividendTypeResponse,
-)
-async def get_sample_estimate_dividend(
-    category: EstimateDividendType = Query(EstimateDividendType.EVERY, description="every는 모두, type은 종목 별 입니다."),
-    session: AsyncSession = Depends(get_mysql_session_router),
-    redis_client: Redis = Depends(get_redis_pool),
-    dividend_service: DividendService = Depends(get_dividend_service),
-    exchange_rate_service: ExchangeRateService = Depends(get_exchange_rate_service),
-) -> EstimateDividendEveryResponse | EstimateDividendTypeResponse:
-    assets: list[Asset] = await AssetRepository.get_eager(session, DUMMY_USER_ID, AssetType.STOCK)
-    if len(assets) == 0:
-        return (
-            EstimateDividendEveryResponse(
-                {str(date.today().year): EstimateDividendEveryValue(xAxises=[], data=[], unit="", total=0.0)}
-            )
-            if category == EstimateDividendType.EVERY
-            else EstimateDividendTypeResponse(
-                [EstimateDividendTypeValue(name="", current_amount=0.0, percent_rate=0.0)]
-            )
-        )
-
-    exchange_rate_map: dict[str, float] = await exchange_rate_service.get_exchange_rate_map(redis_client)
-    dividend_map: dict[tuple[str, date], float] = await dividend_service.get_dividend_map(session, assets)
-    recent_dividend_map: dict[str, float] = await dividend_service.get_recent_map(session, assets)
-
-    if category == EstimateDividendType.EVERY:
-        total_dividends: dict[date, float] = dividend_service.get_full_month_estimate_dividend(
-            assets, exchange_rate_map, dividend_map
-        )
-
-        dividend_data_by_year = dividend_service.process_dividends_by_year_month(total_dividends)
-
-        response_data = {}
-        for year, months in dividend_data_by_year.items():
-            data = [months.get(month, 0.0) for month in range(1, 13)]
-            total = sum(data)
-            response_data[year] = EstimateDividendEveryValue(xAxises=MONTHS, data=data, unit="원", total=total)
-
-        return EstimateDividendEveryResponse(response_data)
-    else:
-        total_type_dividends: list[tuple[str, float, float]] = await dividend_service.get_composition(
-            assets, exchange_rate_map, recent_dividend_map
-        )
-
-        return EstimateDividendTypeResponse(
-            [
-                EstimateDividendTypeValue(name=stock_code, current_amount=amount, percent_rate=composition_rate)
-                for stock_code, amount, composition_rate in total_type_dividends
-            ]
-        )
-
-
-@chart_router.get(
-    "/estimate-dividend", summary="예상 배당액", response_model=EstimateDividendEveryResponse | EstimateDividendTypeResponse
-)
-async def get_estimate_dividend(
-    token: AccessToken = Depends(verify_jwt_token),
-    category: EstimateDividendType = Query(EstimateDividendType.EVERY, description="every는 모두, type은 종목 별 입니다."),
-    session: AsyncSession = Depends(get_mysql_session_router),
-    redis_client: Redis = Depends(get_redis_pool),
-    dividend_service: DividendService = Depends(get_dividend_service),
-    exchange_rate_service: ExchangeRateService = Depends(get_exchange_rate_service),
-) -> EstimateDividendEveryResponse | EstimateDividendTypeResponse:
-    assets: list[Asset] = await AssetRepository.get_eager(session, int(token.get("user")), AssetType.STOCK)
-    if len(assets) == 0:
-        return (
-            EstimateDividendEveryResponse(
-                {str(date.today().year): EstimateDividendEveryValue(xAxises=[], data=[], unit="", total=0.0)}
-            )
-            if category == EstimateDividendType.EVERY
-            else EstimateDividendTypeResponse(
-                [EstimateDividendTypeValue(name="", current_amount=0.0, percent_rate=0.0)]
-            )
-        )
-
-    exchange_rate_map: dict[str, float] = await exchange_rate_service.get_exchange_rate_map(redis_client)
-    dividend_map: dict[tuple[str, date], float] = await dividend_service.get_dividend_map(session, assets)
-    recent_dividend_map: dict[str, float] = await dividend_service.get_recent_map(session, assets)
-
-    if category == EstimateDividendType.EVERY:
-        total_dividends: dict[date, float] = dividend_service.get_full_month_estimate_dividend(
-            assets, exchange_rate_map, dividend_map
-        )
-
-        dividend_data_by_year = dividend_service.process_dividends_by_year_month(total_dividends)
-
-        response_data = {}
-        for year, months in dividend_data_by_year.items():
-            data = [months.get(month, 0.0) for month in range(1, 13)]
-            total = sum(data)
-            response_data[year] = EstimateDividendEveryValue(xAxises=MONTHS, data=data, unit="만원", total=total)
-
-        return EstimateDividendEveryResponse(response_data)
-    else:
-        total_type_dividends: list[tuple[str, float, float]] = await dividend_service.get_composition(
-            assets, exchange_rate_map, recent_dividend_map
-        )
-
-        return EstimateDividendTypeResponse(
-            [
-                EstimateDividendTypeValue(name=stock_code, current_amount=amount, percent_rate=composition_rate)
-                for stock_code, amount, composition_rate in total_type_dividends
-            ]
-        )
-
-
-@chart_router.get("/sample/performance-analysis", summary="더미 투자 성과 분석", response_model=PerformanceAnalysisResponse)
-async def get_sample_performance_analysis(
-    interval: IntervalType = Query(IntervalType.ONEMONTH, description="기간 별, 투자 성관 분석 데이터가 제공 됩니다."),
-    session: AsyncSession = Depends(get_mysql_session_router),
-    redis_client: Redis = Depends(get_redis_pool),
-    performance_analysis_service: PerformanceAnalysisService = Depends(get_performance_analysis_service),
-) -> PerformanceAnalysisResponse:
-    if interval is IntervalType.ONEMONTH:
-        start_date, end_date = interval.get_start_end_time()
-        market_analysis_result: dict[date, float] = await performance_analysis_service.get_market_analysis(
-            session, redis_client, start_date, end_date
-        )
-        user_analysis_result: dict[date, float] = await performance_analysis_service.get_user_analysis_single_month(
-            session, redis_client, DUMMY_USER_ID, interval, market_analysis_result
-        )
-
-        sorted_dates = sorted(market_analysis_result.keys())
-
-        return PerformanceAnalysisResponse(
-            xAxises=[date.strftime("%m.%d") for date in sorted_dates],
-            dates=[date.strftime("%Y.%m.%d") for date in sorted_dates],
-            values1={"values": [user_analysis_result[date] for date in sorted_dates], "name": "내 수익률"},
-            values2={"values": [market_analysis_result[date] for date in sorted_dates], "name": "코스피"},
-            unit="%",
-            myReturnRate=mean([user_analysis_result[date] for date in sorted_dates]),
-            contrastMarketReturns=mean([market_analysis_result[date] for date in sorted_dates]),
-        )
-    elif interval in IntervalType.FIVEDAY:
-        start_datetime, end_datetime = interval.get_start_end_time()
-
-        market_analysis_result_short: dict[
-            datetime, float
-        ] = await performance_analysis_service.get_market_analysis_short(
-            session, redis_client, start_datetime, end_datetime, interval  # type: ignore # interval가 date 혹은 datetime 반환
-        )
-
-        user_analysis_result_short: dict[datetime, float] = await performance_analysis_service.get_user_analysis_short(
-            session,
-            redis_client,
-            start_datetime,  # type: ignore # interval가 date 혹은 datetime 반환
-            end_datetime,  # type: ignore # interval가 date 혹은 datetime 반환
-            DUMMY_USER_ID,
-            interval,
-            market_analysis_result_short,
-        )
-
-        sorted_datetimes = sorted(market_analysis_result_short.keys())
-
-        return PerformanceAnalysisResponse(
-            xAxises=[datetime.strftime("%m.%d") for datetime in sorted_datetimes],
-            dates=[datetime.strftime("%Y.%m.%d %H:%M") for datetime in sorted_datetimes],
-            values1={
-                "values": [user_analysis_result_short[datetime] for datetime in sorted_datetimes],
-                "name": "내 수익률",
-            },
-            values2={
-                "values": [market_analysis_result_short[datetime] for datetime in sorted_datetimes],
-                "name": "코스피",
-            },
-            unit="%",
-            myReturnRate=mean([user_analysis_result_short[datetime] for datetime in sorted_datetimes]),
-            contrastMarketReturns=mean([market_analysis_result_short[datetime] for datetime in sorted_datetimes]),
-        )
-    else:
-        start_date, end_date = interval.get_start_end_time()
-        market_analysis_result_month: dict[date, float] = await performance_analysis_service.get_market_analysis(
-            session, redis_client, start_date, end_date
-        )
-        user_analysis_result_month: dict[date, float] = await performance_analysis_service.get_user_analysis(
-            session, redis_client, start_date, end_date, DUMMY_USER_ID, market_analysis_result_month
-        )
-
-        return PerformanceAnalysisResponse.get_performance_analysis_response(
-            market_analysis_result_month, user_analysis_result_month, interval
-        )
-
-
-@chart_router.get("/performance-analysis", summary="투자 성과 분석", response_model=PerformanceAnalysisResponse)
-async def get_performance_analysis(
-    token: AccessToken = Depends(verify_jwt_token),
-    interval: IntervalType = Query(IntervalType.ONEMONTH, description="기간 별, 투자 성관 분석 데이터가 제공 됩니다."),
-    session: AsyncSession = Depends(get_mysql_session_router),
-    redis_client: Redis = Depends(get_redis_pool),
-    performance_analysis_service: PerformanceAnalysisService = Depends(get_performance_analysis_service),
-) -> PerformanceAnalysisResponse:
-    if interval is IntervalType.ONEMONTH:
-        start_date, end_date = interval.get_start_end_time()
-        market_analysis_result: dict[date, float] = await performance_analysis_service.get_market_analysis(
-            session, redis_client, start_date, end_date
-        )
-        user_analysis_result: dict[date, float] = await performance_analysis_service.get_user_analysis(
-            session, redis_client, start_date, end_date, token.get("user"), market_analysis_result
-        )
-        sorted_dates = sorted(market_analysis_result.keys())
-
-        return PerformanceAnalysisResponse(
-            xAxises=[date.strftime("%m.%d") for date in sorted_dates],
-            dates=[date.strftime("%Y.%m.%d") for date in sorted_dates],
-            values1={"values": [user_analysis_result[date] for date in sorted_dates], "name": "내 수익률"},
-            values2={"values": [market_analysis_result[date] for date in sorted_dates], "name": "코스피"},
-            unit="%",
-            myReturnRate=mean([user_analysis_result[date] for date in sorted_dates]),
-            contrastMarketReturns=mean([market_analysis_result[date] for date in sorted_dates]),
-        )
-    elif interval in IntervalType.FIVEDAY:
-        start_datetime, end_datetime = interval.get_start_end_time()
-
-        market_analysis_result_short: dict[
-            datetime, float
-        ] = await performance_analysis_service.get_market_analysis_short(
-            session, redis_client, start_datetime, end_datetime, interval  # type: ignore # interval가 date 혹은 datetime 반환
-        )
-        user_analysis_result_short: dict[datetime, float] = await performance_analysis_service.get_user_analysis_short(
-            session,
-            redis_client,
-            start_datetime,  # type: ignore # interval가 date 혹은 datetime 반환
-            end_datetime,  # type: ignore # interval가 date 혹은 datetime 반환
-            token.get("user"),
-            interval,
-            market_analysis_result_short,
-        )
-
-        sorted_datetimes = sorted(market_analysis_result_short.keys())
-
-        return PerformanceAnalysisResponse(
-            xAxises=[datetime.strftime("%m.%d") for datetime in sorted_datetimes],
-            dates=[datetime.strftime("%Y.%m.%d %H:%M") for datetime in sorted_datetimes],
-            values1={
-                "values": [user_analysis_result_short[datetime] for datetime in sorted_datetimes],
-                "name": "내 수익률",
-            },
-            values2={
-                "values": [market_analysis_result_short[datetime] for datetime in sorted_datetimes],
-                "name": "코스피",
-            },
-            unit="%",
-            myReturnRate=mean([user_analysis_result_short[datetime] for datetime in sorted_datetimes]),
-            contrastMarketReturns=mean([market_analysis_result_short[datetime] for datetime in sorted_datetimes]),
-        )
-    else:
-        start_date, end_date = interval.get_start_end_time()
-        market_analysis_result_month: dict[date, float] = await performance_analysis_service.get_market_analysis(
-            session, redis_client, start_date, end_date
-        )
-        user_analysis_result_month: dict[date, float] = await performance_analysis_service.get_user_analysis(
-            session, redis_client, start_date, end_date, token.get("user"), market_analysis_result_month
-        )
-
-        return PerformanceAnalysisResponse.get_performance_analysis_response(
-            market_analysis_result_month, user_analysis_result_month, interval
-        )
-
-
-@chart_router.get("/sample/composition", summary="종목 구성", response_model=CompositionResponse)
-async def get_sample_composition(
-    type: CompositionType = Query(CompositionType.COMPOSITION, description="composition은 종목 별, account는 계좌 별 입니다."),
-    session: AsyncSession = Depends(get_mysql_session_router),
-    redis_client: Redis = Depends(get_redis_pool),
-    stock_daily_service: StockDailyService = Depends(get_stock_daily_service),
-    stock_service: StockService = Depends(get_stock_service),
-    composition_service: CompositionService = Depends(get_composition_service),
-    exchange_rate_service: ExchangeRateService = Depends(get_exchange_rate_service),
-) -> CompositionResponse:
-    assets: list[Asset] = await AssetRepository.get_eager(session, DUMMY_USER_ID, AssetType.STOCK)
-    if len(assets) == 0:
-        return CompositionResponse([CompositionResponseValue(name="자산 없음", percent_rate=0.0, current_amount=0.0)])
-
-    lastest_stock_daily_map = await stock_daily_service.get_latest_map(session, assets)
-    current_stock_price_map = await stock_service.get_current_stock_price_by_code(
-        redis_client, lastest_stock_daily_map, [asset.asset_stock.stock.code for asset in assets]
-    )
-    exchange_rate_map = await exchange_rate_service.get_exchange_rate_map(redis_client)
-
-    if type is CompositionType.COMPOSITION:
-        stock_composition_data = composition_service.get_asset_stock_composition(
-            assets, current_stock_price_map, exchange_rate_map
-        )
-        return CompositionResponse(
-            [
-                CompositionResponseValue(
-                    name=item["name"], percent_rate=item["percent_rate"], current_amount=item["current_amount"]
-                )
-                for item in stock_composition_data
-            ]
-        )
-    else:
-        account_composition_data = composition_service.get_asset_stock_account(
-            assets, current_stock_price_map, exchange_rate_map
-        )
-
-        return CompositionResponse(
-            [
-                CompositionResponseValue(
-                    name=item["name"], percent_rate=item["percent_rate"], current_amount=item["current_amount"]
-                )
-                for item in account_composition_data
-            ]
-        )
-
-
-@chart_router.get("/composition", summary="종목 구성", response_model=CompositionResponse)
-async def get_composition(
-    token: AccessToken = Depends(verify_jwt_token),
-    type: CompositionType = Query(CompositionType.COMPOSITION, description="composition은 종목 별, account는 계좌 별 입니다."),
-    session: AsyncSession = Depends(get_mysql_session_router),
-    redis_client: Redis = Depends(get_redis_pool),
-    stock_daily_service: StockDailyService = Depends(get_stock_daily_service),
-    stock_service: StockService = Depends(get_stock_service),
-    composition_service: CompositionService = Depends(get_composition_service),
-    exchange_rate_service: ExchangeRateService = Depends(get_exchange_rate_service),
-) -> CompositionResponse:
-    assets: list[Asset] = await AssetRepository.get_eager(session, token.get("user"), AssetType.STOCK)
-    if len(assets) == 0:
-        return CompositionResponse([CompositionResponseValue(name="자산 없음", percent_rate=0.0, current_amount=0.0)])
-
-    lastest_stock_daily_map = await stock_daily_service.get_latest_map(session, assets)
-    current_stock_price_map = await stock_service.get_current_stock_price_by_code(
-        redis_client, lastest_stock_daily_map, [asset.asset_stock.stock.code for asset in assets]
-    )
-    exchange_rate_map = await exchange_rate_service.get_exchange_rate_map(redis_client)
-
-    if type is CompositionType.COMPOSITION:
-        stock_composition_data = composition_service.get_asset_stock_composition(
-            assets, current_stock_price_map, exchange_rate_map
-        )
-        return CompositionResponse(
-            [
-                CompositionResponseValue(
-                    name=item["name"], percent_rate=item["percent_rate"], current_amount=item["current_amount"]
-                )
-                for item in stock_composition_data
-            ]
-        )
-    else:
-        account_composition_data = composition_service.get_asset_stock_account(
-            assets, current_stock_price_map, exchange_rate_map
-        )
-
-        return CompositionResponse(
-            [
-                CompositionResponseValue(
-                    name=item["name"], percent_rate=item["percent_rate"], current_amount=item["current_amount"]
-                )
-                for item in account_composition_data
-            ]
-        )
-
-
-@chart_router.get("/sample/my-stock", summary="내 보유 주식", response_model=MyStockResponse)
-async def get_sample_my_stock(
-    session: AsyncSession = Depends(get_mysql_session_router),
-    redis_client: Redis = Depends(get_redis_pool),
-    asset_service: AssetService = Depends(get_asset_service),
-) -> MyStockResponse:
-    assets: list[Asset] = await AssetRepository.get_eager(session, DUMMY_USER_ID, AssetType.STOCK)
-    if len(assets) == 0:
-        return MyStockResponse(
-            [MyStockResponseValue(name="", current_price=0.0, profit_rate=0.0, profit_amount=0.0, quantity=0)]
-        )
-
-    # 확인 후 수정하겠습니다.
-    stock_assets: list[dict] = await asset_service.get_stock_assets_v1(session, redis_client, assets, ASSET_FIELD)
-    ############
-
-    return MyStockResponse(
-        [
-            MyStockResponseValue(
-                name=stock_asset[StockAsset.STOCK_NAME.value]["value"],
-                current_price=stock_asset[StockAsset.CURRENT_PRICE.value]["value"],
-                profit_rate=stock_asset[StockAsset.PROFIT_RATE.value]["value"],
-                profit_amount=stock_asset[StockAsset.PROFIT_AMOUNT.value]["value"],
-                quantity=stock_asset[StockAsset.QUANTITY.value]["value"],
-            )
-            for stock_asset in stock_assets
-        ]
-    )
-
-
-@chart_router.get("/my-stock", summary="내 보유 주식", response_model=MyStockResponse)
-async def get_my_stock(
-    token: AccessToken = Depends(verify_jwt_token),
-    session: AsyncSession = Depends(get_mysql_session_router),
-    redis_client: Redis = Depends(get_redis_pool),
-    asset_service: AssetService = Depends(get_asset_service),
-) -> MyStockResponse:
-    assets: list[Asset] = await AssetRepository.get_eager(session, token.get("user"), AssetType.STOCK)
-    if len(assets) == 0:
-        return MyStockResponse(
-            [MyStockResponseValue(name="", current_price=0.0, profit_rate=0.0, profit_amount=0.0, quantity=0)]
-        )
-
-    # 확인 후 수정하겠습니다.
-    stock_assets: list[dict] = await asset_service.get_stock_assets_v1(session, redis_client, assets, ASSET_FIELD)
-    ############
-
-    return MyStockResponse(
-        [
-            MyStockResponseValue(
-                name=stock_asset[StockAsset.STOCK_NAME.value]["value"],
-                current_price=stock_asset[StockAsset.CURRENT_PRICE.value]["value"],
-                profit_rate=stock_asset[StockAsset.PROFIT_RATE.value]["value"],
-                profit_amount=stock_asset[StockAsset.PROFIT_AMOUNT.value]["value"],
-                quantity=stock_asset[StockAsset.QUANTITY.value]["value"],
-            )
-            for stock_asset in stock_assets
-        ]
-    )
-
-
-@chart_router.get("/summary", summary="오늘의 리뷰, 나의 총자산, 나의 투자 금액, 수익금", response_model=SummaryResponse)
-async def get_summary(
-    token: AccessToken = Depends(verify_jwt_token),
-    session: AsyncSession = Depends(get_mysql_session_router),
-    redis_client: Redis = Depends(get_redis_pool),
-    asset_service: AssetService = Depends(get_asset_service),
-    summary_service: SummaryService = Depends(get_summary_service),
-) -> SummaryResponse:
-    assets: list[Asset] = await AssetRepository.get_eager(session, token.get("user"), AssetType.STOCK)
-    if len(assets) == 0:
-        return SummaryResponse(
-            today_review_rate=0.0,
-            total_asset_amount=0,
-            total_investment_amount=0,
-            profit=ProfitDetail(profit_amount=0.0, profit_rate=0.0),
-        )
-
-    total_asset_amount = await asset_service.get_total_asset_amount(session, redis_client, assets)
-    total_investment_amount = await asset_service.get_total_investment_amount(session, redis_client, assets)
-    today_review_rate: float = await summary_service.get_today_review_rate(session, redis_client, token.get("user"))
-
-    return SummaryResponse(
-        today_review_rate=today_review_rate,
-        total_asset_amount=total_asset_amount,
-        total_investment_amount=total_investment_amount,
-        profit=ProfitDetail(
-            profit_amount=total_asset_amount - total_investment_amount,
-            profit_rate=(total_asset_amount - total_investment_amount) / total_asset_amount * 100
-            if total_investment_amount > 0.0 and total_asset_amount > 0.0
-            else 0.0,
-        ),
-    )
-
-
-@chart_router.get("/sample/summary", summary="오늘의 리뷰, 나의 총자산, 나의 투자 금액, 수익금", response_model=SummaryResponse)
-async def get_sample_summary(
-    session: AsyncSession = Depends(get_mysql_session_router),
-    redis_client: Redis = Depends(get_redis_pool),
-    asset_service: AssetService = Depends(get_asset_service),
-    summary_service: SummaryService = Depends(get_summary_service),
-) -> SummaryResponse:
-    assets: list[Asset] = await AssetRepository.get_eager(session, DUMMY_USER_ID, AssetType.STOCK)
-    if len(assets) == 0:
-        return SummaryResponse(
-            today_review_rate=0.0,
-            total_asset_amount=0,
-            total_investment_amount=0,
-            profit=ProfitDetail(profit_amount=0.0, profit_rate=0.0),
-        )
-
-    total_asset_amount = await asset_service.get_total_asset_amount(session, redis_client, assets)
-    total_investment_amount = await asset_service.get_total_investment_amount(session, redis_client, assets)
-    today_review_rate: float = await summary_service.get_today_review_rate(session, redis_client, DUMMY_USER_ID)
-
-    return SummaryResponse(
-        today_review_rate=today_review_rate,
-        total_asset_amount=total_asset_amount,
-        total_investment_amount=total_investment_amount,
-        profit=ProfitDetail(
-            profit_amount=total_asset_amount - total_investment_amount,
-            profit_rate=(total_asset_amount - total_investment_amount) / total_asset_amount * 100
-            if total_investment_amount > 0.0 and total_asset_amount > 0.0
-            else 0.0,
-        ),
-    )
-
-
+# 삭제될 예정입니다.
 @chart_router.get("/tip", summary="오늘의 투자 tip", response_model=ChartTipResponse)
 async def get_today_tip(
     session: AsyncSession = Depends(get_mysql_session_router),
     redis_client: Redis = Depends(get_redis_pool),
 ) -> ChartTipResponse:
-    today_tip_id = await RedisTipRepository.get(redis_client, TIP_TODAY_ID_REDIS_KEY)
-
-    if today_tip_id is None:
-        return ChartTipResponse(DEFAULT_TIP)
-
-    invest_tip = await TipRepository.get(session, int(today_tip_id))
-
-    if invest_tip is None:
-        return ChartTipResponse(DEFAULT_TIP)
-
-    return ChartTipResponse(invest_tip.tip)
-
-
-@chart_router.get("/indice", summary="현재 시장 지수", response_model=MarketIndiceResponse)
-async def get_market_index(
-    redis_client: Redis = Depends(get_redis_pool),
-    realtime_index_service: RealtimeIndexService = Depends(get_realtime_index_service),
-) -> MarketIndiceResponse:
-    market_index_values: list[MarketIndexData] = await realtime_index_service.get_current_market_index_value(
-        redis_client
-    )
-
-    return MarketIndiceResponse(
-        [
-            MarketIndiceResponseValue(
-                name=market_index_value.name,
-                name_kr=MARKET_INDEX_KR_MAPPING.get(market_index_value.name, "N/A"),
-                current_value=float(market_index_value.current_value),
-                change_percent=float(market_index_value.change_percent),
-            )
-            for market_index_value in market_index_values
-            if market_index_value is not None
-        ]
-    )
-
-
-@chart_router.get("/rich-pick", summary="미국 부자들이 선택한 종목 TOP10", response_model=RichPickResponse)
-async def get_rich_pick(
-    session: AsyncSession = Depends(get_mysql_session_router),
-    redis_client: Redis = Depends(get_redis_pool),
-    rich_service: RichService = Depends(get_rich_service),
-    stock_daily_service: StockDailyService = Depends(get_stock_daily_service),
-    stock_service: StockService = Depends(get_stock_service),
-    exchange_rate_service: ExchangeRateService = Depends(get_exchange_rate_service),
-) -> RichPickResponse:
-    top_10_stock_codes, stock_name_map = await rich_service.get_rich_top_10_pick(session, redis_client)
-    lastest_stock_daily_map = await stock_daily_service.get_latest_map_by_codes(session, top_10_stock_codes)
-    current_stock_price_map: dict[str, float] = await stock_service.get_current_stock_price_by_code(
-        redis_client, lastest_stock_daily_map, top_10_stock_codes
-    )
-    exchange_rate_map = await exchange_rate_service.get_exchange_rate_map(redis_client)
-    stock_daily_profit: dict[str, float] = stock_service.get_daily_profit(
-        lastest_stock_daily_map, current_stock_price_map, top_10_stock_codes
-    )
-    won_exchange_rate = exchange_rate_service.get_exchange_rate(CurrencyType.USA, CurrencyType.KOREA, exchange_rate_map)
-    stock_korea_price = {stock_code: price * won_exchange_rate for stock_code, price in current_stock_price_map.items()}
-
-    return RichPickResponse(
-        [
-            RichPickValue(
-                name=stock_name_map.get(stock_code),
-                price=stock_korea_price[stock_code],
-                rate=stock_daily_profit[stock_code],
-            )
-            for stock_code in top_10_stock_codes
-        ]
-    )
+    return ChartTipResponse(DEFAULT_TIP)

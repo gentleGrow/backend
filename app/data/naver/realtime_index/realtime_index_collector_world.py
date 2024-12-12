@@ -3,7 +3,6 @@ import os
 
 import ray
 from dotenv import load_dotenv
-from icecream import ic
 from pyvirtualdisplay import Display
 from selenium import webdriver
 from selenium.webdriver.chrome.options import Options
@@ -75,8 +74,8 @@ class RealtimeIndexWorldCollector:
                     db_bulk_data.append(market_data["db"])
 
             await self._save_market_data(db_bulk_data, redis_bulk_data)
-        except Exception as e:
-            ic(f"마켓 데이터 fetch 중 에러 : {e}")
+        except Exception:
+            return
 
     async def _init_webdriver(self):
         self.display = Display(visible=0, size=(800, 600))

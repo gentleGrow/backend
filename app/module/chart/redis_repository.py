@@ -31,16 +31,6 @@ class RedisRichPickRepository:
         await redis_client.set(key, data, ex=expire_time)
 
 
-class RedisTipRepository:
-    @staticmethod
-    async def get(redis_client: Redis, key: str) -> str:
-        return await redis_client.get(key)
-
-    @staticmethod
-    async def save(redis_client: Redis, key: str, data: int, expire_time: int) -> None:
-        await redis_client.set(key, data, ex=expire_time)
-
-
 class RedisMarketIndiceRepository:
     @staticmethod
     async def get(redis_client: Redis, key: str) -> MarketIndexData | None:

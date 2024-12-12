@@ -1,22 +1,22 @@
 from collections import defaultdict
 from datetime import date, timedelta
 
-from redis.asyncio import Redis
 from sqlalchemy.ext.asyncio import AsyncSession
-
+from icecream import ic
+from app.module.asset.constant import MONTHS, 만
 from app.module.asset.model import Asset, Dividend
 from app.module.asset.repository.dividend_repository import DividendRepository
 from app.module.asset.services.exchange_rate_service import ExchangeRateService
+from app.module.chart.schema import EstimateDividendEveryValue, EstimateDividendTypeValue
 
 
 class DividendService:
     def __init__(self, exchange_rate_service: ExchangeRateService):
         self.exchange_rate_service = exchange_rate_service
 
-    async def get_total_dividend(self, session: AsyncSession, redis_client: Redis, assets: list[Asset]) -> float:
-        exchange_rate_map = await self.exchange_rate_service.get_exchange_rate_map(redis_client)
-        dividend_map: dict[str, float] = await self.get_recent_map(session, assets)
-
+    def get_total_dividend(
+        self, assets: list[Asset], exchange_rate_map: dict[str, float], dividend_map: dict[str, float]
+    ) -> float:
         result = 0.0
 
         for asset in assets:
@@ -25,33 +25,6 @@ class DividendService:
                 * asset.asset_stock.quantity
                 * self.exchange_rate_service.get_won_exchange_rate(asset, exchange_rate_map)
             )
-
-        return result
-
-    def get_closest_dividend(self, asset: Asset, dividend_map: dict[tuple[str, date], float]) -> date | None:
-        asset_code: str = asset.asset_stock.stock.code
-        asset_date: date = asset.asset_stock.trade_date
-
-        filtered_dividends = sorted(
-            (
-                (dividend_date, dividend_amount)
-                for (dividend_code, dividend_date), dividend_amount in dividend_map.items()
-                if dividend_code == asset_code and dividend_date > asset_date
-            ),
-            key=lambda x: x[0],
-        )
-
-        return filtered_dividends[0][0] if filtered_dividends else None
-
-    def process_dividends_by_year_month(self, total_dividends: dict[date, float]) -> dict[str, dict[int, float]]:
-        dividend_by_year_month: dict[int, dict[int, float]] = defaultdict(lambda: defaultdict(float))
-
-        for dividend_date, dividend_amount in total_dividends.items():
-            dividend_by_year_month[dividend_date.year][dividend_date.month] += dividend_amount
-
-        result = {}
-        for year, months in dividend_by_year_month.items():
-            result[str(year)] = {month: months.get(month, 0.0) for month in range(1, 13)}
 
         return result
 
@@ -132,7 +105,7 @@ class DividendService:
         assets: list[Asset],
         exchange_rate_map: dict[str, float],
         dividend_map: dict[str, float],
-    ) -> list[tuple[str, float, float]]:
+    ) -> list[EstimateDividendTypeValue]:
         if len(assets) == 0:
             return []
 
@@ -150,29 +123,84 @@ class DividendService:
             total_dividend[asset.asset_stock.stock.code] += dividend * won_exchange_rate * asset.asset_stock.quantity
             total_dividend_sum += dividend * won_exchange_rate * asset.asset_stock.quantity
 
-        return sorted(
-            [
-                (stock_code, dividend, (dividend / total_dividend_sum) * 100 if total_dividend_sum > 0 else 0.0)
-                for stock_code, dividend in total_dividend.items()
-                if dividend > 0
-            ],
-            key=lambda x: x[1],
-            reverse=True,
+        return [
+            EstimateDividendTypeValue(
+                name=stock_code,
+                current_amount=dividend,
+                percent_rate=(dividend / total_dividend_sum) * 100 if total_dividend_sum > 0 else 0.0,
+            )
+            for stock_code, dividend in total_dividend.items()
+            if dividend > 0
+        ]
+
+    def get_dividend_every_chart_data(
+        self, assets: list[Asset], exchange_rate_map: dict[str, float], dividend_map: dict[tuple[str, date], float]
+    ) -> dict[str, EstimateDividendEveryValue]:
+        total_dividends: dict[date, float] = self._get_full_month_estimate_dividend(
+            assets, exchange_rate_map, dividend_map
         )
 
-    def get_full_month_estimate_dividend(
+        dividend_data_by_year = self._combine_dividends_by_year_month(total_dividends)
+        
+        result = {}
+        for year, months in dividend_data_by_year.items():
+            # 추후 협의 후 수정 할 코드입니다.
+            # over_만 = any(value > 만 for value in months.values())
+            # if over_만:
+            #     data = [months.get(month, 0.0) / 만 if months.get(month, 0.0) > 0 else 0.0 for month in range(1, 13)]
+            #     total = sum(data)
+            #     result[year] = EstimateDividendEveryValue(xAxises=MONTHS, data=data, unit="만원", total=total)
+            # else:
+            #     data = [months.get(month, 0.0) for month in range(1, 13)]
+            #     total = sum(data)
+            #     result[year] = EstimateDividendEveryValue(xAxises=MONTHS, data=data, unit="원", total=total)
+
+            data = [months.get(month, 0.0) for month in range(1, 13)]
+            total = sum(data)
+            result[year] = EstimateDividendEveryValue(xAxises=MONTHS, data=data, unit="원", total=total)
+
+        return result
+
+    def _combine_dividends_by_year_month(self, total_dividends: dict[date, float]) -> dict[str, dict[int, float]]:
+        dividend_by_year_month: dict[int, dict[int, float]] = defaultdict(lambda: defaultdict(float))
+
+        for dividend_date, dividend_amount in total_dividends.items():
+            dividend_by_year_month[dividend_date.year][dividend_date.month] += dividend_amount
+
+        result = {}
+        for year, months in dividend_by_year_month.items():
+            result[str(year)] = {month: months.get(month, 0.0) for month in range(1, 13)}
+
+        return result
+
+    def _get_full_month_estimate_dividend(
         self, assets: list[Asset], exchange_rate_map: dict[str, float], dividend_map: dict[tuple[str, date], float]
     ) -> defaultdict[date, float]:
         result: defaultdict[date, float] = defaultdict(float)
 
         for asset in assets:
             won_exchange_rate: float = self.exchange_rate_service.get_won_exchange_rate(asset, exchange_rate_map)
-            closest_dividend_date: date | None = self.get_closest_dividend(asset, dividend_map)
+            closest_dividend_date: date | None = self._get_earliest_dividend_date(asset, dividend_map)
             if closest_dividend_date is None:
                 continue
 
             for (code, current_date), dividend_amount in sorted(dividend_map.items()):
                 if code == asset.asset_stock.stock.code and current_date >= closest_dividend_date:
-                    result[current_date] += dividend_amount * won_exchange_rate
+                    result[current_date] += dividend_amount * won_exchange_rate * asset.asset_stock.quantity
 
         return result
+
+    def _get_earliest_dividend_date(self, asset: Asset, dividend_map: dict[tuple[str, date], float]) -> date | None:
+        asset_code: str = asset.asset_stock.stock.code
+        asset_date: date = asset.asset_stock.trade_date
+
+        filtered_dividends = sorted(
+            (
+                (dividend_date, dividend_amount)
+                for (dividend_code, dividend_date), dividend_amount in dividend_map.items()
+                if dividend_code == asset_code and dividend_date > asset_date
+            ),
+            key=lambda x: x[0],
+        )
+
+        return filtered_dividends[0][0] if filtered_dividends else None

@@ -43,11 +43,11 @@ celery_task.conf.beat_schedule = {
     },
     "index": {
         "task": "app.data.yahoo.index.main",
-        "schedule": crontab(hour=1, minute=0),
+        "schedule": crontab(minute=0),
     },
     "stock": {
         "task": "app.data.yahoo.stock.main",
-        "schedule": crontab(hour=1, minute=0),
+        "schedule": crontab(minute=0),
     },
     "rich_portfolio": {
         "task": "app.data.investing.rich_portfolio.main",

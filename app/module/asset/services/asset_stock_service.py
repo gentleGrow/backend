@@ -5,7 +5,8 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.module.asset.enum import AssetType, CurrencyType, PurchaseCurrencyType, TradeType
 from app.module.asset.model import Asset, AssetStock, StockDaily
 from app.module.asset.repository.asset_repository import AssetRepository
-from app.module.asset.schema import AssetStockPostRequest, AssetStockPostRequest_v1
+from app.module.asset.repository.stock_repository import StockRepository
+from app.module.asset.schema import AssetStockRequest
 from app.module.asset.services.exchange_rate_service import ExchangeRateService
 
 
@@ -18,7 +19,7 @@ class AssetStockService:
         current_amount: float,
         past_amount: float,
     ) -> float:
-        return ((current_amount - past_amount) / past_amount) * 100 if past_amount > 0 else 0.0
+        return ((current_amount - past_amount) / past_amount) * 100 if current_amount > 0 and past_amount > 0 else 0.0
 
     def get_total_profit_rate_real(
         self, total_asset_amount: float, total_invest_amount: float, real_value_rate: float
@@ -45,36 +46,10 @@ class AssetStockService:
             )
         return result
 
-    # 확인 후 수정하겠습니다.
-    async def save_asset_stock_by_post_v1(
-        self, session: AsyncSession, request_data: AssetStockPostRequest_v1, stock_id: int, user_id: int
-    ) -> None:
-        result = []
-
-        new_asset = Asset(
-            asset_type=AssetType.STOCK,
-            user_id=user_id,
-            asset_stock=AssetStock(
-                account_type=request_data.account_type,
-                investment_bank=request_data.investment_bank,
-                purchase_currency_type=request_data.purchase_currency_type,
-                trade_date=request_data.buy_date,
-                trade_price=request_data.purchase_price,
-                quantity=request_data.quantity,
-                trade=request_data.trade if request_data.trade else TradeType.BUY,
-                stock_id=stock_id,
-            ),
-        )
-        result.append(new_asset)
-
-        await AssetRepository.save_assets(session, result)
-
-    #############################
-
     async def save_asset_stock_by_post(
-        self, session: AsyncSession, request_data: AssetStockPostRequest, stock_id: int, user_id: int
+        self, session: AsyncSession, request_data: AssetStockRequest, user_id: int
     ) -> None:
-        result = []
+        stock = await StockRepository.get_by_code(session, request_data.stock_code)
 
         new_asset = Asset(
             asset_type=AssetType.STOCK,
@@ -87,12 +62,11 @@ class AssetStockService:
                 trade_price=request_data.trade_price,
                 quantity=request_data.quantity,
                 trade=request_data.trade if request_data.trade else TradeType.BUY,
-                stock_id=stock_id,
+                stock_id=stock.id,
             ),
         )
-        result.append(new_asset)
 
-        await AssetRepository.save_assets(session, result)
+        await AssetRepository.save(session, new_asset)
 
     def get_total_asset_amount_minute(
         self,

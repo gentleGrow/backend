@@ -1,9 +1,11 @@
 import asyncio
 import logging
+from os import getenv
 
 import pandas as pd
 import yfinance
 from celery import shared_task
+from dotenv import load_dotenv
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.data.common.service import StockCodeFileReader
@@ -14,13 +16,19 @@ from app.module.asset.model import Dividend
 from app.module.asset.repository.dividend_repository import DividendRepository
 from app.module.asset.schema import StockInfo
 from database.dependency import get_mysql_session
+from database.enum import EnvironmentType
 
-logger = logging.getLogger("stock")
+load_dotenv()
+
+ENVIRONMENT = getenv("ENVIRONMENT", None)
+
+logger = logging.getLogger("dividend")
 logger.setLevel(logging.INFO)
 
-file_handler = logging.FileHandler("/home/backend/dividend.log", delay=False)
-file_handler.setFormatter(logging.Formatter("%(asctime)s - %(levelname)s - %(message)s"))
-logger.addHandler(file_handler)
+if ENVIRONMENT == EnvironmentType.PROD:
+    file_handler = logging.FileHandler("/home/backend/dividend.log", delay=False)
+    file_handler.setFormatter(logging.Formatter("%(asctime)s - %(levelname)s - %(message)s"))
+    logger.addHandler(file_handler)
 
 
 async def insert_dividend_data(session: AsyncSession, stock_list: list[StockInfo], batch_size: int):
@@ -61,7 +69,7 @@ async def insert_dividend_data(session: AsyncSession, stock_list: list[StockInfo
 
 async def execute_async_task():
     logger.info("배당 수집을 시작합니다.")
-    stock_list: list[StockInfo] = StockCodeFileReader.get_all_stock_code_list()
+    stock_list: list[StockInfo] = StockCodeFileReader.get_usa_korea_stock_code_list()
 
     async with get_mysql_session() as session:
         await insert_dividend_data(session, stock_list, BATCH_SIZE)
@@ -69,4 +77,8 @@ async def execute_async_task():
 
 @shared_task
 def main():
+    asyncio.run(execute_async_task())
+
+
+if __name__ == "__main__":
     asyncio.run(execute_async_task())

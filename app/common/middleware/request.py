@@ -1,9 +1,15 @@
 import asyncio
+from os import getenv
 
+from dotenv import load_dotenv
 from fastapi import HTTPException, status
 from starlette.middleware.base import BaseHTTPMiddleware
 
 from app.common.middleware.constant import REQUEST_TIMEOUT_SECOND
+
+load_dotenv()
+
+ENVIRONMENT = getenv("ENVIRONMENT", None)
 
 
 class TimeoutMiddleware(BaseHTTPMiddleware):

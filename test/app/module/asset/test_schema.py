@@ -3,7 +3,7 @@ from redis.asyncio import Redis
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.module.asset.constant import CurrencyType
-from app.module.asset.dependencies.asset_dependency import get_asset_service
+from app.module.asset.dependencies.asset_dependency import get_asset_query, get_asset_service
 from app.module.asset.dependencies.asset_field_dependency import get_asset_field_service
 from app.module.asset.dependencies.dividend_dependency import get_dividend_service
 from app.module.asset.enum import AssetType
@@ -55,11 +55,26 @@ class TestAssetStockResponse:
         asset_service = get_asset_service()
         dividend_service = get_dividend_service()
         asset_field_service = get_asset_field_service()
+        asset_query = get_asset_query()
 
         assets: list[Asset] = await AssetRepository.get_eager(session, DUMMY_USER_ID, AssetType.STOCK)
         asset_fields = await asset_field_service.get_asset_field(session, DUMMY_USER_ID)
-        stock_asset_elements: list[StockAssetSchema] = await asset_service.get_stock_assets(
-            session=session, redis_client=redis_client, assets=assets, asset_fields=asset_fields
+
+        (
+            stock_daily_map,
+            lastest_stock_daily_map,
+            dividend_map,
+            exchange_rate_map,
+            current_stock_price_map,
+        ) = await asset_query.get_all_data(session, redis_client, assets)
+
+        stock_asset_elements: list[StockAssetSchema] = asset_service.get_stock_assets(
+            assets,
+            stock_daily_map,
+            lastest_stock_daily_map,
+            dividend_map,
+            exchange_rate_map,
+            current_stock_price_map,
         )
 
         aggregate_stock_assets: list[AggregateStockAsset] = asset_service.aggregate_stock_assets(stock_asset_elements)
@@ -67,9 +82,10 @@ class TestAssetStockResponse:
             stock_asset_elements, aggregate_stock_assets
         )
 
-        total_asset_amount = await asset_service.get_total_asset_amount(session, redis_client, assets)
-        total_invest_amount = await asset_service.get_total_investment_amount(session, redis_client, assets)
-        total_dividend_amount = await dividend_service.get_total_dividend(session, redis_client, assets)
+        total_asset_amount = asset_service.get_total_asset_amount(assets, current_stock_price_map, exchange_rate_map)
+        total_invest_amount = asset_service.get_total_investment_amount(assets, stock_daily_map, exchange_rate_map)
+        total_dividend_amount = dividend_service.get_total_dividend(assets, exchange_rate_map, dividend_map)
+
         dollar_exchange = await RedisExchangeRateRepository.get(
             redis_client, f"{CurrencyType.KOREA}_{CurrencyType.USA}"
         )
