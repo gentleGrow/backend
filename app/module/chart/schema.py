@@ -97,7 +97,8 @@ class ProfitDetail(BaseModel):
 
 
 class SummaryResponse(BaseModel):
-    increase_asset_amount: float = Field(..., description="오늘의 review 증가액")
+    # 협의 후 바로 추가할 인자입니다.
+    # increase_asset_amount: float = Field(..., description="오늘의 review 증가액")
     today_review_rate: float = Field(..., description="오늘의 review 수익금")
     total_asset_amount: float = Field(..., description="나의 총 자산")
     total_investment_amount: float = Field(..., description="나의 투자 금액")
@@ -210,7 +211,9 @@ class PerformanceAnalysisResponse(BaseModel):
                 contrastMarketReturns=mean([market_analysis_data[interval_time] for interval_time in interval_times]),  # type: ignore # IntervalType.FIVEDAY 조건에 의해 date 보장
             )
         else:
-            interval_year_month = sorted(set([(interval_time.year, interval_time.month) for interval_time in interval_times]))
+            interval_year_month = sorted(
+                set([(interval_time.year, interval_time.month) for interval_time in interval_times])
+            )
             return cls(
                 xAxises=[f"{str(year)[-2:]}.{month}" for year, month in interval_year_month],
                 dates=[f"{year}.{month}" for year, month in interval_year_month],

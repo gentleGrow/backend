@@ -377,8 +377,9 @@ async def get_summary(
         complete_buy_asset, current_stock_price_map, exchange_rate_map
     )
 
+    # 협의 후 바로 추가할 인자입니다.
     return SummaryResponse(
-        increase_asset_amount=increase_asset_amount,
+        # increase_asset_amount=increase_asset_amount,
         today_review_rate=today_review_rate,
         total_asset_amount=total_asset_amount,
         total_investment_amount=total_investment_amount,
@@ -422,8 +423,9 @@ async def get_sample_summary(
         complete_buy_asset, current_stock_price_map, exchange_rate_map
     )
 
+    # 협의 후 바로 추가할 인자입니다.
     return SummaryResponse(
-        increase_asset_amount=increase_asset_amount,
+        # increase_asset_amount=increase_asset_amount,
         today_review_rate=today_review_rate,
         total_asset_amount=total_asset_amount,
         total_investment_amount=total_investment_amount,

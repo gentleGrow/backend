@@ -3,7 +3,7 @@ from datetime import date, datetime
 from statistics import mean
 
 from sqlalchemy.ext.asyncio import AsyncSession
-from icecream import ic
+
 from app.module.asset.enum import MarketIndex
 from app.module.asset.model import Asset, MarketIndexDaily, MarketIndexMinutely, StockDaily
 from app.module.asset.services.asset_service import AssetService
@@ -152,12 +152,11 @@ class PerformanceAnalysisService:
             total_profit = self.asset_stock_service.get_total_profit_rate(total_asset_amount, total_invest_amount)
 
             avg_profits[(interval_date.year, interval_date.month)].append(total_profit)
-        
+
         return {
             year_month: mean([profit for profit in profits if profit]) if any(profit for profit in profits) else 0
             for year_month, profits in avg_profits.items()
         }
-
 
     def _get_target_dates(self, assets: list[Asset], interval_dates: list[date]) -> list[date]:
         result = interval_dates.copy()
@@ -189,8 +188,6 @@ class PerformanceAnalysisService:
             year_month: mean([profit for profit in profits if profit]) if any(profit for profit in profits) else 0
             for year_month, profits in avg_profits.items()
         }
-
-
 
     def _get_market_analysis_days(
         self,
