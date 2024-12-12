@@ -3,7 +3,7 @@ from datetime import date
 from fastapi import APIRouter, Depends, Query
 from redis.asyncio import Redis
 from sqlalchemy.ext.asyncio import AsyncSession
-
+from icecream import ic
 from app.common.auth.security import verify_jwt_token
 from app.module.asset.constant import ASSET_SAVE_TREND_YEAR
 from app.module.asset.dependencies.asset_dependency import get_asset_query, get_asset_service
