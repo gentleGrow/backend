@@ -13,7 +13,7 @@ class SummaryService:
 
     def get_today_review_rate(
         self, assets: list[Asset], current_stock_price_map: dict[str, float], exchange_rate_map: dict[str, float]
-    ) -> tuple[float,float]:
+    ) -> tuple[float, float]:
         past_assets = [
             asset
             for asset in assets
@@ -21,8 +21,8 @@ class SummaryService:
         ]
 
         if not len(past_assets):
-            return FULL_PERCENTAGE_RATE
-        
+            return (FULL_PERCENTAGE_RATE, 0.0)
+
         past_total_amount = self.asset_service.get_total_asset_amount(
             past_assets, current_stock_price_map, exchange_rate_map
         )
@@ -30,4 +30,7 @@ class SummaryService:
             assets, current_stock_price_map, exchange_rate_map
         )
 
-        return self.asset_stock_service.get_total_profit_rate(current_total_amount, past_total_amount), current_total_amount-past_total_amount
+        return (
+            self.asset_stock_service.get_total_profit_rate(current_total_amount, past_total_amount),
+            current_total_amount - past_total_amount,
+        )

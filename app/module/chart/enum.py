@@ -1,9 +1,10 @@
 from datetime import date, datetime, timedelta
 from enum import StrEnum
-
+import pandas as pd
 from dateutil.relativedelta import relativedelta
-from app.module.asset.model import Asset
+
 from app.common.util.time import get_now_date, get_now_datetime
+from app.module.asset.model import Asset
 
 
 class EstimateDividendType(StrEnum):
@@ -23,12 +24,34 @@ class IntervalType(StrEnum):
     SIXMONTH = "6month"
     ONEYEAR = "1year"
 
-    def filter_assets_by_date(self, assets:list[Asset]) -> list[Asset]:
+    def filter_assets_by_date(self, assets: list[Asset]) -> list[Asset]:
         start_date = self._get_start_date()
         if not len(assets):
             return []
         else:
             return [asset for asset in assets if asset.asset_stock.trade_date > start_date]
+
+
+    def get_chart_month_interval(self) -> list[date]:
+        if self == IntervalType.THREEMONTH:
+            interval_months = 3
+        elif self == IntervalType.SIXMONTH:
+            interval_months = 6
+        elif self == IntervalType.ONEYEAR:
+            interval_months = 12
+        else:
+            interval_months = 12
+            
+        today = pd.Timestamp.today().normalize()
+        start_date = (today - pd.DateOffset(months=interval_months - 1)).replace(day=1)
+        
+        dates = pd.date_range(start=start_date, end=today, freq='B')
+
+        valid_months = {(start_date + pd.DateOffset(months=i)).month for i in range(interval_months)}
+        
+        return [d.date() for d in dates if d.month in valid_months]
+    
+
 
     def get_chart_date_interval(self) -> list[date]:
         start_date = self._get_start_date()
@@ -44,20 +67,7 @@ class IntervalType(StrEnum):
         return result
 
     def _get_start_date(self) -> date:
-        if self == IntervalType.FIVEDAY:
-            timediff = 4
-        elif self == IntervalType.ONEMONTH:
-            timediff = 30
-        elif self == IntervalType.THREEMONTH:
-            timediff = 90
-        elif self == IntervalType.SIXMONTH:
-            timediff = 180
-        elif self == IntervalType.ONEYEAR:
-            timediff = 365
-        else:
-            timediff = 30
-
-        result = get_now_date() - timedelta(days=timediff)
+        result = get_now_date() - timedelta(days=30)
         days_between = [(result + timedelta(days=i)).weekday() for i in range(5)]
         if 5 in days_between:
             result -= timedelta(days=1)
@@ -65,7 +75,6 @@ class IntervalType(StrEnum):
             result -= timedelta(days=1)
 
         return result
-
 
     def get_chart_datetime_interval(self) -> list[datetime]:
         start_datetime = self._get_start_datetime()
@@ -77,25 +86,11 @@ class IntervalType(StrEnum):
             if current_datetime.weekday() not in (5, 6):
                 result.append(current_datetime)
             current_datetime += timedelta(minutes=30)
-    
+
         return result
 
-
-    def _get_start_datetime(self) -> date:
-        if self == IntervalType.FIVEDAY:
-            timediff = 4
-        elif self == IntervalType.ONEMONTH:
-            timediff = 30
-        elif self == IntervalType.THREEMONTH:
-            timediff = 90
-        elif self == IntervalType.SIXMONTH:
-            timediff = 180
-        elif self == IntervalType.ONEYEAR:
-            timediff = 365
-        else:
-            timediff = 30
-
-        result = get_now_datetime().replace(hour=0, minute=0) - timedelta(days=timediff)
+    def _get_start_datetime(self) -> datetime:
+        result = get_now_datetime().replace(hour=0, minute=0) - timedelta(days=4)
         days_between = [(result + timedelta(days=i)).weekday() for i in range(5)]
         if 5 in days_between:
             result -= timedelta(days=1)
@@ -103,8 +98,6 @@ class IntervalType(StrEnum):
             result -= timedelta(days=1)
 
         return result
-
-
 
     def get_days(self) -> int:
         if self == IntervalType.FIVEDAY:
@@ -149,4 +142,3 @@ class IntervalType(StrEnum):
         elif self == IntervalType.ONEYEAR:
             return 60 * 24 * 30
         return 1
-

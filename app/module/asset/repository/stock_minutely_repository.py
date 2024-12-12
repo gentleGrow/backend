@@ -1,6 +1,6 @@
 from datetime import datetime
 
-from sqlalchemy import delete, extract, select
+from sqlalchemy import delete, select
 from sqlalchemy.dialects.mysql import insert
 from sqlalchemy.ext.asyncio import AsyncSession
 

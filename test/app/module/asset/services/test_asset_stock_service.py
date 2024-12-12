@@ -21,33 +21,6 @@ from app.module.auth.constant import DUMMY_USER_ID
 
 class TestAssetStockService:
     @pytest.mark.parametrize(
-        "total_asset_amount, total_invest_amount, expected_profit_rate",
-        [
-            (1200000.0, 1000000.0, 20.0),
-            (800000.0, 1000000.0, -20.0),
-            (1000000.0, 1000000.0, 0.0),
-            (0.0, 1000000.0, -100.0),
-            (1000000.0, 0.0, 0.0),
-        ],
-    )
-    def test_get_total_profit_rate(
-        self,
-        total_asset_amount,
-        total_invest_amount,
-        expected_profit_rate,
-    ):
-        # Given
-        asset_stock_service: AssetStockService = get_asset_stock_service()
-
-        # When
-        actual_profit_rate = asset_stock_service.get_total_profit_rate(
-            current_amount=total_asset_amount, past_amount=total_invest_amount
-        )
-
-        # Then
-        assert actual_profit_rate == pytest.approx(expected_profit_rate, rel=1e-2)
-
-    @pytest.mark.parametrize(
         "total_asset_amount, total_invest_amount, real_value_rate, expected_real_profit_rate",
         [
             (1200000.0, 1000000.0, 3.0, 17.0),

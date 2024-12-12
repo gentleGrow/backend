@@ -1,17 +1,11 @@
-from datetime import date, datetime
-from statistics import mean
-from icecream import ic
+from datetime import date
+
 from fastapi import APIRouter, Depends, Query
-from app.module.asset.services.stock_minutely_service import StockMinutelyService
-from app.module.asset.dependencies.stock_minutely_dependency import get_stock_minutely_service
 from redis.asyncio import Redis
 from sqlalchemy.ext.asyncio import AsyncSession
-from app.module.asset.services.index_daily_service import IndexDailyService
-from app.module.asset.dependencies.index_daily_dependency import get_index_daily_service
-from app.module.asset.services.index_minutely_service import IndexMinutelyService
+
 from app.common.auth.security import verify_jwt_token
 from app.module.asset.constant import ASSET_SAVE_TREND_YEAR
-from app.module.asset.dependencies.index_minutely_dependency import get_index_minutely_service
 from app.module.asset.dependencies.asset_dependency import get_asset_query, get_asset_service
 from app.module.asset.dependencies.dividend_dependency import get_dividend_service
 from app.module.asset.dependencies.exchange_rate_dependency import get_exchange_rate_service
@@ -19,7 +13,6 @@ from app.module.asset.dependencies.realtime_index_dependency import get_realtime
 from app.module.asset.dependencies.stock_daily_dependency import get_stock_daily_service
 from app.module.asset.dependencies.stock_dependency import get_stock_service
 from app.module.asset.enum import AssetType, CurrencyType, MarketIndex
-from app.module.asset.model import MarketIndexMinutely
 from app.module.asset.repository.asset_repository import AssetRepository
 from app.module.asset.schema import MarketIndexData, StockAssetSchema
 from app.module.asset.services.asset.asset_query import AssetQuery
@@ -265,6 +258,7 @@ async def get_estimate_dividend(
 
         return EstimateDividendTypeResponse(type_dividend_data)
 
+
 @chart_router.get("/sample/composition", summary="종목 구성", response_model=CompositionResponse)
 async def get_sample_composition(
     type: CompositionType = Query(CompositionType.COMPOSITION, description="composition은 종목 별, account는 계좌 별 입니다."),
@@ -373,9 +367,15 @@ async def get_summary(
     if no_asset_response:
         return no_asset_response
 
-    total_asset_amount = asset_service.get_total_asset_amount(complete_buy_asset, current_stock_price_map, exchange_rate_map)
-    total_investment_amount = asset_service.get_total_investment_amount(complete_buy_asset, stock_daily_map, exchange_rate_map)
-    today_review_rate, increase_asset_amount = summary_service.get_today_review_rate(complete_buy_asset, current_stock_price_map, exchange_rate_map)
+    total_asset_amount = asset_service.get_total_asset_amount(
+        complete_buy_asset, current_stock_price_map, exchange_rate_map
+    )
+    total_investment_amount = asset_service.get_total_investment_amount(
+        complete_buy_asset, stock_daily_map, exchange_rate_map
+    )
+    today_review_rate, increase_asset_amount = summary_service.get_today_review_rate(
+        complete_buy_asset, current_stock_price_map, exchange_rate_map
+    )
 
     return SummaryResponse(
         increase_asset_amount=increase_asset_amount,
@@ -412,9 +412,15 @@ async def get_sample_summary(
     if no_asset_response:
         return no_asset_response
 
-    total_asset_amount = asset_service.get_total_asset_amount(complete_buy_asset, current_stock_price_map, exchange_rate_map)
-    total_investment_amount = asset_service.get_total_investment_amount(complete_buy_asset, stock_daily_map, exchange_rate_map)
-    today_review_rate, increase_asset_amount = summary_service.get_today_review_rate(complete_buy_asset, current_stock_price_map, exchange_rate_map)
+    total_asset_amount = asset_service.get_total_asset_amount(
+        complete_buy_asset, current_stock_price_map, exchange_rate_map
+    )
+    total_investment_amount = asset_service.get_total_investment_amount(
+        complete_buy_asset, stock_daily_map, exchange_rate_map
+    )
+    today_review_rate, increase_asset_amount = summary_service.get_today_review_rate(
+        complete_buy_asset, current_stock_price_map, exchange_rate_map
+    )
 
     return SummaryResponse(
         increase_asset_amount=increase_asset_amount,
@@ -430,9 +436,7 @@ async def get_market_index(
     redis_client: Redis = Depends(get_redis_pool),
     realtime_index_service: RealtimeIndexService = Depends(get_realtime_index_service),
 ) -> MarketIndiceResponse:
-    market_index_data: list[MarketIndexData] = await realtime_index_service.get_current_market_index_value(
-        redis_client
-    )
+    market_index_data: list[MarketIndexData] = await realtime_index_service.get_current_market_index_value(redis_client)
 
     return MarketIndiceResponse(market_index_data)
 
@@ -466,16 +470,20 @@ async def get_sample_performance_analysis(
         return no_len_response
 
     current_kospi_price = await realtime_index_service.get_current_index_price(redis_client, MarketIndex.KOSPI)
-    market_analysis_data, user_analysis_data, interval_times = await performance_analysis_service.performance_analysis_chart_data(
-            complete_buy_asset,
-            session,
-            current_kospi_price,
-            stock_daily_map,
-            exchange_rate_map, 
-            current_stock_price_map, 
-            interval
-        )
-    
+    (
+        market_analysis_data,
+        user_analysis_data,
+        interval_times,
+    ) = await performance_analysis_service.performance_analysis_chart_data(
+        complete_buy_asset,
+        session,
+        current_kospi_price,
+        stock_daily_map,
+        exchange_rate_map,
+        current_stock_price_map,
+        interval,
+    )
+
     return PerformanceAnalysisResponse.parse(market_analysis_data, user_analysis_data, interval_times, interval)
 
 
@@ -509,16 +517,21 @@ async def get_performance_analysis(
         return no_len_response
 
     current_kospi_price = await realtime_index_service.get_current_index_price(redis_client, MarketIndex.KOSPI)
-    market_analysis_data, user_analysis_data, interval_times = await performance_analysis_service.performance_analysis_chart_data(
-            complete_buy_asset,
-            session,
-            current_kospi_price,
-            stock_daily_map,
-            exchange_rate_map, 
-            current_stock_price_map, 
-            interval
-        )
     
+    (
+        market_analysis_data,
+        user_analysis_data,
+        interval_times,
+    ) = await performance_analysis_service.performance_analysis_chart_data(
+        complete_buy_asset,
+        session,
+        current_kospi_price,
+        stock_daily_map,
+        exchange_rate_map,
+        current_stock_price_map,
+        interval,
+    )
+
     return PerformanceAnalysisResponse.parse(market_analysis_data, user_analysis_data, interval_times, interval)
 
 

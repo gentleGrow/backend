@@ -21,8 +21,6 @@ from app.module.auth.constant import ADMIN_USER_ID, DUMMY_USER_ID
 from app.module.auth.enum import ProviderEnum, UserRoleEnum
 from app.module.auth.model import User
 from app.module.auth.repository import UserRepository
-from app.module.chart.constant import INVESTMENT_TIP
-from app.module.chart.repository import TipRepository
 from database.dependency import get_mysql_session
 
 
@@ -97,11 +95,6 @@ async def create_dummy_assets(session: AsyncSession):
     ic("[create_dummy_assets] 더미 유저에 assets을 성공적으로 생성 했습니다.")
 
 
-async def create_investment_tip(session: AsyncSession):
-    await TipRepository.save_invest_tips(session, INVESTMENT_TIP)
-    ic("[create_investment_tip] investment_tips를 성공적으로 생성 했습니다.")
-
-
 async def create_asset_field(session: AsyncSession):
     asset_field = await AssetFieldRepository.get(session, DUMMY_USER_ID)
     if asset_field:
@@ -127,11 +120,6 @@ async def main():
             await create_dummy_assets(session)
         except Exception as err:
             ic(f"dummy asset 생성 중 에러가 생겼습니다. {err=}")
-
-        try:
-            await create_investment_tip(session)
-        except Exception as err:
-            ic(f"investment tip 생성 중 에러가 생겼습니다. {err=}")
 
         try:
             await create_asset_field(session)

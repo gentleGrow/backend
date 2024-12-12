@@ -1,6 +1,6 @@
 from datetime import datetime
 
-from sqlalchemy import delete, extract, select
+from sqlalchemy import delete, select
 from sqlalchemy.dialects.mysql import insert
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -33,8 +33,7 @@ class MarketIndexMinutelyRepository:
         start_datetime, end_datetime = date_range
 
         stmt = select(MarketIndexMinutely).where(
-            MarketIndexMinutely.datetime.between(start_datetime, end_datetime),
-            MarketIndexMinutely.name == name
+            MarketIndexMinutely.datetime.between(start_datetime, end_datetime), MarketIndexMinutely.name == name
         )
 
         result = await session.execute(stmt)
