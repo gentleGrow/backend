@@ -2,8 +2,10 @@ from collections import defaultdict
 from datetime import date, timedelta
 
 from sqlalchemy.ext.asyncio import AsyncSession
-from icecream import ic
-from app.module.asset.constant import MONTHS, 만
+
+from app.module.asset.constant import MONTHS
+
+# from app.module.asset.constant import MONTHS, 만
 from app.module.asset.model import Asset, Dividend
 from app.module.asset.repository.dividend_repository import DividendRepository
 from app.module.asset.services.exchange_rate_service import ExchangeRateService
@@ -141,7 +143,7 @@ class DividendService:
         )
 
         dividend_data_by_year = self._combine_dividends_by_year_month(total_dividends)
-        
+
         result = {}
         for year, months in dividend_data_by_year.items():
             # 추후 협의 후 수정 할 코드입니다.
