@@ -4,7 +4,6 @@ from collections import defaultdict
 from redis.asyncio import Redis
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.data.investing.sources.enum import RicePeople
 from app.module.asset.enum import AssetType
 from app.module.asset.repository.asset_repository import AssetRepository
 from app.module.auth.repository import UserRepository
@@ -16,6 +15,9 @@ class RichService:
     async def get_rich_top_10_pick(self, session: AsyncSession, redis_client: Redis) -> tuple:
         top_10_stock_codes = await RedisRichPickRepository.get(redis_client, REDIS_RICH_PICK_KEY)
         stock_name_map = await RedisRichPickRepository.get(redis_client, REDIS_RICH_PICK_NAME_KEY)
+
+        # 임시 변수 할당, 추후 변경 예정
+        RicePeople = []
 
         if top_10_stock_codes is None or stock_name_map is None:
             stock_count: defaultdict = defaultdict(int)

@@ -22,7 +22,8 @@ def check_weekend() -> bool:
     today = datetime.today().weekday()
     return today >= 5
 
-def check_date_weekend(current_date:date) -> bool:
+
+def check_date_weekend(current_date: date) -> bool:
     return current_date.weekday() >= 5
 
 

@@ -1,6 +1,7 @@
 from collections import defaultdict
 from datetime import date, datetime, timedelta
 from typing import Any
+
 import pandas
 from redis.asyncio import Redis
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -334,7 +335,7 @@ class AssetService:
         self, assets: list[Asset], current_stock_price_map: dict[str, float], exchange_rate_map: dict[str, float]
     ) -> float:
         result = 0.0
-        
+
         for asset in assets:
             result += (
                 current_stock_price_map.get(asset.asset_stock.stock.code)

@@ -25,4 +25,6 @@ asset_service = AssetService(
 
 
 def get_summary_service() -> SummaryService:
-    return SummaryService(asset_stock_service=asset_stock_service, asset_service=asset_service, stock_daily_service=stock_daily_service)
+    return SummaryService(
+        asset_stock_service=asset_stock_service, asset_service=asset_service, stock_daily_service=stock_daily_service
+    )

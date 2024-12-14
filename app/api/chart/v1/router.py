@@ -542,7 +542,7 @@ async def get_summary(
     redis_client: Redis = Depends(get_redis_pool),
     asset_query: AssetQuery = Depends(get_asset_query),
     asset_service: AssetService = Depends(get_asset_service),
-    summary_service: SummaryService = Depends(get_summary_service)
+    summary_service: SummaryService = Depends(get_summary_service),
 ) -> SummaryResponse:
     assets: list = await AssetRepository.get_eager(session, token.get("user"), AssetType.STOCK)
     full_required_assets = await asset_service.get_full_required_assets(assets)
@@ -567,11 +567,11 @@ async def get_summary(
     total_asset_amount = asset_service.get_total_asset_amount(
         complete_buy_asset, current_stock_price_map, exchange_rate_map
     )
-    
+
     total_investment_amount = asset_service.get_total_investment_amount(
         complete_buy_asset, stock_daily_map, exchange_rate_map
     )
-    
+
     today_review_rate, increase_asset_amount = summary_service.get_today_review_rate(
         complete_buy_asset, current_stock_price_map, exchange_rate_map, past_stock_map
     )
@@ -617,11 +617,11 @@ async def get_sample_summary(
     total_asset_amount = asset_service.get_total_asset_amount(
         complete_buy_asset, current_stock_price_map, exchange_rate_map
     )
-    
+
     total_investment_amount = asset_service.get_total_investment_amount(
         complete_buy_asset, stock_daily_map, exchange_rate_map
     )
-    
+
     today_review_rate, increase_asset_amount = summary_service.get_today_review_rate(
         complete_buy_asset, current_stock_price_map, exchange_rate_map, past_stock_map
     )
@@ -634,6 +634,15 @@ async def get_sample_summary(
         total_investment_amount=total_investment_amount,
         profit=ProfitDetail.parse(total_asset_amount, total_investment_amount),
     )
+
+
+# 삭제될 예정입니다.
+@chart_router.get("/tip", summary="오늘의 투자 tip", response_model=ChartTipResponse)
+async def get_today_tip(
+    session: AsyncSession = Depends(get_mysql_session_router),
+    redis_client: Redis = Depends(get_redis_pool),
+) -> ChartTipResponse:
+    return ChartTipResponse(DEFAULT_TIP)
 
 
 @chart_router.get("/rich-pick", summary="미국 부자들이 선택한 종목 TOP10", response_model=RichPickResponse)
@@ -844,11 +853,3 @@ async def get_people_portfolio():
         ]
     )
 
-
-# 삭제될 예정입니다.
-@chart_router.get("/tip", summary="오늘의 투자 tip", response_model=ChartTipResponse)
-async def get_today_tip(
-    session: AsyncSession = Depends(get_mysql_session_router),
-    redis_client: Redis = Depends(get_redis_pool),
-) -> ChartTipResponse:
-    return ChartTipResponse(DEFAULT_TIP)
