@@ -535,7 +535,6 @@ async def get_market_index(
     return MarketIndiceResponse(market_index_data)
 
 
-
 @chart_router.get("/summary", summary="오늘의 리뷰, 나의 총자산, 나의 투자 금액, 수익금", response_model=SummaryResponse)
 async def get_summary(
     token: AccessToken = Depends(verify_jwt_token),
@@ -543,7 +542,7 @@ async def get_summary(
     redis_client: Redis = Depends(get_redis_pool),
     asset_query: AssetQuery = Depends(get_asset_query),
     asset_service: AssetService = Depends(get_asset_service),
-    summary_service: SummaryService = Depends(get_summary_service),
+    summary_service: SummaryService = Depends(get_summary_service)
 ) -> SummaryResponse:
     assets: list = await AssetRepository.get_eager(session, token.get("user"), AssetType.STOCK)
     full_required_assets = await asset_service.get_full_required_assets(assets)
@@ -563,14 +562,18 @@ async def get_summary(
     if no_asset_response:
         return no_asset_response
 
+    past_stock_map = await summary_service.get_past_stock_map(session, complete_buy_asset, lastest_stock_daily_map)
+
     total_asset_amount = asset_service.get_total_asset_amount(
         complete_buy_asset, current_stock_price_map, exchange_rate_map
     )
+    
     total_investment_amount = asset_service.get_total_investment_amount(
         complete_buy_asset, stock_daily_map, exchange_rate_map
     )
+    
     today_review_rate, increase_asset_amount = summary_service.get_today_review_rate(
-        complete_buy_asset, current_stock_price_map, exchange_rate_map
+        complete_buy_asset, current_stock_price_map, exchange_rate_map, past_stock_map
     )
 
     # 협의 후 바로 추가할 인자입니다.
@@ -609,14 +612,18 @@ async def get_sample_summary(
     if no_asset_response:
         return no_asset_response
 
+    past_stock_map = await summary_service.get_past_stock_map(session, complete_buy_asset, lastest_stock_daily_map)
+
     total_asset_amount = asset_service.get_total_asset_amount(
         complete_buy_asset, current_stock_price_map, exchange_rate_map
     )
+    
     total_investment_amount = asset_service.get_total_investment_amount(
         complete_buy_asset, stock_daily_map, exchange_rate_map
     )
+    
     today_review_rate, increase_asset_amount = summary_service.get_today_review_rate(
-        complete_buy_asset, current_stock_price_map, exchange_rate_map
+        complete_buy_asset, current_stock_price_map, exchange_rate_map, past_stock_map
     )
 
     # 협의 후 바로 추가할 인자입니다.
@@ -660,6 +667,7 @@ async def get_rich_pick(
             for stock_code in top_10_stock_codes
         ]
     )
+
 
 # 임시 dummy api 생성, 추후 개발하겠습니다.
 @chart_router.get("/rich-portfolio", summary="부자들의 포트폴리오", response_model=RichPortfolioResponse)

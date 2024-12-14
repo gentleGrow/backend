@@ -22,6 +22,9 @@ def check_weekend() -> bool:
     today = datetime.today().weekday()
     return today >= 5
 
+def check_date_weekend(current_date:date) -> bool:
+    return current_date.weekday() >= 5
+
 
 def get_now_date() -> date:
     seoul_tz = ZoneInfo("Asia/Seoul")
