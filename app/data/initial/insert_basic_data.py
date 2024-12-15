@@ -14,7 +14,7 @@ from app.module.asset.constant import (
     STOCK_CODES,
     STOCK_QUANTITIES,
 )
-from app.module.asset.enum import AssetType, PurchaseCurrencyType, RichPeople, TradeType, Country
+from app.module.asset.enum import AssetType, Country, PurchaseCurrencyType, RichPeople, TradeType
 from app.module.asset.model import Asset, AssetField, AssetStock
 from app.module.asset.repository.asset_field_repository import AssetFieldRepository
 from app.module.asset.repository.asset_repository import AssetRepository
@@ -148,9 +148,8 @@ async def add_rich_portfolio(session: AsyncSession):
         for stock_code in stock_codes:
             stock_number = rich_portfolio.get(stock_code)
             stock = stock_dict.get(stock_code)
-    
-    
-            if stock and stock.country ==  Country.USA:
+
+            if stock and stock.country == Country.USA:
                 asset = Asset(
                     asset_type=AssetType.STOCK.value,
                     user_id=user.id,

@@ -1,3 +1,4 @@
+from app.module.asset.services.asset.asset_query import AssetQuery
 from app.module.asset.services.asset_service import AssetService
 from app.module.asset.services.asset_stock_service import AssetStockService
 from app.module.asset.services.dividend_service import DividendService
@@ -8,9 +9,7 @@ from app.module.asset.services.realtime_index_service import RealtimeIndexServic
 from app.module.asset.services.stock_daily_service import StockDailyService
 from app.module.asset.services.stock_minutely_service import StockMinutelyService
 from app.module.asset.services.stock_service import StockService
-from app.module.asset.services.asset.asset_query import AssetQuery
 from app.module.chart.services.rich_service import RichService
-
 
 exchange_rate_service = ExchangeRateService()
 realtime_index_service = RealtimeIndexService()
@@ -37,6 +36,7 @@ asset_query = AssetQuery(
     stock_service=stock_service,
     dividend_service=dividend_service,
 )
+
 
 def get_rich_service() -> RichService:
     return RichService(asset_service=asset_service, asset_query=asset_query)

@@ -50,7 +50,6 @@ from app.module.chart.schema import (
     RichPickResponse,
     RichPickValue,
     RichPortfolioResponse,
-    RichPortfolioValue,
     SummaryResponse,
 )
 from app.module.chart.services.composition_service import CompositionService
@@ -642,17 +641,15 @@ async def get_today_tip() -> ChartTipResponse:
     return ChartTipResponse(DEFAULT_TIP)
 
 
-
 @chart_router.get("/rich-portfolio", summary="부자들의 포트폴리오", response_model=RichPortfolioResponse)
 async def get_rich_portfolio(
     session: AsyncSession = Depends(get_mysql_session_router),
     redis_client: Redis = Depends(get_redis_pool),
-    rich_service:RichService = Depends(get_rich_service)
-) -> RichPortfolioResponse:    
+    rich_service: RichService = Depends(get_rich_service),
+) -> RichPortfolioResponse:
     rich_portfolio_list = await rich_service.get_rich_portfolio_chart_data(session, redis_client)
-    
-    return RichPortfolioResponse(rich_portfolio_list)
 
+    return RichPortfolioResponse(rich_portfolio_list)
 
 
 @chart_router.get("/rich-pick", summary="미국 부자들이 선택한 종목 TOP10", response_model=RichPickResponse)

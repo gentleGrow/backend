@@ -257,4 +257,3 @@ async def refresh_access_token(
     access_token = JWTBuilder.generate_access_token(user_id, social_id)
 
     return AccessTokenResponse(access_token=access_token)
-
