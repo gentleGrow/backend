@@ -3,7 +3,6 @@ from datetime import date
 from fastapi import APIRouter, Depends, Query
 from redis.asyncio import Redis
 from sqlalchemy.ext.asyncio import AsyncSession
-
 from app.common.auth.security import verify_jwt_token
 from app.module.asset.constant import ASSET_SAVE_TREND_YEAR
 from app.module.asset.dependencies.asset_dependency import get_asset_query, get_asset_service
@@ -657,32 +656,20 @@ async def get_rich_pick(
     session: AsyncSession = Depends(get_mysql_session_router),
     redis_client: Redis = Depends(get_redis_pool),
     rich_service: RichService = Depends(get_rich_service),
-    stock_daily_service: StockDailyService = Depends(get_stock_daily_service),
-    stock_service: StockService = Depends(get_stock_service),
-    exchange_rate_service: ExchangeRateService = Depends(get_exchange_rate_service),
+    asset_query: AssetQuery = Depends(get_asset_query)
 ) -> RichPickResponse:
-    top_10_stock_codes, stock_name_map = await rich_service.get_rich_top_10_pick(session, redis_client)
-    lastest_stock_daily_map = await stock_daily_service.get_latest_map_by_codes(session, top_10_stock_codes)
-    current_stock_price_map: dict[str, float] = await stock_service.get_current_stock_price_by_code(
-        redis_client, lastest_stock_daily_map, top_10_stock_codes
-    )
-    exchange_rate_map = await exchange_rate_service.get_exchange_rate_map(redis_client)
-    stock_daily_profit: dict[str, float] = stock_service.get_daily_profit(
-        lastest_stock_daily_map, current_stock_price_map, top_10_stock_codes
-    )
-    won_exchange_rate = exchange_rate_service.get_exchange_rate(CurrencyType.USA, CurrencyType.KOREA, exchange_rate_map)
-    stock_korea_price = {stock_code: price * won_exchange_rate for stock_code, price in current_stock_price_map.items()}
+    assets = await rich_service.get_full_rich_assets(session)
+    (
+        stock_daily_map,
+        lastest_stock_daily_map,
+        dividend_map,
+        exchange_rate_map,
+        current_stock_price_map,
+    ) = await asset_query.get_all_data(session, redis_client, assets)
+    
+    top_rich_pick_list = rich_service.get_top_rich_pick(assets, 10, current_stock_price_map, exchange_rate_map, stock_daily_map)
 
-    return RichPickResponse(
-        [
-            RichPickValue(
-                name=stock_name_map.get(stock_code),
-                price=stock_korea_price[stock_code],
-                rate=stock_daily_profit[stock_code],
-            )
-            for stock_code in top_10_stock_codes
-        ]
-    )
+    return RichPickResponse(top_rich_pick_list)
 
 
 # 임시 dummy api 생성, 추후 개발하겠습니다.

@@ -15,12 +15,12 @@ exchange_rate_service = ExchangeRateService()
 realtime_index_service = RealtimeIndexService()
 index_daily_service = IndexDailyService()
 index_minutely_service = IndexMinutelyService()
-stock_service = StockService()
 stock_daily_service = StockDailyService()
 stock_minutely_service = StockMinutelyService()
 
 asset_stock_service = AssetStockService(exchange_rate_service=exchange_rate_service)
 dividend_service = DividendService(exchange_rate_service=exchange_rate_service)
+stock_service = StockService(asset_stock_service=asset_stock_service)
 
 asset_service = AssetService(
     stock_daily_service=stock_daily_service,
@@ -39,4 +39,9 @@ asset_query = AssetQuery(
 
 
 def get_rich_service() -> RichService:
-    return RichService(asset_service=asset_service, asset_query=asset_query)
+    return RichService(
+        asset_service=asset_service, 
+        asset_query=asset_query,
+        stock_service=stock_service,
+        exchange_rate_service=exchange_rate_service
+    )
