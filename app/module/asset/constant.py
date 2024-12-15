@@ -237,5 +237,3 @@ COUNTRY_TRANSLATIONS = {
     "유로존": Country.EUROZONE,
     "한국": Country.KOREA,
 }
-
-

@@ -4,7 +4,7 @@ from app.module.asset.constant import CURRENCY_PAIRS, DEFAULT_DOLLAR_EXCHANGE_RA
 from app.module.asset.enum import CurrencyType
 from app.module.asset.model import Asset
 from app.module.asset.redis_repository import RedisExchangeRateRepository
-
+from icecream import ic
 
 class ExchangeRateService:
     def get_won_exchange_rate(self, asset: Asset, exchange_rate_map: dict[str, float]) -> float:

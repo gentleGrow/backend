@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from redis.asyncio import Redis
 from sqlalchemy.ext.asyncio import AsyncSession
-from icecream import ic
+
 from app.common.auth.security import verify_jwt_token
 from app.common.schema.common_schema import DeleteResponse, PostResponse
 from app.module.auth.constant import REDIS_JWT_REFRESH_EXPIRE_TIME_SECOND, SESSION_SPECIAL_KEY
@@ -43,6 +43,7 @@ async def delete_user(
 
     await user_service.save_user_quit_reason(request.reason)
     await UserRepository.delete(session, user.id)
+
     return DeleteResponse(status_code=status.HTTP_200_OK, detail="성공적으로 삭제하였습니다.")
 
 
@@ -256,3 +257,4 @@ async def refresh_access_token(
     access_token = JWTBuilder.generate_access_token(user_id, social_id)
 
     return AccessTokenResponse(access_token=access_token)
+

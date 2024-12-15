@@ -1,9 +1,7 @@
-import os
-
 import json
 
-from icecream import ic
 from dotenv import find_dotenv, load_dotenv
+
 from app.data.common.config import (
     BILL_ACKMAN_FILEPATH,
     DAVID_TEPPER_FILEPATH,
@@ -11,19 +9,18 @@ from app.data.common.config import (
     JOHN_PAULSON_FILEPATH,
     NELSON_PELTZ_FILEPATH,
     RAY_DAILO_FILEPATH,
+    RICH_PORTFOLIO_FILEPATH,
     WARREN_BUFFETT_FILEPATH,
-    RICH_PORTFOLIO_FILEPATH
 )
-
-from app.module.asset.enum import RichPeople
 from app.data.common.services.aws_file_service import AwsFileReader
+from app.module.asset.enum import RichPeople
 
 load_dotenv(find_dotenv())
 
 
 class RichPortfolioFileReader:
     @classmethod
-    def get_rich_portfolio_object_bundle(cls) -> dict[RichPeople,dict]:
+    def get_rich_portfolio_object_bundle(cls) -> dict[RichPeople, dict]:
         warren_buffett_object = cls._read_rich_portfolio_file(
             AwsFileReader._get_path(WARREN_BUFFETT_FILEPATH, RICH_PORTFOLIO_FILEPATH)
         )
@@ -45,21 +42,18 @@ class RichPortfolioFileReader:
         david_tepper_object = cls._read_rich_portfolio_file(
             AwsFileReader._get_path(DAVID_TEPPER_FILEPATH, RICH_PORTFOLIO_FILEPATH)
         )
-        
+
         return {
-            RichPeople.WARRENBUFFETT:warren_buffett_object,
-            RichPeople.BILLACKMAN:bill_ackman_object,
-            RichPeople.RAYDALIO:ray_dailo_object,
-            RichPeople.NELSONPELTZ:nelson_peltz_object,
-            RichPeople.JOHNPAULSON:john_paulson_object,
-            RichPeople.GEORGESOROS:george_soros_object,
-            RichPeople.DAVIDTEPPER:david_tepper_object
+            RichPeople.WARRENBUFFETT: warren_buffett_object,
+            RichPeople.BILLACKMAN: bill_ackman_object,
+            RichPeople.RAYDALIO: ray_dailo_object,
+            RichPeople.NELSONPELTZ: nelson_peltz_object,
+            RichPeople.JOHNPAULSON: john_paulson_object,
+            RichPeople.GEORGESOROS: george_soros_object,
+            RichPeople.DAVIDTEPPER: david_tepper_object,
         }
-    
-    
+
     @classmethod
-    def _read_rich_portfolio_file(cls, filepath:str):
-        with open(filepath, 'r', encoding='utf-8') as file:
+    def _read_rich_portfolio_file(cls, filepath: str):
+        with open(filepath, "r", encoding="utf-8") as file:
             return json.load(file)
-            
-               

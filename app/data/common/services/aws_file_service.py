@@ -1,9 +1,11 @@
 import os
+
 import boto3
 from dotenv import find_dotenv, load_dotenv
-from database.enum import EnvironmentType
 from icecream import ic
+
 from app.data.common.config import ENVIRONMENT
+from database.enum import EnvironmentType
 
 load_dotenv(find_dotenv())
 
@@ -27,9 +29,9 @@ class AwsFileReader:
 
         cls._download_file_from_s3(bucket, s3_key, local_path)  # type: ignore
         return local_path
-    
+
     @classmethod
-    def _download_file_from_s3(bucket: str, key: str, local_path: str) -> str:
+    def _download_file_from_s3(cls, bucket: str, key: str, local_path: str) -> str:
         try:
             s3_client.download_file(bucket, key, local_path)
             return local_path
