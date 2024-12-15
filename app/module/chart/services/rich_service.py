@@ -17,12 +17,12 @@ class RichService:
         stock_name_map = await RedisRichPickRepository.get(redis_client, REDIS_RICH_PICK_NAME_KEY)
 
         # 임시 변수 할당, 추후 변경 예정
-        RicePeople = []
+        RichPeople = []  # type: ignore
 
         if top_10_stock_codes is None or stock_name_map is None:
             stock_count: defaultdict = defaultdict(int)
             new_stock_name_map: dict[str, str] = {}
-            for person in RicePeople:
+            for person in RichPeople:
                 user = await UserRepository.get_by_name(session, person)
                 if user is None:
                     continue

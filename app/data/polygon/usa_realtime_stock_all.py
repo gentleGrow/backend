@@ -12,7 +12,7 @@ from app.common.util.time import (
     make_minute_to_milisecond_timestamp,
     transform_timestamp_datetime,
 )
-from app.data.common.service import StockCodeFileReader
+from app.data.common.services.stock_code_file_service import StockCodeFileReader
 from app.data.polygon.constant import STOCK_COLLECT_END_TIME_MINUTE, TOTAL_STOCK_COLLECT_START_TIME_MINUTE
 from app.module.asset.model import StockMinutely
 from app.module.asset.repository.stock_minutely_repository import StockMinutelyRepository

@@ -8,7 +8,7 @@ from celery import shared_task
 from dotenv import load_dotenv
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.data.common.service import StockCodeFileReader
+from app.data.common.services.stock_code_file_service import StockCodeFileReader
 from app.data.yahoo.source.constant import BATCH_SIZE
 from app.data.yahoo.source.service import format_stock_code
 from app.module.asset.enum import Country

@@ -317,3 +317,5 @@ class StockCodeFileReader:
 
         StockCodeFileReader._download_file_from_s3(S3_BUCKET_STOCK_FILES, s3_key, local_path)  # type: ignore
         return local_path
+
+

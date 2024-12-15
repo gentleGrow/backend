@@ -852,4 +852,3 @@ async def get_people_portfolio():
             ),
         ]
     )
-

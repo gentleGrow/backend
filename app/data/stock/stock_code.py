@@ -1,6 +1,6 @@
 import asyncio
 
-from app.data.common.service import StockCodeFileReader
+from app.data.common.services.stock_code_file_service import StockCodeFileReader
 from app.module.asset.model import Stock
 from app.module.asset.repository.stock_repository import StockRepository
 from app.module.asset.schema import StockInfo

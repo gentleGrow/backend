@@ -2,7 +2,6 @@ import json
 
 from redis.asyncio import Redis
 
-from app.data.investing.sources.enum import RicePeople
 from app.module.chart.redis_repository import RedisRichPortfolioRepository
 
 
@@ -11,7 +10,8 @@ class RichPortfolioService:
         self,
         redis_client: Redis,
     ) -> dict[str, dict]:
-        rich_people = [person.value for person in RicePeople]
+        RichPeople = []  # type: ignore # 추후 변경 예정
+        rich_people = [person.value for person in RichPeople]
         rich_portfolios: list[str] | None = await RedisRichPortfolioRepository.gets(redis_client, rich_people)
 
         rich_portfolios = rich_portfolios or []

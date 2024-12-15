@@ -2,7 +2,7 @@ import asyncio
 
 import ray
 
-from app.data.common.service import StockCodeFileReader
+from app.data.common.services.stock_code_file_service import StockCodeFileReader
 from app.data.naver.realtime_stock.korea_realtime_stock_collector import KoreaRealtimeStockCollector
 from app.data.naver.realtime_stock.realtime_stock_monitor import RealtimeStockMonitor
 

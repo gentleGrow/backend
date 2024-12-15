@@ -1,6 +1,5 @@
 from enum import StrEnum
 
-
 class ASSETNAME(StrEnum):
     ESTIMATE_ASSET = "예상자산"
     REAL_ASSET = "실질자산"
@@ -169,3 +168,13 @@ class Country(StrEnum):
     NETHERLAND = "NETHERLAND"
     EUROZONE = "EUROZONE"
     KOREA = "KOREA"
+
+class RichPeople(StrEnum):
+    WARRENBUFFETT = "warren-buffett"
+    BILLACKMAN = "bill-ackman"
+    RAYDALIO = "ray-dalio"
+    GEORGESOROS = "george-soros"
+    DAVIDTEPPER = "david-tepper"
+    JOHNPAULSON = "john-paulson"
+    NELSONPELTZ = "nelson-peltz"
+    

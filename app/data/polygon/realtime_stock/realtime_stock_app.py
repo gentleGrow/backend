@@ -3,7 +3,7 @@ import asyncio
 import ray
 from more_itertools import chunked
 
-from app.data.common.service import StockCodeFileReader
+from app.data.common.services.stock_code_file_service import StockCodeFileReader
 from app.data.polygon.constant import REALTIME_USA_STOCK_LIST
 from app.data.polygon.realtime_stock.realtime_stock_collector import RealtimeStockCollector
 from app.data.polygon.realtime_stock.realtime_stock_monitor import RealtimeStockMonitor
