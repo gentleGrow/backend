@@ -40,8 +40,8 @@ asset_query = AssetQuery(
 
 def get_rich_service() -> RichService:
     return RichService(
-        asset_service=asset_service, 
+        asset_service=asset_service,
         asset_query=asset_query,
         stock_service=stock_service,
-        exchange_rate_service=exchange_rate_service
+        exchange_rate_service=exchange_rate_service,
     )

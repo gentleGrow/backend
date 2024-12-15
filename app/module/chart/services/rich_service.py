@@ -1,25 +1,27 @@
 import json
 from collections import defaultdict
 from datetime import date
+
 from redis.asyncio import Redis
 from sqlalchemy.ext.asyncio import AsyncSession
+
+from app.module.asset.enum import AssetType, CurrencyType, RichPeople
 from app.module.asset.model import Asset, StockDaily
-from app.module.asset.enum import AssetType, RichPeople, CurrencyType
 from app.module.asset.repository.asset_repository import AssetRepository
 from app.module.asset.services.asset.asset_query import AssetQuery
 from app.module.asset.services.asset_service import AssetService
+from app.module.asset.services.exchange_rate_service import ExchangeRateService
+from app.module.asset.services.stock_service import StockService
 from app.module.auth.repository import UserRepository
 from app.module.chart.constant import REDIS_RICH_PICK_KEY, REDIS_RICH_PICK_NAME_KEY, RICH_PICK_SECOND
 from app.module.chart.redis_repository import RedisRichPickRepository
-from app.module.chart.schema import PortfolioStockData, RichPortfolioValue, RichPickValue
-from app.module.asset.services.exchange_rate_service import ExchangeRateService
-from app.module.asset.services.stock_service import StockService
+from app.module.chart.schema import PortfolioStockData, RichPickValue, RichPortfolioValue
 
 
 class RichService:
     def __init__(
-        self, 
-        asset_service: AssetService, 
+        self,
+        asset_service: AssetService,
         asset_query: AssetQuery,
         stock_service: StockService,
         exchange_rate_service: ExchangeRateService,
@@ -97,9 +99,8 @@ class RichService:
 
         return result
 
-
     async def get_full_rich_assets(self, session: AsyncSession) -> list[Asset]:
-        result = []
+        result: list[Asset] = []
         for person_name in RichPeople:
             user = await UserRepository.get_by_name(session, person_name)
             if not user:
@@ -108,40 +109,43 @@ class RichService:
             assets = await AssetRepository.get_assets(session, user.id)
             if not len(assets):
                 continue
-            
-            result = result+assets
-            
+
+            result = result + assets
+
         return result
-    
+
     def get_top_rich_pick(
-        self, 
-        assets:list[Asset],
-        top_num:int,
-        current_stock_price_map:dict[str, float],
-        exchange_rate_map:dict[str, float],
-        stock_daily_map:dict[tuple[str, date], StockDaily]
+        self,
+        assets: list[Asset],
+        top_num: int,
+        current_stock_price_map: dict[str, float],
+        exchange_rate_map: dict[str, float],
+        stock_daily_map: dict[tuple[str, date], StockDaily],
     ):
-        asset_percentage:dict[str, float] = self.asset_service.get_asset_percentages(
-                assets, current_stock_price_map, exchange_rate_map
-            )
-        
-        
-        stock_name_map = {asset.asset_stock.stock.code:asset.asset_stock.stock.name_kr for asset in assets}
-        
+        asset_percentage: dict[str, float] = self.asset_service.get_asset_percentages(
+            assets, current_stock_price_map, exchange_rate_map
+        )
+
+        stock_name_map = {asset.asset_stock.stock.code: asset.asset_stock.stock.name_kr for asset in assets}
+
         top_codes = [
             code for code, _ in sorted(asset_percentage.items(), key=lambda item: item[1], reverse=True)[:top_num]
         ]
-    
+
         # 모든 부자 포트폴리오 날짜가 동일합니다.
         asset_date = assets[0].asset_stock.trade_date
 
         stock_daily_profit: dict[str, float] = self.stock_service.get_target_date_profit(
             stock_daily_map, current_stock_price_map, top_codes, asset_date
         )
-        
-        won_exchange_rate = self.exchange_rate_service.get_exchange_rate(CurrencyType.USA, CurrencyType.KOREA, exchange_rate_map)
-        stock_korea_price = {stock_code: price * won_exchange_rate for stock_code, price in current_stock_price_map.items()}
-        
+
+        won_exchange_rate = self.exchange_rate_service.get_exchange_rate(
+            CurrencyType.USA, CurrencyType.KOREA, exchange_rate_map
+        )
+        stock_korea_price = {
+            stock_code: price * won_exchange_rate for stock_code, price in current_stock_price_map.items()
+        }
+
         return [
             RichPickValue(
                 name=stock_name_map.get(stock_code),
