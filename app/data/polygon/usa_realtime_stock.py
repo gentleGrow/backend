@@ -1,10 +1,10 @@
 import asyncio
+import logging
 from datetime import datetime
 from os import getenv
-import logging
-from celery import shared_task
 
 import requests
+from celery import shared_task
 from dotenv import load_dotenv
 from requests.models import Response
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -78,10 +78,11 @@ async def execute_async_task():
         for stock_info in stock_code_list:
             await collect_realtime_stock_history(session, stock_info.code)
 
-    
+
 @shared_task
 async def main():
     asyncio.run(execute_async_task())
+
 
 if __name__ == "__main__":
     asyncio.run(execute_async_task())
