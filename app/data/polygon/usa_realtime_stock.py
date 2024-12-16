@@ -1,6 +1,8 @@
 import asyncio
 from datetime import datetime
 from os import getenv
+import logging
+from celery import shared_task
 
 import requests
 from dotenv import load_dotenv
@@ -18,9 +20,19 @@ from app.module.asset.model import StockMinutely
 from app.module.asset.repository.stock_minutely_repository import StockMinutelyRepository
 from app.module.asset.schema import StockInfo
 from database.dependency import get_mysql_session
+from database.enum import EnvironmentType
 
 load_dotenv()
 POLYGON_API_KEY = getenv("POLYGON_API_KEY", None)
+ENVIRONMENT = getenv("ENVIRONMENT", None)
+
+logger = logging.getLogger("usa_realtime_stock")
+logger.setLevel(logging.INFO)
+
+if ENVIRONMENT == EnvironmentType.PROD:
+    file_handler = logging.FileHandler("/home/backend/usa_realtime_stock.log", delay=False)
+    file_handler.setFormatter(logging.Formatter("%(asctime)s - %(levelname)s - %(message)s"))
+    logger.addHandler(file_handler)
 
 
 async def collect_realtime_stock_history(session: AsyncSession, code: str):
@@ -58,13 +70,18 @@ def parse_response_data(response: Response, code: str) -> list[tuple[str, dateti
     return result
 
 
-async def main():
+async def execute_async_task():
+    logger.info("미국 분당 주식 데이터 수집을 시작합니다.")
     async with get_mysql_session() as session:
         stock_code_list: list[StockInfo] = StockCodeFileReader.get_usa_stock_code_list()
 
         for stock_info in stock_code_list:
             await collect_realtime_stock_history(session, stock_info.code)
 
+    
+@shared_task
+async def main():
+    asyncio.run(execute_async_task())
 
 if __name__ == "__main__":
-    asyncio.run(main())
+    asyncio.run(execute_async_task())
