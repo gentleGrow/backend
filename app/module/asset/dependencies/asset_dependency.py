@@ -9,9 +9,9 @@ from app.module.asset.services.stock_service import StockService
 
 stock_daily_service = StockDailyService()
 exchange_rate_service = ExchangeRateService()
-stock_service = StockService()
 dividend_service = DividendService(exchange_rate_service=exchange_rate_service)
 asset_stock_service = AssetStockService(exchange_rate_service=exchange_rate_service)
+stock_service = StockService(asset_stock_service=asset_stock_service)
 
 
 def get_asset_service() -> AssetService:

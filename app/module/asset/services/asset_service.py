@@ -41,6 +41,25 @@ class AssetService:
         self.stock_service = stock_service
         self.dividend_service = dividend_service
 
+    def get_asset_percentages(
+        self,
+        assets: list[Asset],
+        current_stock_price_map: dict[str, float],
+        exchange_rate_map: dict[str, float],
+    ) -> dict[str, float]:
+        result: dict[str, float] = {}
+        code_amount: defaultdict[str, float] = defaultdict(float)
+        total_asset_amount: float = self.get_total_asset_amount(assets, current_stock_price_map, exchange_rate_map)
+
+        for asset in assets:
+            code = asset.asset_stock.stock.code
+            code_amount[code] += self.get_total_asset_amount([asset], current_stock_price_map, exchange_rate_map)
+
+        for code, amount in code_amount.items():
+            result[code] = amount / total_asset_amount * 100
+
+        return result
+
     def get_buy_assets(self, assets: list[Asset]) -> list[Asset]:
         return [asset for asset in assets if asset.asset_stock.trade == TradeType.BUY]
 

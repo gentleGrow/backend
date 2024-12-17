@@ -6,25 +6,34 @@ from os import getenv
 
 from dotenv import load_dotenv
 
+from database.enum import EnvironmentType
+
 load_dotenv()
 
+ENVIRONMENT = getenv("ENVIRONMENT", None)
 GOOGLE_SMTP_PASSWORD = getenv("GOOGLE_SMTP_PASSWORD", None)
+SENDER_EMAIL = getenv("SENDER_EMAIL", None)
+SMTP_SERVER = getenv("SMTP_SERVER", None)
+SMTP_PORT = getenv("SMTP_PORT", None)
 
 
-logging.basicConfig(
-    level=logging.INFO,
-    format="%(asctime)s - %(levelname)s - %(message)s",
-    handlers=[
-        logging.FileHandler("/home/backend/email.log"),
-        logging.StreamHandler(),
-    ],
-)
+logger = logging.getLogger("email")
+logger.setLevel(logging.INFO)
 
 
-def send_email_via_gmail(subject: str, body: str, to_email: str) -> bool:
-    smtp_server = "smtp.gmail.com"
-    smtp_port = 587
-    sender_email = "kcw2371@gmail.com"
+if ENVIRONMENT == EnvironmentType.PROD:
+    file_handler = logging.FileHandler("/home/backend/email.log", delay=False)
+    file_handler.setFormatter(logging.Formatter("%(asctime)s - %(levelname)s - %(message)s"))
+    logger.addHandler(file_handler)
+
+
+def send_email(subject: str, body: str, to_email: str) -> bool:
+    if not SMTP_SERVER or not SMTP_PORT or not SENDER_EMAIL or not GOOGLE_SMTP_PASSWORD:
+        return False
+
+    smtp_server = SMTP_SERVER
+    smtp_port = SMTP_PORT
+    sender_email = SENDER_EMAIL
     sender_password = GOOGLE_SMTP_PASSWORD
 
     if sender_password is None:
@@ -37,7 +46,7 @@ def send_email_via_gmail(subject: str, body: str, to_email: str) -> bool:
     msg.attach(MIMEText(body, "plain"))
 
     try:
-        with smtplib.SMTP(smtp_server, smtp_port) as server:
+        with smtplib.SMTP(smtp_server, int(smtp_port)) as server:
             server.starttls()
             server.login(sender_email, sender_password)
             server.sendmail(sender_email, to_email, msg.as_string())

@@ -1,13 +1,32 @@
 from datetime import date
 
-from sqlalchemy import select
+from sqlalchemy import func, select
 from sqlalchemy.dialects.mysql import insert
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import aliased
 
 from app.module.asset.model import MarketIndexDaily
 
 
 class MarketIndexDailyRepository:
+    @staticmethod
+    async def get_latest(session: AsyncSession, stock_codes: list[str]) -> list[MarketIndexDaily]:
+        subquery = (
+            select(MarketIndexDaily.name, func.max(MarketIndexDaily.date).label("max_date"))
+            .where(MarketIndexDaily.name.in_(stock_codes))
+            .group_by(MarketIndexDaily.name)
+            .subquery()
+        )
+
+        market_daily_alias = aliased(MarketIndexDaily)
+
+        stmt = select(market_daily_alias).join(
+            subquery, (market_daily_alias.name == subquery.c.name) & (market_daily_alias.date == subquery.c.max_date)
+        )
+
+        result = await session.execute(stmt)
+        return result.scalars().all()
+
     @staticmethod
     async def get_by_range(session: AsyncSession, date_range: tuple[date, date], name: str) -> list[MarketIndexDaily]:
         start_date, end_date = date_range

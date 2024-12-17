@@ -169,3 +169,13 @@ class Country(StrEnum):
     NETHERLAND = "NETHERLAND"
     EUROZONE = "EUROZONE"
     KOREA = "KOREA"
+
+
+class RichPeople(StrEnum):
+    WARRENBUFFETT = "warren-buffett"
+    BILLACKMAN = "bill-ackman"
+    RAYDALIO = "ray-dalio"
+    GEORGESOROS = "george-soros"
+    DAVIDTEPPER = "david-tepper"
+    JOHNPAULSON = "john-paulson"
+    NELSONPELTZ = "nelson-peltz"

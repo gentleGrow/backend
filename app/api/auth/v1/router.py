@@ -43,6 +43,7 @@ async def delete_user(
 
     await user_service.save_user_quit_reason(request.reason)
     await UserRepository.delete(session, user.id)
+
     return DeleteResponse(status_code=status.HTTP_200_OK, detail="성공적으로 삭제하였습니다.")
 
 
