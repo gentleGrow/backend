@@ -1,13 +1,33 @@
 from datetime import datetime
 
-from sqlalchemy import delete, select
+from sqlalchemy import delete, func, select
 from sqlalchemy.dialects.mysql import insert
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import aliased
 
 from app.module.asset.model import MarketIndexMinutely
 
 
 class MarketIndexMinutelyRepository:
+    @staticmethod
+    async def get_latest(session: AsyncSession, stock_codes: list[str]) -> list[MarketIndexMinutely]:
+        subquery = (
+            select(MarketIndexMinutely.name, func.max(MarketIndexMinutely.datetime).label("max_datetime"))
+            .where(MarketIndexMinutely.name.in_(stock_codes))
+            .group_by(MarketIndexMinutely.name)
+            .subquery()
+        )
+
+        stock_minutely_alias = aliased(MarketIndexMinutely)
+
+        stmt = select(stock_minutely_alias).join(
+            subquery,
+            (stock_minutely_alias.name == subquery.c.name) & (stock_minutely_alias.datetime == subquery.c.max_datetime),
+        )
+
+        result = await session.execute(stmt)
+        return result.scalars().all()
+
     @staticmethod
     async def remove_by_datetime(session: AsyncSession, remove_time: datetime) -> None:
         stmt = delete(MarketIndexMinutely).where(MarketIndexMinutely.datetime < remove_time)
