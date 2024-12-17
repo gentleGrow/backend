@@ -4,7 +4,7 @@ from datetime import date
 from icecream import ic
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.data.common.services.rich_portfolio_file_service import RichPortfolioFileReader
+from app.data.custom.rich_portfolio_file_service import RichPortfolioFileReader
 from app.module.asset.constant import (
     ACCOUNT_TYPES,
     ASSET_FIELD,
@@ -131,6 +131,9 @@ async def add_rich_portfolio(session: AsyncSession):
 
     for person_name in RichPeople:
         rich_portfolio = rich_bundle_object.get(person_name)
+        if not rich_portfolio:
+            continue
+
         stock_codes = [code for code, _ in rich_portfolio.items()]
         stock_list = await StockRepository.get_by_codes(session, stock_codes)
         stock_dict = {stock.code: stock for stock in stock_list}
@@ -149,7 +152,7 @@ async def add_rich_portfolio(session: AsyncSession):
             stock_number = rich_portfolio.get(stock_code)
             stock = stock_dict.get(stock_code)
 
-            if stock and stock.country == Country.USA:
+            if stock and stock.country == Country.USA and stock_number:
                 asset = Asset(
                     asset_type=AssetType.STOCK.value,
                     user_id=user.id,

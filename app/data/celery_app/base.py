@@ -4,6 +4,7 @@ from celery import Celery
 from celery.schedules import crontab
 from dotenv import load_dotenv
 
+import app.data.custom.remove_realtime_data  # noqa: F401 > task 위치를 찾는데 필요합니다.
 import app.data.polygon.usa_realtime_stock  # noqa: F401 > task 위치를 찾는데 필요합니다.
 import app.data.yahoo.dividend  # noqa: F401 > task 위치를 찾는데 필요합니다.
 import app.data.yahoo.index  # noqa: F401 > task 위치를 찾는데 필요합니다.
@@ -52,5 +53,9 @@ celery_task.conf.beat_schedule = {
     "usa_realtime_stock": {
         "task": "app.data.polygon.usa_realtime_stock.main",
         "schedule": crontab(minute=0),
+    },
+    "remove_minutely": {
+        "task": "app.data.custom.remove_realtime_data.main",
+        "schedule": crontab(hour=4, minute=0),
     },
 }

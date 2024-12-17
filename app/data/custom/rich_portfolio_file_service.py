@@ -2,6 +2,7 @@ import json
 
 from dotenv import find_dotenv, load_dotenv
 
+from app.common.util.aws_s3 import AwsFileReader
 from app.data.common.config import (
     BILL_ACKMAN_FILEPATH,
     DAVID_TEPPER_FILEPATH,
@@ -12,7 +13,6 @@ from app.data.common.config import (
     RICH_PORTFOLIO_FILEPATH,
     WARREN_BUFFETT_FILEPATH,
 )
-from app.data.common.services.aws_file_service import AwsFileReader
 from app.module.asset.enum import RichPeople
 
 load_dotenv(find_dotenv())

@@ -80,7 +80,7 @@ async def execute_async_task():
 
 
 @shared_task
-async def main():
+def main():
     asyncio.run(execute_async_task())
 
 
