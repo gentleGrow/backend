@@ -3,7 +3,7 @@ import logging
 from datetime import timedelta
 from os import getenv
 from zoneinfo import ZoneInfo
-
+from icecream import ic
 from celery import shared_task
 from dotenv import load_dotenv
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -41,7 +41,7 @@ async def check_data(session: AsyncSession) -> None:
 
     past_date = get_now_date() - timedelta(days=1)
     past_datetime = get_now_datetime() - timedelta(days=1)
-
+    
     if not SENDER_EMAIL:
         return
 
@@ -88,7 +88,7 @@ async def check_data(session: AsyncSession) -> None:
 
 
 async def execute_async_task():
-    logging.info("데이터 수집 현황을 확인합니다.")
+    logger.info("데이터 수집 현황을 확인합니다.")
     async with get_mysql_session() as session:
         await check_data(session)
 
