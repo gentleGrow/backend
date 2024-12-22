@@ -3,7 +3,7 @@ from datetime import date
 from fastapi import APIRouter, Depends, Query
 from redis.asyncio import Redis
 from sqlalchemy.ext.asyncio import AsyncSession
-from icecream import ic
+
 from app.common.auth.security import verify_jwt_token
 from app.module.asset.constant import ASSET_SAVE_TREND_YEAR, RICH_PEOPLE_DATA_KEY
 from app.module.asset.dependencies.asset_dependency import get_asset_query, get_asset_service
@@ -73,9 +73,9 @@ async def get_sample_asset_save_trend(
         exchange_rate_map,
         current_stock_price_map,
     ) = await asset_query.get_user_data(session, redis_client, full_required_assets, DUMMY_USER_ID)
-    
+
     complete_asset, incomplete_assets = asset_service.separate_assets_by_full_data(assets, stock_daily_map)
-    
+
     complete_buy_asset = asset_service.get_buy_assets(complete_asset)
 
     total_asset_amount = asset_service.get_total_asset_amount(

@@ -124,7 +124,7 @@ class StockDaily(MySQLBase):
         Index("idx_code_date", "code", text("date DESC")),
     )
 
-    def to_dict(self):
+    def to_dict(self) -> dict:
         return {
             "id": self.id,
             "adj_close_price": self.adj_close_price,
@@ -138,19 +138,21 @@ class StockDaily(MySQLBase):
         }
 
     @staticmethod
-    def from_dict(data: dict):
+    def from_dict(stock_daily_dict: dict) -> "StockDaily":
+        date_value = stock_daily_dict.get("date")
+
         return StockDaily(
-            id=data.get("id"),
-            adj_close_price=data.get("adj_close_price"),
-            close_price=data.get("close_price"),
-            code=data.get("code"),
-            date=datetime.fromisoformat(data.get("date")) if data.get("date") else None,
-            highest_price=data.get("highest_price"),
-            lowest_price=data.get("lowest_price"),
-            opening_price=data.get("opening_price"),
-            trade_volume=data.get("trade_volume"),
+            id=stock_daily_dict.get("id"),
+            adj_close_price=stock_daily_dict.get("adj_close_price"),
+            close_price=stock_daily_dict.get("close_price"),
+            code=stock_daily_dict.get("code"),
+            date=datetime.fromisoformat(date_value) if isinstance(date_value, str) else None,
+            highest_price=stock_daily_dict.get("highest_price"),
+            lowest_price=stock_daily_dict.get("lowest_price"),
+            opening_price=stock_daily_dict.get("opening_price"),
+            trade_volume=stock_daily_dict.get("trade_volume"),
         )
-    
+
 
 class MarketIndexMinutely(MySQLBase):
     __tablename__ = "market_index_minutely"

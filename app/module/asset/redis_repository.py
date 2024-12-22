@@ -1,5 +1,5 @@
 from redis.asyncio import Redis
-from icecream import ic
+
 
 class RedisAllDataRepostiroy:
     @classmethod

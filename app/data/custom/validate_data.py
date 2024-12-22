@@ -8,7 +8,7 @@ from celery import shared_task
 from dotenv import load_dotenv
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.common.util.time import get_now_date, get_now_datetime
+from app.common.util.time import get_lastest_weekday_date, get_lastest_weekdate_datetime
 from app.data.common.constant import VALIDATE_CODES, VALIDATE_INDICES
 from app.data.custom.email_service import send_email
 from app.module.asset.repository.market_index_daily_repository import MarketIndexDailyRepository
@@ -39,8 +39,8 @@ async def check_data(session: AsyncSession) -> None:
     stock_minutelies = await StockMinutelyRepository.get_latest(session, VALIDATE_CODES)
     index_minutelies = await MarketIndexMinutelyRepository.get_latest(session, VALIDATE_INDICES)
 
-    past_date = get_now_date() - timedelta(days=1)
-    past_datetime = get_now_datetime() - timedelta(days=1)
+    past_date = get_lastest_weekday_date()
+    past_datetime = get_lastest_weekdate_datetime()
 
     if not SENDER_EMAIL:
         return

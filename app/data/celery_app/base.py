@@ -61,6 +61,6 @@ celery_task.conf.beat_schedule = {
     },
     "validate_data": {
         "task": "app.data.custom.validate_data.main",
-        "schedule": crontab(hour=5, minute=0),
+        "schedule": crontab(hour=23, minute=0, day_of_week="1-6"), 
     },
 }
