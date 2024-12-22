@@ -12,10 +12,10 @@ from app.module.asset.enum import AccountType, AssetType, InvestmentBankType, Pu
 from app.module.asset.model import Asset
 from app.module.asset.repository.asset_repository import AssetRepository
 from app.module.asset.schema import AssetStockRequest
-from app.module.asset.services.asset_stock_service import AssetStockService
+from app.module.asset.services.asset_stock.asset_stock_service import AssetStockService
 from app.module.asset.services.exchange_rate_service import ExchangeRateService
 from app.module.asset.services.stock_daily_service import StockDailyService
-from app.module.asset.services.stock_service import StockService
+from app.module.asset.services.stock.stock_service import StockService
 from app.module.auth.constant import DUMMY_USER_ID
 
 

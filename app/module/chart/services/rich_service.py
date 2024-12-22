@@ -9,9 +9,9 @@ from app.module.asset.enum import AssetType, CurrencyType, RichPeople
 from app.module.asset.model import Asset, StockDaily
 from app.module.asset.repository.asset_repository import AssetRepository
 from app.module.asset.services.asset.asset_query import AssetQuery
-from app.module.asset.services.asset_service import AssetService
+from app.module.asset.services.asset.asset_service import AssetService
 from app.module.asset.services.exchange_rate_service import ExchangeRateService
-from app.module.asset.services.stock_service import StockService
+from app.module.asset.services.stock.stock_service import StockService
 from app.module.auth.repository import UserRepository
 from app.module.chart.constant import REDIS_RICH_PICK_KEY, REDIS_RICH_PICK_NAME_KEY, RICH_PICK_SECOND
 from app.module.chart.redis_repository import RedisRichPickRepository

@@ -7,7 +7,7 @@ from app.module.asset.model import Asset, StockDaily
 from app.module.asset.services.dividend_service import DividendService
 from app.module.asset.services.exchange_rate_service import ExchangeRateService
 from app.module.asset.services.stock_daily_service import StockDailyService
-from app.module.asset.services.stock_service import StockService
+from app.module.asset.services.stock.stock_service import StockService
 
 
 class AssetQuery:

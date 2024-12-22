@@ -6,7 +6,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.module.asset.model import Asset, Stock, StockDaily
 from app.module.asset.redis_repository import RedisRealTimeStockRepository
 from app.module.asset.repository.stock_repository import StockRepository
-from app.module.asset.services.asset_stock_service import AssetStockService
+from app.module.asset.services.asset_stock.asset_stock_service import AssetStockService
 
 
 class StockService:

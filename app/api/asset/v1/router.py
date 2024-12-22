@@ -34,8 +34,8 @@ from app.module.asset.schema import (
 from app.module.asset.services.asset.asset_query import AssetQuery
 from app.module.asset.services.asset.asset_validate import AssetValidate
 from app.module.asset.services.asset_field_service import AssetFieldService
-from app.module.asset.services.asset_service import AssetService
-from app.module.asset.services.asset_stock_service import AssetStockService
+from app.module.asset.services.asset.asset_service import AssetService
+from app.module.asset.services.asset_stock.asset_stock_service import AssetStockService
 from app.module.asset.services.common.common_validate import AssetCommonValidate
 from app.module.asset.services.dividend_service import DividendService
 from app.module.auth.constant import DUMMY_USER_ID

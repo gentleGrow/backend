@@ -3,7 +3,7 @@ import logging
 from datetime import timedelta
 from os import getenv
 from zoneinfo import ZoneInfo
-from icecream import ic
+
 from celery import shared_task
 from dotenv import load_dotenv
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -41,7 +41,7 @@ async def check_data(session: AsyncSession) -> None:
 
     past_date = get_now_date() - timedelta(days=1)
     past_datetime = get_now_datetime() - timedelta(days=1)
-    
+
     if not SENDER_EMAIL:
         return
 

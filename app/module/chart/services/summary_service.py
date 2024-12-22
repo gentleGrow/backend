@@ -4,8 +4,8 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.common.util.time import check_date_weekend, get_date_past_day
 from app.module.asset.model import Asset, StockDaily
-from app.module.asset.services.asset_service import AssetService
-from app.module.asset.services.asset_stock_service import AssetStockService
+from app.module.asset.services.asset.asset_service import AssetService
+from app.module.asset.services.asset_stock.asset_stock_service import AssetStockService
 from app.module.asset.services.stock_daily_service import StockDailyService
 from app.module.chart.constant import FULL_PERCENTAGE_RATE, PAST_MONTH_DAY
 
