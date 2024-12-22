@@ -66,7 +66,7 @@ class TestAssetStockResponse:
             dividend_map,
             exchange_rate_map,
             current_stock_price_map,
-        ) = await asset_query.get_all_data(session, redis_client, assets)
+        ) = await asset_query.get_user_data(session, redis_client, assets, DUMMY_USER_ID)
 
         stock_asset_elements: list[StockAssetSchema] = asset_service.get_stock_assets(
             assets,

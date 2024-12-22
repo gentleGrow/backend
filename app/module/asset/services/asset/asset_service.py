@@ -1,7 +1,7 @@
 from collections import defaultdict
 from datetime import date, datetime, timedelta
 from typing import Any
-
+from icecream import ic
 import pandas
 from redis.asyncio import Redis
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -22,8 +22,8 @@ from app.module.asset.schema import (
 from app.module.asset.services.asset_stock.asset_stock_service import AssetStockService
 from app.module.asset.services.dividend_service import DividendService
 from app.module.asset.services.exchange_rate_service import ExchangeRateService
-from app.module.asset.services.stock_daily_service import StockDailyService
 from app.module.asset.services.stock.stock_service import StockService
+from app.module.asset.services.stock_daily_service import StockDailyService
 
 
 class AssetService:
@@ -81,7 +81,7 @@ class AssetService:
 
         return complete_assets, incomplete_assets
 
-    async def get_full_required_assets(self, assets: list[Asset]) -> list[Asset]:
+    async def filter_full_required_assets(self, assets: list[Asset]) -> list[Asset]:
         return [filterd_asset for filterd_asset in filter(self._filter_full_required_asset, assets)]
 
     def _filter_full_required_asset(self, asset: Asset):

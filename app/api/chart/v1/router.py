@@ -3,9 +3,9 @@ from datetime import date
 from fastapi import APIRouter, Depends, Query
 from redis.asyncio import Redis
 from sqlalchemy.ext.asyncio import AsyncSession
-
+from icecream import ic
 from app.common.auth.security import verify_jwt_token
-from app.module.asset.constant import ASSET_SAVE_TREND_YEAR
+from app.module.asset.constant import ASSET_SAVE_TREND_YEAR, RICH_PEOPLE_DATA_KEY
 from app.module.asset.dependencies.asset_dependency import get_asset_query, get_asset_service
 from app.module.asset.dependencies.dividend_dependency import get_dividend_service
 from app.module.asset.dependencies.realtime_index_dependency import get_realtime_index_service
@@ -64,7 +64,7 @@ async def get_sample_asset_save_trend(
     save_trend_service: SaveTrendService = Depends(get_save_trend_service),
 ) -> AssetSaveTrendResponse:
     assets: list = await AssetRepository.get_eager(session, DUMMY_USER_ID, AssetType.STOCK)
-    full_required_assets = await asset_service.get_full_required_assets(assets)
+    full_required_assets = await asset_service.filter_full_required_assets(assets)
 
     (
         stock_daily_map,
@@ -72,9 +72,10 @@ async def get_sample_asset_save_trend(
         dividend_map,
         exchange_rate_map,
         current_stock_price_map,
-    ) = await asset_query.get_all_data(session, redis_client, full_required_assets)
-
+    ) = await asset_query.get_user_data(session, redis_client, full_required_assets, DUMMY_USER_ID)
+    
     complete_asset, incomplete_assets = asset_service.separate_assets_by_full_data(assets, stock_daily_map)
+    
     complete_buy_asset = asset_service.get_buy_assets(complete_asset)
 
     total_asset_amount = asset_service.get_total_asset_amount(
@@ -113,7 +114,7 @@ async def get_asset_save_trend(
     save_trend_service: SaveTrendService = Depends(get_save_trend_service),
 ) -> AssetSaveTrendResponse:
     assets: list = await AssetRepository.get_eager(session, token.get("user"), AssetType.STOCK)
-    full_required_assets = await asset_service.get_full_required_assets(assets)
+    full_required_assets = await asset_service.filter_full_required_assets(assets)
 
     (
         stock_daily_map,
@@ -121,7 +122,7 @@ async def get_asset_save_trend(
         dividend_map,
         exchange_rate_map,
         current_stock_price_map,
-    ) = await asset_query.get_all_data(session, redis_client, full_required_assets)
+    ) = await asset_query.get_user_data(session, redis_client, full_required_assets, token.get("user"))
 
     complete_asset, incomplete_assets = asset_service.separate_assets_by_full_data(assets, stock_daily_map)
     complete_buy_asset = asset_service.get_buy_assets(complete_asset)
@@ -166,7 +167,7 @@ async def get_sample_estimate_dividend(
     dividend_service: DividendService = Depends(get_dividend_service),
 ) -> EstimateDividendEveryResponse | EstimateDividendTypeResponse:
     assets: list = await AssetRepository.get_eager(session, DUMMY_USER_ID, AssetType.STOCK)
-    full_required_assets = await asset_service.get_full_required_assets(assets)
+    full_required_assets = await asset_service.filter_full_required_assets(assets)
 
     (
         stock_daily_map,
@@ -174,7 +175,7 @@ async def get_sample_estimate_dividend(
         recent_dividend_map,
         exchange_rate_map,
         current_stock_price_map,
-    ) = await asset_query.get_all_data(session, redis_client, full_required_assets)
+    ) = await asset_query.get_user_data(session, redis_client, full_required_assets, DUMMY_USER_ID)
     dividend_map: dict[tuple[str, date], float] = await dividend_service.get_dividend_map(session, assets)
 
     complete_asset, incomplete_assets = asset_service.separate_assets_by_full_data(assets, stock_daily_map)
@@ -215,7 +216,7 @@ async def get_estimate_dividend(
     dividend_service: DividendService = Depends(get_dividend_service),
 ) -> EstimateDividendEveryResponse | EstimateDividendTypeResponse:
     assets: list = await AssetRepository.get_eager(session, token.get("user"), AssetType.STOCK)
-    full_required_assets = await asset_service.get_full_required_assets(assets)
+    full_required_assets = await asset_service.filter_full_required_assets(assets)
 
     (
         stock_daily_map,
@@ -223,7 +224,7 @@ async def get_estimate_dividend(
         recent_dividend_map,
         exchange_rate_map,
         current_stock_price_map,
-    ) = await asset_query.get_all_data(session, redis_client, full_required_assets)
+    ) = await asset_query.get_user_data(session, redis_client, full_required_assets, token.get("user"))
     dividend_map: dict[tuple[str, date], float] = await dividend_service.get_dividend_map(session, assets)
 
     complete_asset, incomplete_assets = asset_service.separate_assets_by_full_data(assets, stock_daily_map)
@@ -261,7 +262,7 @@ async def get_sample_composition(
     composition_service: CompositionService = Depends(get_composition_service),
 ) -> CompositionResponse:
     assets: list = await AssetRepository.get_eager(session, DUMMY_USER_ID, AssetType.STOCK)
-    full_required_assets = await asset_service.get_full_required_assets(assets)
+    full_required_assets = await asset_service.filter_full_required_assets(assets)
 
     (
         stock_daily_map,
@@ -269,7 +270,7 @@ async def get_sample_composition(
         dividend_map,
         exchange_rate_map,
         current_stock_price_map,
-    ) = await asset_query.get_all_data(session, redis_client, full_required_assets)
+    ) = await asset_query.get_user_data(session, redis_client, full_required_assets, DUMMY_USER_ID)
 
     complete_asset, incomplete_assets = asset_service.separate_assets_by_full_data(assets, stock_daily_map)
     complete_buy_asset = asset_service.get_buy_assets(complete_asset)
@@ -302,7 +303,7 @@ async def get_composition(
     composition_service: CompositionService = Depends(get_composition_service),
 ) -> CompositionResponse:
     assets: list = await AssetRepository.get_eager(session, token.get("user"), AssetType.STOCK)
-    full_required_assets = await asset_service.get_full_required_assets(assets)
+    full_required_assets = await asset_service.filter_full_required_assets(assets)
 
     (
         stock_daily_map,
@@ -310,7 +311,7 @@ async def get_composition(
         dividend_map,
         exchange_rate_map,
         current_stock_price_map,
-    ) = await asset_query.get_all_data(session, redis_client, full_required_assets)
+    ) = await asset_query.get_user_data(session, redis_client, full_required_assets, token.get("user"))
 
     complete_asset, incomplete_assets = asset_service.separate_assets_by_full_data(assets, stock_daily_map)
     complete_buy_asset = asset_service.get_buy_assets(complete_asset)
@@ -343,7 +344,7 @@ async def get_sample_performance_analysis(
     performance_analysis_service: PerformanceAnalysisService = Depends(get_performance_analysis_service),
 ) -> PerformanceAnalysisResponse:
     assets: list = await AssetRepository.get_eager(session, DUMMY_USER_ID, AssetType.STOCK)
-    full_required_assets = await asset_service.get_full_required_assets(assets)
+    full_required_assets = await asset_service.filter_full_required_assets(assets)
 
     (
         stock_daily_map,
@@ -351,7 +352,7 @@ async def get_sample_performance_analysis(
         dividend_map,
         exchange_rate_map,
         current_stock_price_map,
-    ) = await asset_query.get_all_data(session, redis_client, full_required_assets)
+    ) = await asset_query.get_user_data(session, redis_client, full_required_assets, DUMMY_USER_ID)
 
     complete_asset, incomplete_assets = asset_service.separate_assets_by_full_data(assets, stock_daily_map)
     complete_buy_asset = asset_service.get_buy_assets(complete_asset)
@@ -390,7 +391,7 @@ async def get_performance_analysis(
     performance_analysis_service: PerformanceAnalysisService = Depends(get_performance_analysis_service),
 ) -> PerformanceAnalysisResponse:
     assets: list = await AssetRepository.get_eager(session, token.get("user"), AssetType.STOCK)
-    full_required_assets = await asset_service.get_full_required_assets(assets)
+    full_required_assets = await asset_service.filter_full_required_assets(assets)
 
     (
         stock_daily_map,
@@ -398,7 +399,7 @@ async def get_performance_analysis(
         dividend_map,
         exchange_rate_map,
         current_stock_price_map,
-    ) = await asset_query.get_all_data(session, redis_client, full_required_assets)
+    ) = await asset_query.get_user_data(session, redis_client, full_required_assets, token.get("user"))
 
     complete_asset, incomplete_assets = asset_service.separate_assets_by_full_data(assets, stock_daily_map)
     complete_buy_asset = asset_service.get_buy_assets(complete_asset)
@@ -434,7 +435,7 @@ async def get_sample_my_stock(
     asset_service: AssetService = Depends(get_asset_service),
 ) -> MyStockResponse:
     assets: list = await AssetRepository.get_eager(session, DUMMY_USER_ID, AssetType.STOCK)
-    full_required_assets = await asset_service.get_full_required_assets(assets)
+    full_required_assets = await asset_service.filter_full_required_assets(assets)
 
     (
         stock_daily_map,
@@ -442,7 +443,7 @@ async def get_sample_my_stock(
         dividend_map,
         exchange_rate_map,
         current_stock_price_map,
-    ) = await asset_query.get_all_data(session, redis_client, full_required_assets)
+    ) = await asset_query.get_user_data(session, redis_client, full_required_assets, DUMMY_USER_ID)
 
     complete_asset, incomplete_assets = asset_service.separate_assets_by_full_data(assets, stock_daily_map)
     complete_buy_asset = asset_service.get_buy_assets(complete_asset)
@@ -480,7 +481,7 @@ async def get_my_stock(
     asset_service: AssetService = Depends(get_asset_service),
 ) -> MyStockResponse:
     assets: list = await AssetRepository.get_eager(session, token.get("user"), AssetType.STOCK)
-    full_required_assets = await asset_service.get_full_required_assets(assets)
+    full_required_assets = await asset_service.filter_full_required_assets(assets)
 
     (
         stock_daily_map,
@@ -488,7 +489,7 @@ async def get_my_stock(
         dividend_map,
         exchange_rate_map,
         current_stock_price_map,
-    ) = await asset_query.get_all_data(session, redis_client, full_required_assets)
+    ) = await asset_query.get_user_data(session, redis_client, full_required_assets, token.get("user"))
 
     complete_asset, incomplete_assets = asset_service.separate_assets_by_full_data(assets, stock_daily_map)
     complete_buy_asset = asset_service.get_buy_assets(complete_asset)
@@ -537,7 +538,7 @@ async def get_summary(
     summary_service: SummaryService = Depends(get_summary_service),
 ) -> SummaryResponse:
     assets: list = await AssetRepository.get_eager(session, token.get("user"), AssetType.STOCK)
-    full_required_assets = await asset_service.get_full_required_assets(assets)
+    full_required_assets = await asset_service.filter_full_required_assets(assets)
 
     (
         stock_daily_map,
@@ -545,7 +546,7 @@ async def get_summary(
         dividend_map,
         exchange_rate_map,
         current_stock_price_map,
-    ) = await asset_query.get_all_data(session, redis_client, full_required_assets)
+    ) = await asset_query.get_user_data(session, redis_client, full_required_assets, token.get("user"))
 
     complete_asset, incomplete_assets = asset_service.separate_assets_by_full_data(assets, stock_daily_map)
     complete_buy_asset = asset_service.get_buy_assets(complete_asset)
@@ -587,7 +588,7 @@ async def get_sample_summary(
     summary_service: SummaryService = Depends(get_summary_service),
 ) -> SummaryResponse:
     assets: list = await AssetRepository.get_eager(session, DUMMY_USER_ID, AssetType.STOCK)
-    full_required_assets = await asset_service.get_full_required_assets(assets)
+    full_required_assets = await asset_service.filter_full_required_assets(assets)
 
     (
         stock_daily_map,
@@ -595,7 +596,7 @@ async def get_sample_summary(
         dividend_map,
         exchange_rate_map,
         current_stock_price_map,
-    ) = await asset_query.get_all_data(session, redis_client, full_required_assets)
+    ) = await asset_query.get_user_data(session, redis_client, full_required_assets, DUMMY_USER_ID)
 
     complete_asset, incomplete_assets = asset_service.separate_assets_by_full_data(assets, stock_daily_map)
     complete_buy_asset = asset_service.get_buy_assets(complete_asset)
@@ -659,7 +660,7 @@ async def get_rich_pick(
         dividend_map,
         exchange_rate_map,
         current_stock_price_map,
-    ) = await asset_query.get_all_data(session, redis_client, assets)
+    ) = await asset_query.get_user_data(session, redis_client, assets, RICH_PEOPLE_DATA_KEY)
 
     top_rich_pick_list = rich_service.get_top_rich_pick(
         assets, 10, current_stock_price_map, exchange_rate_map, stock_daily_map

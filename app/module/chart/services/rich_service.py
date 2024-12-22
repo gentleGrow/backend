@@ -84,7 +84,7 @@ class RichService:
                 dividend_map,
                 exchange_rate_map,
                 current_stock_price_map,
-            ) = await self.asset_query.get_all_data(session, redis_client, assets)
+            ) = await self.asset_query.get_user_data(session, redis_client, assets, person_name)
 
             asset_percentage = self.asset_service.get_asset_percentages(
                 assets, current_stock_price_map, exchange_rate_map

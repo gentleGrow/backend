@@ -9,6 +9,11 @@ from app.module.asset.enum import (
     PurchaseCurrencyType,
 )
 
+RICH_PEOPLE_DATA_KEY = 'rich_data_key'
+USER_DATA_KEY = 'user_data_key'
+USER_DATA_EXPIRE_TIME_SEC = 10 * 60
+
+
 DEFAULT_DOLLAR_EXCHANGE_RATE = 0.00072
 DEFAULT_WON_EXCHANGE_RATE = 1400.0
 
@@ -58,7 +63,6 @@ KOSPI = "KOSPI"
 NASDAQ = "NASDAQ"
 NYSE = "NYSE"
 
-# STOCK_CODES = ["005930", "000660", "051910", "035720", "AAPL", "MSFT", "AMZN", "GOOGL", "TSLA", "META", "NVDA"]
 STOCK_CODES = ["AAPL", "MSFT", "AMZN", "GOOGL", "TSLA", "META", "NVDA", "AAPL", "MSFT", "SCHD"]
 
 PURCHASE_DATES = [

@@ -32,9 +32,9 @@ from app.module.asset.schema import (
     UpdateAssetFieldRequest,
 )
 from app.module.asset.services.asset.asset_query import AssetQuery
+from app.module.asset.services.asset.asset_service import AssetService
 from app.module.asset.services.asset.asset_validate import AssetValidate
 from app.module.asset.services.asset_field_service import AssetFieldService
-from app.module.asset.services.asset.asset_service import AssetService
 from app.module.asset.services.asset_stock.asset_stock_service import AssetStockService
 from app.module.asset.services.common.common_validate import AssetCommonValidate
 from app.module.asset.services.dividend_service import DividendService
@@ -175,7 +175,7 @@ async def get_sample_asset_stock(
     if no_asset_response:
         return no_asset_response
 
-    full_required_assets = await asset_service.get_full_required_assets(assets)
+    full_required_assets = await asset_service.filter_full_required_assets(assets)
 
     (
         stock_daily_map,
@@ -183,7 +183,7 @@ async def get_sample_asset_stock(
         dividend_map,
         exchange_rate_map,
         current_stock_price_map,
-    ) = await asset_query.get_all_data(session, redis_client, full_required_assets)
+    ) = await asset_query.get_user_data(session, redis_client, full_required_assets, DUMMY_USER_ID)
 
     complete_asset, incomplete_assets = asset_service.separate_assets_by_full_data(assets, stock_daily_map)
     buy_stock_assets = [
@@ -247,7 +247,7 @@ async def get_asset_stock(
     if no_asset_response:
         return no_asset_response
 
-    full_required_assets = await asset_service.get_full_required_assets(assets)
+    full_required_assets = await asset_service.filter_full_required_assets(assets)
 
     (
         stock_daily_map,
@@ -255,7 +255,7 @@ async def get_asset_stock(
         dividend_map,
         exchange_rate_map,
         current_stock_price_map,
-    ) = await asset_query.get_all_data(session, redis_client, full_required_assets)
+    ) = await asset_query.get_user_data(session, redis_client, full_required_assets, token.get("user"))
 
     complete_asset, incomplete_assets = asset_service.separate_assets_by_full_data(assets, stock_daily_map)
     buy_stock_assets = [

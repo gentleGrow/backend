@@ -1,4 +1,14 @@
 from redis.asyncio import Redis
+from icecream import ic
+
+class RedisAllDataRepostiroy:
+    @classmethod
+    async def get(cls, redis_client: Redis, key: str) -> str | None:
+        return await redis_client.get(key)
+
+    @classmethod
+    async def set(cls, redis_client: Redis, key: str, user_data: str, expire_time: int) -> None:
+        return await redis_client.set(key, user_data, expire_time)
 
 
 class RedisRealTimeStockRepository:

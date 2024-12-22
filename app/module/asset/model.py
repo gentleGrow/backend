@@ -1,3 +1,5 @@
+from datetime import datetime
+
 from sqlalchemy import (
     JSON,
     BigInteger,
@@ -122,6 +124,33 @@ class StockDaily(MySQLBase):
         Index("idx_code_date", "code", text("date DESC")),
     )
 
+    def to_dict(self):
+        return {
+            "id": self.id,
+            "adj_close_price": self.adj_close_price,
+            "close_price": self.close_price,
+            "code": self.code,
+            "date": self.date.isoformat() if self.date else None,
+            "highest_price": self.highest_price,
+            "lowest_price": self.lowest_price,
+            "opening_price": self.opening_price,
+            "trade_volume": self.trade_volume,
+        }
+
+    @staticmethod
+    def from_dict(data: dict):
+        return StockDaily(
+            id=data.get("id"),
+            adj_close_price=data.get("adj_close_price"),
+            close_price=data.get("close_price"),
+            code=data.get("code"),
+            date=datetime.fromisoformat(data.get("date")) if data.get("date") else None,
+            highest_price=data.get("highest_price"),
+            lowest_price=data.get("lowest_price"),
+            opening_price=data.get("opening_price"),
+            trade_volume=data.get("trade_volume"),
+        )
+    
 
 class MarketIndexMinutely(MySQLBase):
     __tablename__ = "market_index_minutely"

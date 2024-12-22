@@ -6,8 +6,8 @@ from app.module.asset.dependencies.stock_dependency import get_stock_service
 from app.module.asset.enum import AssetType
 from app.module.asset.repository.asset_repository import AssetRepository
 from app.module.asset.repository.stock_repository import StockRepository
-from app.module.asset.services.stock_daily_service import StockDailyService
 from app.module.asset.services.stock.stock_service import StockService
+from app.module.asset.services.stock_daily_service import StockDailyService
 from app.module.auth.constant import DUMMY_USER_ID
 
 
