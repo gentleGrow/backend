@@ -35,6 +35,7 @@ asset_query = AssetQuery(
     exchange_rate_service=exchange_rate_service,
     stock_service=stock_service,
     dividend_service=dividend_service,
+    asset_service=asset_service,
 )
 
 

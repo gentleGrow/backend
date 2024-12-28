@@ -12,16 +12,17 @@ exchange_rate_service = ExchangeRateService()
 dividend_service = DividendService(exchange_rate_service=exchange_rate_service)
 asset_stock_service = AssetStockService(exchange_rate_service=exchange_rate_service)
 stock_service = StockService(asset_stock_service=asset_stock_service)
+asset_service = AssetService(
+    stock_daily_service=stock_daily_service,
+    asset_stock_service=asset_stock_service,
+    exchange_rate_service=exchange_rate_service,
+    stock_service=stock_service,
+    dividend_service=dividend_service,
+)
 
 
 def get_asset_service() -> AssetService:
-    return AssetService(
-        stock_daily_service=stock_daily_service,
-        asset_stock_service=asset_stock_service,
-        exchange_rate_service=exchange_rate_service,
-        stock_service=stock_service,
-        dividend_service=dividend_service,
-    )
+    return asset_service
 
 
 def get_asset_validate() -> AssetValidate:
@@ -34,4 +35,5 @@ def get_asset_query():
         exchange_rate_service=exchange_rate_service,
         stock_service=stock_service,
         dividend_service=dividend_service,
+        asset_service=asset_service,
     )

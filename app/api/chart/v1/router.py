@@ -62,7 +62,7 @@ async def get_sample_asset_save_trend(
     asset_query: AssetQuery = Depends(get_asset_query),
     save_trend_service: SaveTrendService = Depends(get_save_trend_service),
 ) -> AssetSaveTrendResponse:
-    assets = await asset_service.get_full_required_assets(session, DUMMY_USER_ID, AssetType.STOCK)
+    assets = await asset_query.get_full_required_assets(session, DUMMY_USER_ID, AssetType.STOCK)
 
     (
         stock_daily_map,
@@ -111,7 +111,7 @@ async def get_asset_save_trend(
     asset_query: AssetQuery = Depends(get_asset_query),
     save_trend_service: SaveTrendService = Depends(get_save_trend_service),
 ) -> AssetSaveTrendResponse:
-    assets = await asset_service.get_full_required_assets(session, token.get("user"), AssetType.STOCK)
+    assets = await asset_query.get_full_required_assets(session, token.get("user"), AssetType.STOCK)
 
     (
         stock_daily_map,
@@ -163,7 +163,7 @@ async def get_sample_estimate_dividend(
     asset_query: AssetQuery = Depends(get_asset_query),
     dividend_service: DividendService = Depends(get_dividend_service),
 ) -> EstimateDividendEveryResponse | EstimateDividendTypeResponse:
-    assets = await asset_service.get_full_required_assets(session, DUMMY_USER_ID, AssetType.STOCK)
+    assets = await asset_query.get_full_required_assets(session, DUMMY_USER_ID, AssetType.STOCK)
 
     (
         stock_daily_map,
@@ -211,7 +211,7 @@ async def get_estimate_dividend(
     asset_query: AssetQuery = Depends(get_asset_query),
     dividend_service: DividendService = Depends(get_dividend_service),
 ) -> EstimateDividendEveryResponse | EstimateDividendTypeResponse:
-    assets = await asset_service.get_full_required_assets(session, token.get("user"), AssetType.STOCK)
+    assets = await asset_query.get_full_required_assets(session, token.get("user"), AssetType.STOCK)
 
     (
         stock_daily_map,
@@ -256,7 +256,7 @@ async def get_sample_composition(
     asset_query: AssetQuery = Depends(get_asset_query),
     composition_service: CompositionService = Depends(get_composition_service),
 ) -> CompositionResponse:
-    assets = await asset_service.get_full_required_assets(session, DUMMY_USER_ID, AssetType.STOCK)
+    assets = await asset_query.get_full_required_assets(session, DUMMY_USER_ID, AssetType.STOCK)
 
     (
         stock_daily_map,
@@ -296,7 +296,7 @@ async def get_composition(
     asset_query: AssetQuery = Depends(get_asset_query),
     composition_service: CompositionService = Depends(get_composition_service),
 ) -> CompositionResponse:
-    assets = await asset_service.get_full_required_assets(session, token.get("user"), AssetType.STOCK)
+    assets = await asset_query.get_full_required_assets(session, token.get("user"), AssetType.STOCK)
 
     (
         stock_daily_map,
@@ -336,7 +336,7 @@ async def get_sample_performance_analysis(
     redis_client: Redis = Depends(get_redis_pool),
     performance_analysis_service: PerformanceAnalysisService = Depends(get_performance_analysis_service),
 ) -> PerformanceAnalysisResponse:
-    assets = await asset_service.get_full_required_assets(session, DUMMY_USER_ID, AssetType.STOCK)
+    assets = await asset_query.get_full_required_assets(session, DUMMY_USER_ID, AssetType.STOCK)
 
     (
         stock_daily_map,
@@ -382,7 +382,7 @@ async def get_performance_analysis(
     redis_client: Redis = Depends(get_redis_pool),
     performance_analysis_service: PerformanceAnalysisService = Depends(get_performance_analysis_service),
 ) -> PerformanceAnalysisResponse:
-    assets = await asset_service.get_full_required_assets(session, token.get("user"), AssetType.STOCK)
+    assets = await asset_query.get_full_required_assets(session, token.get("user"), AssetType.STOCK)
 
     (
         stock_daily_map,
@@ -425,7 +425,7 @@ async def get_sample_my_stock(
     asset_query: AssetQuery = Depends(get_asset_query),
     asset_service: AssetService = Depends(get_asset_service),
 ) -> MyStockResponse:
-    assets = await asset_service.get_full_required_assets(session, DUMMY_USER_ID, AssetType.STOCK)
+    assets = await asset_query.get_full_required_assets(session, DUMMY_USER_ID, AssetType.STOCK)
 
     (
         stock_daily_map,
@@ -470,7 +470,7 @@ async def get_my_stock(
     asset_query: AssetQuery = Depends(get_asset_query),
     asset_service: AssetService = Depends(get_asset_service),
 ) -> MyStockResponse:
-    assets = await asset_service.get_full_required_assets(session, token.get("user"), AssetType.STOCK)
+    assets = await asset_query.get_full_required_assets(session, token.get("user"), AssetType.STOCK)
 
     (
         stock_daily_map,
@@ -526,7 +526,7 @@ async def get_summary(
     asset_service: AssetService = Depends(get_asset_service),
     summary_service: SummaryService = Depends(get_summary_service),
 ) -> SummaryResponse:
-    assets = await asset_service.get_full_required_assets(session, token.get("user"), AssetType.STOCK)
+    assets = await asset_query.get_full_required_assets(session, token.get("user"), AssetType.STOCK)
 
     (
         stock_daily_map,
@@ -575,7 +575,7 @@ async def get_sample_summary(
     asset_query: AssetQuery = Depends(get_asset_query),
     summary_service: SummaryService = Depends(get_summary_service),
 ) -> SummaryResponse:
-    assets = await asset_service.get_full_required_assets(session, DUMMY_USER_ID, AssetType.STOCK)
+    assets = await asset_query.get_full_required_assets(session, DUMMY_USER_ID, AssetType.STOCK)
 
     (
         stock_daily_map,

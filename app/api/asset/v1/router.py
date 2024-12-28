@@ -20,6 +20,7 @@ from app.module.asset.schema import (
     AggregateStockAsset,
     AssetFieldResponse,
     AssetFieldUpdateResponse,
+    AssetStockPostRequest,
     AssetStockPutRequest,
     AssetStockResponse,
     AssetStockStatusResponse,
@@ -27,7 +28,6 @@ from app.module.asset.schema import (
     ParentAssetDeleteResponse,
     StockAssetGroup,
     StockAssetSchema,
-    AssetStockPostRequest,
     StockListResponse,
     StockListValue,
     UpdateAssetFieldRequest,
@@ -96,8 +96,10 @@ async def create_asset_stock(
     request_data: AssetStockPostRequest,
     token: AccessToken = Depends(verify_jwt_token),
     session: AsyncSession = Depends(get_mysql_session_router),
+    redis_client: Redis = Depends(get_redis_pool),
     asset_common_validate: AssetCommonValidate = Depends(get_asset_common_validate),
     asset_stock_service: AssetStockService = Depends(get_asset_stock_service),
+    asset_query: AssetQuery = Depends(get_asset_query),
 ) -> AssetStockStatusResponse:
     abnormal_data_response = AssetStockPostRequest.validate(request_data)
     if abnormal_data_response:
@@ -106,9 +108,9 @@ async def create_asset_stock(
     validate_response = await asset_common_validate.check_asset_stock_request(session, request_data)
     if validate_response:
         return validate_response
-    
-    await asset_stock_service.save_asset_stock_by_post(session, request_data, token.get("user"))
 
+    await asset_stock_service.save_asset_stock_by_post(session, request_data, token.get("user"))
+    await asset_query.cache_user_data(session, redis_client, token.get("user"))
     return AssetStockStatusResponse(status_code=status.HTTP_201_CREATED, detail="주식 자산 성공적으로 등록 했습니다.", field="")
 
 
@@ -117,8 +119,10 @@ async def update_asset_stock(
     request_data: AssetStockPutRequest,
     token: AccessToken = Depends(verify_jwt_token),
     session: AsyncSession = Depends(get_mysql_session_router),
+    redis_client: Redis = Depends(get_redis_pool),
     asset_common_validate: AssetCommonValidate = Depends(get_asset_common_validate),
     asset_service: AssetService = Depends(get_asset_service),
+    asset_query: AssetQuery = Depends(get_asset_query),
 ) -> AssetStockStatusResponse:
     asset_validate_response = await AssetStockPutRequest.id_validate(session, request_data.id)
     if asset_validate_response:
@@ -129,6 +133,7 @@ async def update_asset_stock(
         return validate_response
 
     await asset_service.save_asset_by_put(session, request_data)
+    await asset_query.cache_user_data(session, redis_client, token.get("user"))
     return AssetStockStatusResponse(status_code=status.HTTP_200_OK, detail="주식 자산을 성공적으로 수정 하였습니다.", field="")
 
 
@@ -136,13 +141,16 @@ async def update_asset_stock(
 async def delete_asset(
     asset_id: int,
     token: AccessToken = Depends(verify_jwt_token),
-    asset_validate: AssetValidate = Depends(get_asset_validate),
     session: AsyncSession = Depends(get_mysql_session_router),
+    redis_client: Redis = Depends(get_redis_pool),
+    asset_validate: AssetValidate = Depends(get_asset_validate),
+    asset_query: AssetQuery = Depends(get_asset_query),
 ) -> DeleteResponse:
     user_asset_exist = await asset_validate.check_asset_exist(session, asset_id, token.get("user"))
     if not user_asset_exist:
         return DeleteResponse(status_code=status.HTTP_404_NOT_FOUND, detail="해당하는 asset id가 유저에게 존재하지 않습니다.")
     await AssetRepository.delete_asset(session, asset_id)
+    await asset_query.cache_user_data(session, redis_client, token.get("user"))
     return DeleteResponse(status_code=status.HTTP_200_OK, detail="주식 자산이 성공적으로 삭제 되었습니다.")
 
 
@@ -151,7 +159,9 @@ async def delete_asset_stock(
     stock_code: str,
     token: AccessToken = Depends(verify_jwt_token),
     session: AsyncSession = Depends(get_mysql_session_router),
+    redis_client: Redis = Depends(get_redis_pool),
     asset_service: AssetService = Depends(get_asset_service),
+    asset_query: AssetQuery = Depends(get_asset_query),
 ) -> DeleteResponse:
     assets: list[Asset] = await AssetRepository.get_eager(session, token.get("user"), AssetType.STOCK)
     no_matching_response = ParentAssetDeleteResponse.validate_stock_code(assets, stock_code)
@@ -159,6 +169,7 @@ async def delete_asset_stock(
         return no_matching_response
 
     await asset_service.delete_parent_row(session, assets, stock_code)
+    await asset_query.cache_user_data(session, redis_client, token.get("user"))
     return DeleteResponse(status_code=status.HTTP_200_OK, detail="부모행을 성공적으로 삭제 하였습니다.")
 
 
@@ -171,7 +182,7 @@ async def get_sample_asset_stock(
     dividend_service: DividendService = Depends(get_dividend_service),
     asset_field_service: AssetFieldService = Depends(get_asset_field_service),
 ) -> AssetStockResponse:
-    assets = await asset_service.get_full_required_assets(session, DUMMY_USER_ID, AssetType.STOCK)
+    assets = await asset_query.get_full_required_assets(session, DUMMY_USER_ID, AssetType.STOCK)
     asset_fields: list[str] = await asset_field_service.get_asset_field(session, DUMMY_USER_ID)
     no_asset_response = AssetStockResponse.validate_assets(assets, asset_fields)
     if no_asset_response:
@@ -241,7 +252,7 @@ async def get_asset_stock(
     dividend_service: DividendService = Depends(get_dividend_service),
     asset_field_service: AssetFieldService = Depends(get_asset_field_service),
 ) -> AssetStockResponse:
-    assets = await asset_service.get_full_required_assets(session, token.get("user"), AssetType.STOCK)
+    assets = await asset_query.get_full_required_assets(session, token.get("user"), AssetType.STOCK)
     asset_fields: list[str] = await asset_field_service.get_asset_field(session, token.get("user"))
     no_asset_response = AssetStockResponse.validate_assets(assets, asset_fields)
     if no_asset_response:

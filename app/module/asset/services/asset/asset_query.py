@@ -5,8 +5,11 @@ from redis.asyncio import Redis
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.module.asset.constant import USER_DATA_EXPIRE_TIME_SEC, USER_DATA_KEY
+from app.module.asset.enum import AssetType
 from app.module.asset.model import Asset, StockDaily
 from app.module.asset.redis_repository import RedisAllDataRepostiroy
+from app.module.asset.repository.asset_repository import AssetRepository
+from app.module.asset.services.asset.asset_service import AssetService
 from app.module.asset.services.dividend_service import DividendService
 from app.module.asset.services.exchange_rate_service import ExchangeRateService
 from app.module.asset.services.stock.stock_service import StockService
@@ -20,11 +23,13 @@ class AssetQuery:
         exchange_rate_service: ExchangeRateService,
         stock_service: StockService,
         dividend_service: DividendService,
+        asset_service: AssetService,
     ):
         self.stock_daily_service = stock_daily_service
         self.exchange_rate_service = exchange_rate_service
         self.stock_service = stock_service
         self.dividend_service = dividend_service
+        self.asset_service = asset_service
 
     async def get_full_required_assets(
         self, session: AsyncSession, user_id: int | str, asset_type: AssetType
@@ -41,9 +46,8 @@ class AssetQuery:
             and asset.asset_stock.purchase_currency_type
         )
 
-
     async def cache_user_data(
-        self, session: AsyncSession, redis_client: Redis, assets: list[Asset], user_id: str | int
+        self, session: AsyncSession, redis_client: Redis, user_id: str | int
     ) -> tuple[
         dict[tuple[str, date], StockDaily],  # stock_daily_map
         dict[str, StockDaily],  # lastest_stock_daily_map
@@ -51,6 +55,8 @@ class AssetQuery:
         dict[str, float],  # exchange_rate_map
         dict[str, float],  # current_stock_price_map
     ]:
+        assets = await self.get_full_required_assets(session, user_id, AssetType.STOCK)
+
         (
             stock_daily_map,
             lastest_stock_daily_map,
