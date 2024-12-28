@@ -1,6 +1,5 @@
 import asyncio
 import logging
-from datetime import timedelta
 from os import getenv
 from zoneinfo import ZoneInfo
 
@@ -8,7 +7,7 @@ from celery import shared_task
 from dotenv import load_dotenv
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.common.util.time import get_lastest_weekday_date, get_lastest_weekdate_datetime
+from app.common.util.time import get_lastest_weekdate_datetime, get_lastest_weekday_date
 from app.data.common.constant import VALIDATE_CODES, VALIDATE_INDICES
 from app.data.custom.email_service import send_email
 from app.module.asset.repository.market_index_daily_repository import MarketIndexDailyRepository

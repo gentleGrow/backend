@@ -89,7 +89,6 @@ async def get_stock_list(session: AsyncSession = Depends(get_mysql_session_route
         [StockListValue(name_en=stock.name_en, name_kr=stock.name_kr, code=stock.code) for stock in stock_list]
     )
 
-
 @asset_stock_router.post("/assetstock", summary="자산관리 정보를 등록합니다.", response_model=AssetStockStatusResponse)
 async def create_asset_stock(
     request_data: AssetStockRequest,
@@ -107,6 +106,9 @@ async def create_asset_stock(
         return validate_response
 
     await asset_stock_service.save_asset_stock_by_post(session, request_data, token.get("user"))
+    
+    
+    
     return AssetStockStatusResponse(status_code=status.HTTP_201_CREATED, detail="주식 자산 성공적으로 등록 했습니다.", field="")
 
 
@@ -169,13 +171,12 @@ async def get_sample_asset_stock(
     dividend_service: DividendService = Depends(get_dividend_service),
     asset_field_service: AssetFieldService = Depends(get_asset_field_service),
 ) -> AssetStockResponse:
-    assets: list[Asset] = await AssetRepository.get_eager(session, DUMMY_USER_ID, AssetType.STOCK)
+    assets = await asset_service.get_full_required_assets(session, DUMMY_USER_ID, AssetType.STOCK)
     asset_fields: list[str] = await asset_field_service.get_asset_field(session, DUMMY_USER_ID)
     no_asset_response = AssetStockResponse.validate_assets(assets, asset_fields)
     if no_asset_response:
         return no_asset_response
 
-    full_required_assets = await asset_service.filter_full_required_assets(assets)
 
     (
         stock_daily_map,
@@ -183,7 +184,7 @@ async def get_sample_asset_stock(
         dividend_map,
         exchange_rate_map,
         current_stock_price_map,
-    ) = await asset_query.get_user_data(session, redis_client, full_required_assets, DUMMY_USER_ID)
+    ) = await asset_query.get_user_data(session, redis_client, assets, DUMMY_USER_ID)
 
     complete_asset, incomplete_assets = asset_service.separate_assets_by_full_data(assets, stock_daily_map)
     buy_stock_assets = [
@@ -241,13 +242,11 @@ async def get_asset_stock(
     dividend_service: DividendService = Depends(get_dividend_service),
     asset_field_service: AssetFieldService = Depends(get_asset_field_service),
 ) -> AssetStockResponse:
-    assets: list[Asset] = await AssetRepository.get_eager(session, token.get("user"), AssetType.STOCK)
+    assets = await asset_service.get_full_required_assets(session, token.get("user"), AssetType.STOCK)
     asset_fields: list[str] = await asset_field_service.get_asset_field(session, token.get("user"))
     no_asset_response = AssetStockResponse.validate_assets(assets, asset_fields)
     if no_asset_response:
         return no_asset_response
-
-    full_required_assets = await asset_service.filter_full_required_assets(assets)
 
     (
         stock_daily_map,
@@ -255,7 +254,7 @@ async def get_asset_stock(
         dividend_map,
         exchange_rate_map,
         current_stock_price_map,
-    ) = await asset_query.get_user_data(session, redis_client, full_required_assets, token.get("user"))
+    ) = await asset_query.get_user_data(session, redis_client, assets, token.get("user"))
 
     complete_asset, incomplete_assets = asset_service.separate_assets_by_full_data(assets, stock_daily_map)
     buy_stock_assets = [

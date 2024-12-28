@@ -26,6 +26,38 @@ class AssetQuery:
         self.stock_service = stock_service
         self.dividend_service = dividend_service
 
+    async def cache_user_data(
+        self, session: AsyncSession, redis_client: Redis, assets: list[Asset], user_id: str | int
+    ) -> tuple[
+        dict[tuple[str, date], StockDaily],  # stock_daily_map
+        dict[str, StockDaily],  # lastest_stock_daily_map
+        dict[str, float],  # dividend_map
+        dict[str, float],  # exchange_rate_map
+        dict[str, float],  # current_stock_price_map
+    ]:
+        (
+            stock_daily_map,
+            lastest_stock_daily_map,
+            dividend_map,
+            exchange_rate_map,
+            current_stock_price_map,
+        ) = await self._get_all_data(session, redis_client, assets)
+
+        user_data = self._convert_to_string(
+            stock_daily_map,
+            lastest_stock_daily_map,
+            dividend_map,
+            exchange_rate_map,
+            current_stock_price_map,
+        )
+
+        await RedisAllDataRepostiroy.set(
+            redis_client, self._get_user_data_key(user_id), user_data, USER_DATA_EXPIRE_TIME_SEC
+        )
+
+        return (stock_daily_map, lastest_stock_daily_map, dividend_map, exchange_rate_map, current_stock_price_map)
+
+
     async def get_user_data(
         self, session: AsyncSession, redis_client: Redis, assets: list[Asset], user_id: str | int
     ) -> tuple[

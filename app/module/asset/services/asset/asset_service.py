@@ -8,7 +8,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.common.util.time import get_now_date
 from app.module.asset.constant import INFLATION_RATE, REQUIRED_ASSET_FIELD, THREE_MONTH, THREE_MONTH_DAY, 만, 억
-from app.module.asset.enum import ASSETNAME, AmountUnit, PurchaseCurrencyType, StockAsset, TradeType
+from app.module.asset.enum import ASSETNAME, AmountUnit, PurchaseCurrencyType, StockAsset, TradeType, AssetType
 from app.module.asset.model import Asset, StockDaily
 from app.module.asset.repository.asset_repository import AssetRepository
 from app.module.asset.repository.stock_repository import StockRepository
@@ -81,7 +81,8 @@ class AssetService:
 
         return complete_assets, incomplete_assets
 
-    async def filter_full_required_assets(self, assets: list[Asset]) -> list[Asset]:
+    async def get_full_required_assets(self, session: AsyncSession, user_id: int | str, asset_type: AssetType) -> list[Asset]:
+        assets: list = await AssetRepository.get_eager(session, user_id, asset_type)
         return [filterd_asset for filterd_asset in filter(self._filter_full_required_asset, assets)]
 
     def _filter_full_required_asset(self, asset: Asset):
