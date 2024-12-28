@@ -20,13 +20,14 @@ from app.module.asset.schema import (
     AggregateStockAsset,
     AssetFieldResponse,
     AssetFieldUpdateResponse,
-    AssetStockRequest,
+    AssetStockPutRequest,
     AssetStockResponse,
     AssetStockStatusResponse,
     BankAccountResponse,
     ParentAssetDeleteResponse,
     StockAssetGroup,
     StockAssetSchema,
+    AssetStockPostRequest,
     StockListResponse,
     StockListValue,
     UpdateAssetFieldRequest,
@@ -89,38 +90,37 @@ async def get_stock_list(session: AsyncSession = Depends(get_mysql_session_route
         [StockListValue(name_en=stock.name_en, name_kr=stock.name_kr, code=stock.code) for stock in stock_list]
     )
 
+
 @asset_stock_router.post("/assetstock", summary="자산관리 정보를 등록합니다.", response_model=AssetStockStatusResponse)
 async def create_asset_stock(
-    request_data: AssetStockRequest,
+    request_data: AssetStockPostRequest,
     token: AccessToken = Depends(verify_jwt_token),
     session: AsyncSession = Depends(get_mysql_session_router),
     asset_common_validate: AssetCommonValidate = Depends(get_asset_common_validate),
     asset_stock_service: AssetStockService = Depends(get_asset_stock_service),
 ) -> AssetStockStatusResponse:
-    abnormal_data_response = AssetStockRequest.validate(request_data)
+    abnormal_data_response = AssetStockPostRequest.validate(request_data)
     if abnormal_data_response:
         return abnormal_data_response
 
     validate_response = await asset_common_validate.check_asset_stock_request(session, request_data)
     if validate_response:
         return validate_response
-
+    
     await asset_stock_service.save_asset_stock_by_post(session, request_data, token.get("user"))
-    
-    
-    
+
     return AssetStockStatusResponse(status_code=status.HTTP_201_CREATED, detail="주식 자산 성공적으로 등록 했습니다.", field="")
 
 
 @asset_stock_router.put("/assetstock", summary="주식 자산을 수정합니다.", response_model=AssetStockStatusResponse)
 async def update_asset_stock(
-    request_data: AssetStockRequest,
+    request_data: AssetStockPutRequest,
     token: AccessToken = Depends(verify_jwt_token),
     session: AsyncSession = Depends(get_mysql_session_router),
     asset_common_validate: AssetCommonValidate = Depends(get_asset_common_validate),
     asset_service: AssetService = Depends(get_asset_service),
 ) -> AssetStockStatusResponse:
-    asset_validate_response = await AssetStockRequest.id_validate(session, request_data.id)
+    asset_validate_response = await AssetStockPutRequest.id_validate(session, request_data.id)
     if asset_validate_response:
         return asset_validate_response
 
@@ -176,7 +176,6 @@ async def get_sample_asset_stock(
     no_asset_response = AssetStockResponse.validate_assets(assets, asset_fields)
     if no_asset_response:
         return no_asset_response
-
 
     (
         stock_daily_map,

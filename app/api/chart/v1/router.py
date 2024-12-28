@@ -10,7 +10,6 @@ from app.module.asset.dependencies.asset_dependency import get_asset_query, get_
 from app.module.asset.dependencies.dividend_dependency import get_dividend_service
 from app.module.asset.dependencies.realtime_index_dependency import get_realtime_index_service
 from app.module.asset.enum import AssetType, MarketIndex
-from app.module.asset.repository.asset_repository import AssetRepository
 from app.module.asset.schema import MarketIndexData, StockAssetSchema
 from app.module.asset.services.asset.asset_query import AssetQuery
 from app.module.asset.services.asset.asset_service import AssetService

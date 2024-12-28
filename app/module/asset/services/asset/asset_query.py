@@ -26,6 +26,22 @@ class AssetQuery:
         self.stock_service = stock_service
         self.dividend_service = dividend_service
 
+    async def get_full_required_assets(
+        self, session: AsyncSession, user_id: int | str, asset_type: AssetType
+    ) -> list[Asset]:
+        assets: list = await AssetRepository.get_eager(session, user_id, asset_type)
+        return [filterd_asset for filterd_asset in filter(self._filter_full_required_asset, assets)]
+
+    def _filter_full_required_asset(self, asset: Asset):
+        return (
+            asset.asset_stock.stock
+            and asset.asset_stock.quantity
+            and asset.asset_stock.trade_date
+            and asset.asset_stock.trade
+            and asset.asset_stock.purchase_currency_type
+        )
+
+
     async def cache_user_data(
         self, session: AsyncSession, redis_client: Redis, assets: list[Asset], user_id: str | int
     ) -> tuple[
@@ -56,7 +72,6 @@ class AssetQuery:
         )
 
         return (stock_daily_map, lastest_stock_daily_map, dividend_map, exchange_rate_map, current_stock_price_map)
-
 
     async def get_user_data(
         self, session: AsyncSession, redis_client: Redis, assets: list[Asset], user_id: str | int

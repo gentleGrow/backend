@@ -8,13 +8,13 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.common.util.time import get_now_date
 from app.module.asset.constant import INFLATION_RATE, REQUIRED_ASSET_FIELD, THREE_MONTH, THREE_MONTH_DAY, 만, 억
-from app.module.asset.enum import ASSETNAME, AmountUnit, PurchaseCurrencyType, StockAsset, TradeType, AssetType
+from app.module.asset.enum import ASSETNAME, AmountUnit, AssetType, PurchaseCurrencyType, StockAsset, TradeType
 from app.module.asset.model import Asset, StockDaily
 from app.module.asset.repository.asset_repository import AssetRepository
 from app.module.asset.repository.stock_repository import StockRepository
 from app.module.asset.schema import (
     AggregateStockAsset,
-    AssetStockRequest,
+    AssetStockPutRequest,
     StockAssetGroup,
     StockAssetSchema,
     TodayTempStockDaily,
@@ -81,7 +81,9 @@ class AssetService:
 
         return complete_assets, incomplete_assets
 
-    async def get_full_required_assets(self, session: AsyncSession, user_id: int | str, asset_type: AssetType) -> list[Asset]:
+    async def get_full_required_assets(
+        self, session: AsyncSession, user_id: int | str, asset_type: AssetType
+    ) -> list[Asset]:
         assets: list = await AssetRepository.get_eager(session, user_id, asset_type)
         return [filterd_asset for filterd_asset in filter(self._filter_full_required_asset, assets)]
 
@@ -219,7 +221,7 @@ class AssetService:
         asset = await AssetRepository.get_asset_by_id(session, asset_id)
         return {asset.id: asset} if asset else None
 
-    async def save_asset_by_put(self, session: AsyncSession, request_data: AssetStockRequest):
+    async def save_asset_by_put(self, session: AsyncSession, request_data: AssetStockPutRequest):
         asset = await AssetRepository.get_asset_by_id(session, request_data.id)
         asset.asset_stock.account_type = request_data.account_type if request_data.account_type else None
         asset.asset_stock.investment_bank = request_data.investment_bank if request_data.investment_bank else None

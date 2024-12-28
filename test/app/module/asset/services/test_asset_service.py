@@ -10,7 +10,7 @@ from app.module.asset.dependencies.stock_daily_dependency import get_stock_daily
 from app.module.asset.enum import AccountType, AssetType, InvestmentBankType, PurchaseCurrencyType, TradeType
 from app.module.asset.model import Asset
 from app.module.asset.repository.asset_repository import AssetRepository
-from app.module.asset.schema import AssetStockRequest
+from app.module.asset.schema import AssetStockPutRequest
 from app.module.asset.services.asset.asset_service import AssetService
 from app.module.asset.services.exchange_rate_service import ExchangeRateService
 from app.module.asset.services.stock_daily_service import StockDailyService
@@ -90,7 +90,7 @@ class TestAssetService:
         asset_id = 1
         asset: Asset = await AssetRepository.get_asset_by_id(session, asset_id)
 
-        request_data = AssetStockRequest(
+        request_data = AssetStockPutRequest(
             id=asset.id,
             trade_date=date(2024, 9, 1),
             purchase_currency_type=PurchaseCurrencyType.KOREA,

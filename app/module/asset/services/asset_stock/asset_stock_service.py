@@ -6,7 +6,7 @@ from app.module.asset.enum import AssetType, CurrencyType, PurchaseCurrencyType,
 from app.module.asset.model import Asset, AssetStock, StockDaily
 from app.module.asset.repository.asset_repository import AssetRepository
 from app.module.asset.repository.stock_repository import StockRepository
-from app.module.asset.schema import AssetStockRequest
+from app.module.asset.schema import AssetStockPostRequest
 from app.module.asset.services.exchange_rate_service import ExchangeRateService
 
 
@@ -47,7 +47,7 @@ class AssetStockService:
         return result
 
     async def save_asset_stock_by_post(
-        self, session: AsyncSession, request_data: AssetStockRequest, user_id: int
+        self, session: AsyncSession, request_data: AssetStockPostRequest, user_id: int
     ) -> None:
         stock = await StockRepository.get_by_code(session, request_data.stock_code)
 

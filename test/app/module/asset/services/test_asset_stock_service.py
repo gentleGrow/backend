@@ -11,7 +11,7 @@ from app.module.asset.dependencies.stock_dependency import get_stock_service
 from app.module.asset.enum import AccountType, AssetType, InvestmentBankType, PurchaseCurrencyType, TradeType
 from app.module.asset.model import Asset
 from app.module.asset.repository.asset_repository import AssetRepository
-from app.module.asset.schema import AssetStockRequest
+from app.module.asset.schema import AssetStockPostRequest
 from app.module.asset.services.asset_stock.asset_stock_service import AssetStockService
 from app.module.asset.services.exchange_rate_service import ExchangeRateService
 from app.module.asset.services.stock.stock_service import StockService
@@ -55,7 +55,7 @@ class TestAssetStockService:
         asset_stock_service: AssetStockService = get_asset_stock_service()
         stock_id = 1
 
-        request_data = AssetStockRequest(
+        request_data = AssetStockPostRequest(
             trade_date=date(2024, 8, 13),
             purchase_currency_type=PurchaseCurrencyType.USA,
             quantity=10,
