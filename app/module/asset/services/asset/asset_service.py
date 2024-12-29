@@ -1,7 +1,7 @@
 from collections import defaultdict
 from datetime import date, datetime, timedelta
 from typing import Any
-
+from icecream import ic
 import pandas
 from redis.asyncio import Redis
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -450,6 +450,7 @@ class AssetService:
             StockAsset.STOCK_CODE.value: asset.asset_stock.stock.code,
             StockAsset.STOCK_NAME.value: asset.asset_stock.stock.name_kr,
             StockAsset.STOCK_VOLUME.value: None,
+            StockAsset.TRADE.value: asset.asset_stock.trade,
         }
 
     def get_stock_assets(

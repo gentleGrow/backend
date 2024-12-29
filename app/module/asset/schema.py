@@ -32,23 +32,24 @@ class StockAssetField(BaseModel):
 
 class StockAssetSchema(BaseModel):
     id: int
-    계좌종류: StockAssetField
-    매매일자: StockAssetField
-    현재가: StockAssetField
-    배당금: StockAssetField
-    매매: StockAssetField
-    고가: StockAssetField
-    증권사: StockAssetField
-    저가: StockAssetField
-    시가: StockAssetField
-    수익률: StockAssetField
-    수익금: StockAssetField
-    거래금: StockAssetField
     거래가: StockAssetField
-    수량: StockAssetField
-    종목명: StockAssetField
+    거래금: StockAssetField
     거래량: StockAssetField
+    계좌종류: StockAssetField
+    고가: StockAssetField
+    매매일자: StockAssetField
+    배당금: StockAssetField
+    수량: StockAssetField
+    수익금: StockAssetField
+    수익률: StockAssetField
+    시가: StockAssetField
+    저가: StockAssetField
+    종목명: StockAssetField
+    주식코드: StockAssetField 
     주식통화: str | None
+    증권사: StockAssetField
+    현재가: StockAssetField
+    매매: StockAssetField
 
 
 class AggregateStockAsset(BaseModel):
