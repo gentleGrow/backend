@@ -68,7 +68,7 @@ def fetch_stock_price(stock_code: str, code: str) -> tuple[str, float]:
 
 
 async def execute_async_task():
-    logger.info("현재 주가 현황을 확인합니다.")
+    logger.info("현재 주가를 수집합니다.")
     stock_list: list[StockInfo] = StockCodeFileReader.get_usa_korea_stock_code_list()
     redis_client = get_redis_pool()
     await process_stock_data(redis_client, stock_list)
