@@ -1,3 +1,5 @@
+from datetime import datetime
+
 from sqlalchemy import (
     JSON,
     BigInteger,
@@ -89,21 +91,6 @@ class Stock(TimestampMixin, MySQLBase):
     dividend = relationship("Dividend", back_populates="stock")
 
 
-class StockMinutely(MySQLBase):
-    __tablename__ = "stock_minutely"
-
-    id = Column(BigInteger, primary_key=True, autoincrement=True)
-    code = Column(String(255), nullable=False)
-    datetime = Column(DateTime, nullable=False)
-    price = Column(Float, nullable=False)
-
-    __table_args__ = (
-        UniqueConstraint("code", "datetime", name="uq_code_name_datetime"),
-        Index("idx_code", "code"),
-        Index("idx_code_datetime_desc", "code", text("datetime DESC")),
-    )
-
-
 class StockDaily(MySQLBase):
     __tablename__ = "stock_daily"
 
@@ -122,20 +109,34 @@ class StockDaily(MySQLBase):
         Index("idx_code_date", "code", text("date DESC")),
     )
 
+    def to_dict(self) -> dict:
+        return {
+            "id": self.id,
+            "adj_close_price": self.adj_close_price,
+            "close_price": self.close_price,
+            "code": self.code,
+            "date": self.date.isoformat() if self.date else None,
+            "highest_price": self.highest_price,
+            "lowest_price": self.lowest_price,
+            "opening_price": self.opening_price,
+            "trade_volume": self.trade_volume,
+        }
 
-class MarketIndexMinutely(MySQLBase):
-    __tablename__ = "market_index_minutely"
+    @staticmethod
+    def from_dict(stock_daily_dict: dict) -> "StockDaily":
+        date_value = stock_daily_dict.get("date")
 
-    id = Column(BigInteger, primary_key=True, autoincrement=True)
-    name = Column(String(255), nullable=False)
-    datetime = Column(DateTime, nullable=False)
-    price = Column(Float, nullable=False)
-
-    __table_args__ = (
-        UniqueConstraint("name", "datetime", name="uq_name_datetime"),
-        Index("idx_name", "name"),
-        Index("idx_name_datetime", "name", text("datetime DESC")),
-    )
+        return StockDaily(
+            id=stock_daily_dict.get("id"),
+            adj_close_price=stock_daily_dict.get("adj_close_price"),
+            close_price=stock_daily_dict.get("close_price"),
+            code=stock_daily_dict.get("code"),
+            date=datetime.fromisoformat(date_value) if isinstance(date_value, str) else None,
+            highest_price=stock_daily_dict.get("highest_price"),
+            lowest_price=stock_daily_dict.get("lowest_price"),
+            opening_price=stock_daily_dict.get("opening_price"),
+            trade_volume=stock_daily_dict.get("trade_volume"),
+        )
 
 
 class MarketIndexDaily(MySQLBase):
@@ -153,4 +154,42 @@ class MarketIndexDaily(MySQLBase):
     __table_args__ = (
         UniqueConstraint("name", "date", name="uq_name_date"),
         Index("idx_name_date_desc", "name", text("date DESC")),
+    )
+
+
+class StockMinutely(MySQLBase):
+    """비용적 문제로 인해 중단된 코드입니다.
+    추후 분당 데이터 수집 시 사용될 엔티티입니다.
+    """
+
+    __tablename__ = "stock_minutely"
+
+    id = Column(BigInteger, primary_key=True, autoincrement=True)
+    code = Column(String(255), nullable=False)
+    datetime = Column(DateTime, nullable=False)
+    price = Column(Float, nullable=False)
+
+    __table_args__ = (
+        UniqueConstraint("code", "datetime", name="uq_code_name_datetime"),
+        Index("idx_code", "code"),
+        Index("idx_code_datetime_desc", "code", text("datetime DESC")),
+    )
+
+
+class MarketIndexMinutely(MySQLBase):
+    """비용적 문제로 인해 중단된 코드입니다.
+    추후 분당 데이터 수집 시 사용될 엔티티입니다.
+    """
+
+    __tablename__ = "market_index_minutely"
+
+    id = Column(BigInteger, primary_key=True, autoincrement=True)
+    name = Column(String(255), nullable=False)
+    datetime = Column(DateTime, nullable=False)
+    price = Column(Float, nullable=False)
+
+    __table_args__ = (
+        UniqueConstraint("name", "datetime", name="uq_name_datetime"),
+        Index("idx_name", "name"),
+        Index("idx_name_datetime", "name", text("datetime DESC")),
     )

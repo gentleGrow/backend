@@ -14,7 +14,7 @@ from app.common.util.time import (
     transform_timestamp_datetime,
 )
 from app.data.common.constant import STOCK_CACHE_SECOND
-from app.data.polygon.constant import STOCK_COLLECT_END_TIME_MINUTE, STOCK_COLLECT_START_TIME_MINUTE
+from app.data.polygon.legacy.constant import STOCK_COLLECT_END_TIME_MINUTE, STOCK_COLLECT_START_TIME_MINUTE
 from app.module.asset.model import StockMinutely
 from app.module.asset.redis_repository import RedisRealTimeStockRepository
 from app.module.asset.repository.stock_minutely_repository import StockMinutelyRepository

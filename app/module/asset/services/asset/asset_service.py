@@ -14,16 +14,16 @@ from app.module.asset.repository.asset_repository import AssetRepository
 from app.module.asset.repository.stock_repository import StockRepository
 from app.module.asset.schema import (
     AggregateStockAsset,
-    AssetStockRequest,
+    AssetStockPutRequest,
     StockAssetGroup,
     StockAssetSchema,
     TodayTempStockDaily,
 )
-from app.module.asset.services.asset_stock_service import AssetStockService
+from app.module.asset.services.asset_stock.asset_stock_service import AssetStockService
 from app.module.asset.services.dividend_service import DividendService
 from app.module.asset.services.exchange_rate_service import ExchangeRateService
+from app.module.asset.services.stock.stock_service import StockService
 from app.module.asset.services.stock_daily_service import StockDailyService
-from app.module.asset.services.stock_service import StockService
 
 
 class AssetService:
@@ -80,9 +80,6 @@ class AssetService:
                 incomplete_assets.append(asset)
 
         return complete_assets, incomplete_assets
-
-    async def get_full_required_assets(self, assets: list[Asset]) -> list[Asset]:
-        return [filterd_asset for filterd_asset in filter(self._filter_full_required_asset, assets)]
 
     def _filter_full_required_asset(self, asset: Asset):
         return (
@@ -218,7 +215,7 @@ class AssetService:
         asset = await AssetRepository.get_asset_by_id(session, asset_id)
         return {asset.id: asset} if asset else None
 
-    async def save_asset_by_put(self, session: AsyncSession, request_data: AssetStockRequest):
+    async def save_asset_by_put(self, session: AsyncSession, request_data: AssetStockPutRequest) -> None:
         asset = await AssetRepository.get_asset_by_id(session, request_data.id)
         asset.asset_stock.account_type = request_data.account_type if request_data.account_type else None
         asset.asset_stock.investment_bank = request_data.investment_bank if request_data.investment_bank else None
@@ -232,6 +229,7 @@ class AssetService:
 
         stock = await StockRepository.get_by_code(session, request_data.stock_code)
         asset.asset_stock.stock_id = stock.id
+        asset.asset_stock.stock = stock
         await AssetRepository.save(session, asset)
 
     def get_total_asset_amount_with_datetime(
@@ -452,6 +450,7 @@ class AssetService:
             StockAsset.STOCK_CODE.value: asset.asset_stock.stock.code,
             StockAsset.STOCK_NAME.value: asset.asset_stock.stock.name_kr,
             StockAsset.STOCK_VOLUME.value: None,
+            StockAsset.TRADE.value: asset.asset_stock.trade,
         }
 
     def get_stock_assets(

@@ -2,8 +2,8 @@ import asyncio
 
 import ray
 
-from app.data.yahoo.exchange_rate.exchange_rate_collector import ExchangeRateCollector
-from app.data.yahoo.exchange_rate.exchange_rate_monitor import ExchangeRateMonitor
+from app.data.yahoo.legacy.exchange_rate.exchange_rate_collector import ExchangeRateCollector
+from app.data.yahoo.legacy.exchange_rate.exchange_rate_monitor import ExchangeRateMonitor
 
 
 async def execute_async_task():

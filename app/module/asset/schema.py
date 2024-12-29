@@ -32,23 +32,24 @@ class StockAssetField(BaseModel):
 
 class StockAssetSchema(BaseModel):
     id: int
-    계좌종류: StockAssetField
-    매매일자: StockAssetField
-    현재가: StockAssetField
-    배당금: StockAssetField
-    매매: StockAssetField
-    고가: StockAssetField
-    증권사: StockAssetField
-    저가: StockAssetField
-    시가: StockAssetField
-    수익률: StockAssetField
-    수익금: StockAssetField
-    거래금: StockAssetField
     거래가: StockAssetField
-    수량: StockAssetField
-    종목명: StockAssetField
+    거래금: StockAssetField
     거래량: StockAssetField
+    계좌종류: StockAssetField
+    고가: StockAssetField
+    매매일자: StockAssetField
+    배당금: StockAssetField
+    수량: StockAssetField
+    수익금: StockAssetField
+    수익률: StockAssetField
+    시가: StockAssetField
+    저가: StockAssetField
+    종목명: StockAssetField
+    주식코드: StockAssetField
     주식통화: str | None
+    증권사: StockAssetField
+    현재가: StockAssetField
+    매매: StockAssetField
 
 
 class AggregateStockAsset(BaseModel):
@@ -63,8 +64,7 @@ class StockAssetGroup(BaseModel):
     sub: list[StockAssetSchema]
 
 
-class AssetStockRequest(BaseModel):
-    id: int | None = Field(None, description="자산 고유 값")
+class AssetStockPostRequest(BaseModel):
     trade_date: date | None = Field(None, description="매매일자")
     purchase_currency_type: PurchaseCurrencyType | None = Field(None, description="매입 통화")
     quantity: int | None = Field(None, description="수량")
@@ -89,7 +89,62 @@ class AssetStockRequest(BaseModel):
             return None
 
     @classmethod
-    def validate(cls, request_data: "AssetStockRequest") -> Optional["AssetStockStatusResponse"]:
+    def validate(cls, request_data: "AssetStockPostRequest") -> Optional["AssetStockStatusResponse"]:
+        if request_data.quantity and request_data.quantity > PURCHASE_QUANTITY_MAX:
+            return AssetStockStatusResponse(
+                status_code=status.HTTP_400_BAD_REQUEST, detail="수량은 10,000을 넘길 수 없습니다.", field=StockAsset.QUANTITY
+            )
+        elif request_data.quantity and request_data.quantity < 0:
+            return AssetStockStatusResponse(
+                status_code=status.HTTP_400_BAD_REQUEST, detail="수량은 음수일 수 없습니다.", field=StockAsset.QUANTITY
+            )
+        elif request_data.trade_price and request_data.trade_price > PURCHASE_PRICE_MAX:  # type: ignore # 전방 참조로 추후 type이 체킹됨
+            return AssetStockStatusResponse(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="현재가가 10,000,000을 넘길 수 없습니다.",
+                field=StockAsset.TRADE_PRICE,
+            )
+        elif request_data.trade_price and request_data.trade_price < 0:  # type: ignore # 전방 참조로 추후 type이 체킹됨
+            return AssetStockStatusResponse(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="현재가가 음수일 수 없습니다.",
+                field=StockAsset.TRADE_PRICE,
+            )
+        elif all(value is None for value in request_data.model_dump().values()):
+            return AssetStockStatusResponse(
+                status_code=status.HTTP_400_BAD_REQUEST, detail="최소 1개의 필드값은 있어야 합니다.", field=""
+            )
+        else:
+            return None
+
+
+class AssetStockPutRequest(BaseModel):
+    id: int = Field(..., description="자산 고유 값")
+    trade_date: date | None = Field(None, description="매매일자")
+    purchase_currency_type: PurchaseCurrencyType | None = Field(None, description="매입 통화")
+    quantity: int | None = Field(None, description="수량")
+    stock_code: str = Field(..., description="종목 코드", examples=["AAPL"])
+    account_type: AccountType | None = Field(None, description="계좌 종류", example=f"{AccountType.ISA} (Optional)")
+    investment_bank: InvestmentBankType | None = Field(
+        None, description="증권사", example=f"{InvestmentBankType.TOSS} (Optional)"
+    )
+    trade_price: float | None = Field(None, description="거래가", example=f"{62000} (Optional)")
+    trade: TradeType | None = Field(None, description="매매", examples=["매수/매도"])
+
+    @classmethod
+    async def id_validate(cls, session: AsyncSession, asset_id: int | None) -> Optional["AssetStockStatusResponse"]:
+        asset = await AssetRepository.get_asset_by_id(session, asset_id)
+        if not asset:
+            return AssetStockStatusResponse(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="해당하는 asset을 찾지 못 했습니다.",
+                field=StockAsset.ID,
+            )
+        else:
+            return None
+
+    @classmethod
+    def validate(cls, request_data: "AssetStockPutRequest") -> Optional["AssetStockStatusResponse"]:
         if request_data.quantity and request_data.quantity > PURCHASE_QUANTITY_MAX:
             return AssetStockStatusResponse(
                 status_code=status.HTTP_400_BAD_REQUEST, detail="수량은 10,000을 넘길 수 없습니다.", field=StockAsset.QUANTITY

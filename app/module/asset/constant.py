@@ -9,6 +9,11 @@ from app.module.asset.enum import (
     PurchaseCurrencyType,
 )
 
+RICH_PEOPLE_DATA_KEY = "rich_data_key"
+USER_DATA_KEY = "user_data_key"
+USER_DATA_EXPIRE_TIME_SEC = 10 * 60
+
+
 DEFAULT_DOLLAR_EXCHANGE_RATE = 0.00072
 DEFAULT_WON_EXCHANGE_RATE = 1400.0
 
@@ -36,9 +41,10 @@ REQUIRED_ASSET_FIELD = ["종목명", "매매", "수량", "매매일자", "거래
 
 ASSET_FIELD = [
     "종목명",
+    "매매",
     "수량",
     "매매일자",
-    "매매",
+    "거래가",
     "계좌종류",
     "현재가",
     "배당금",
@@ -49,7 +55,6 @@ ASSET_FIELD = [
     "수익률",
     "수익금",
     "거래금",
-    "거래가",
     "거래량",
 ]
 
@@ -58,7 +63,6 @@ KOSPI = "KOSPI"
 NASDAQ = "NASDAQ"
 NYSE = "NYSE"
 
-# STOCK_CODES = ["005930", "000660", "051910", "035720", "AAPL", "MSFT", "AMZN", "GOOGL", "TSLA", "META", "NVDA"]
 STOCK_CODES = ["AAPL", "MSFT", "AMZN", "GOOGL", "TSLA", "META", "NVDA", "AAPL", "MSFT", "SCHD"]
 
 PURCHASE_DATES = [
@@ -165,6 +169,7 @@ COUNTRY_TO_CURRENCY = {
 
 CURRENCY_PAIRS = [
     (CurrencyType.USA, CurrencyType.KOREA),
+    (CurrencyType.KOREA, CurrencyType.USA),
     (CurrencyType.JAPAN, CurrencyType.KOREA),
     (CurrencyType.AUSTRALIA, CurrencyType.KOREA),
     (CurrencyType.BRAZIL, CurrencyType.KOREA),
@@ -175,7 +180,6 @@ CURRENCY_PAIRS = [
     (CurrencyType.INDIA, CurrencyType.KOREA),
     (CurrencyType.SWITZERLAND, CurrencyType.KOREA),
     (CurrencyType.UNITED_KINGDOM, CurrencyType.KOREA),
-    (CurrencyType.KOREA, CurrencyType.USA),
     (CurrencyType.JAPAN, CurrencyType.USA),
     (CurrencyType.AUSTRALIA, CurrencyType.USA),
     (CurrencyType.BRAZIL, CurrencyType.USA),

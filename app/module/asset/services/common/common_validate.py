@@ -2,7 +2,7 @@ from fastapi import status
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.module.asset.enum import StockAsset
-from app.module.asset.schema import AssetStockRequest, AssetStockStatusResponse
+from app.module.asset.schema import AssetStockPostRequest, AssetStockPutRequest, AssetStockStatusResponse
 from app.module.asset.services.asset_stock.asset_stock_validate import AssetStockValidate
 from app.module.asset.services.stock.stock_validate import StockValidate
 
@@ -13,7 +13,7 @@ class AssetCommonValidate:
         self.asset_stock_validate = asset_stock_validate
 
     async def check_asset_stock_request(
-        self, session: AsyncSession, request_data: AssetStockRequest
+        self, session: AsyncSession, request_data: AssetStockPostRequest | AssetStockPutRequest
     ) -> AssetStockStatusResponse | None:
 
         if request_data.stock_code:

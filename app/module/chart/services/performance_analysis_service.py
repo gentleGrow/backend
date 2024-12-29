@@ -6,15 +6,15 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.module.asset.enum import MarketIndex
 from app.module.asset.model import Asset, MarketIndexDaily, MarketIndexMinutely, StockDaily
-from app.module.asset.services.asset_service import AssetService
-from app.module.asset.services.asset_stock_service import AssetStockService
+from app.module.asset.services.asset.asset_service import AssetService
+from app.module.asset.services.asset_stock.asset_stock_service import AssetStockService
 from app.module.asset.services.exchange_rate_service import ExchangeRateService
 from app.module.asset.services.index_daily_service import IndexDailyService
 from app.module.asset.services.index_minutely_service import IndexMinutelyService
 from app.module.asset.services.realtime_index_service import RealtimeIndexService
+from app.module.asset.services.stock.stock_service import StockService
 from app.module.asset.services.stock_daily_service import StockDailyService
 from app.module.asset.services.stock_minutely_service import StockMinutelyService
-from app.module.asset.services.stock_service import StockService
 from app.module.chart.enum import IntervalType
 
 
