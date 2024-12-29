@@ -169,6 +169,7 @@ COUNTRY_TO_CURRENCY = {
 
 CURRENCY_PAIRS = [
     (CurrencyType.USA, CurrencyType.KOREA),
+    (CurrencyType.KOREA, CurrencyType.USA),
     (CurrencyType.JAPAN, CurrencyType.KOREA),
     (CurrencyType.AUSTRALIA, CurrencyType.KOREA),
     (CurrencyType.BRAZIL, CurrencyType.KOREA),
@@ -179,7 +180,6 @@ CURRENCY_PAIRS = [
     (CurrencyType.INDIA, CurrencyType.KOREA),
     (CurrencyType.SWITZERLAND, CurrencyType.KOREA),
     (CurrencyType.UNITED_KINGDOM, CurrencyType.KOREA),
-    (CurrencyType.KOREA, CurrencyType.USA),
     (CurrencyType.JAPAN, CurrencyType.USA),
     (CurrencyType.AUSTRALIA, CurrencyType.USA),
     (CurrencyType.BRAZIL, CurrencyType.USA),
