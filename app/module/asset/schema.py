@@ -45,7 +45,7 @@ class StockAssetSchema(BaseModel):
     시가: StockAssetField
     저가: StockAssetField
     종목명: StockAssetField
-    주식코드: StockAssetField 
+    주식코드: StockAssetField
     주식통화: str | None
     증권사: StockAssetField
     현재가: StockAssetField

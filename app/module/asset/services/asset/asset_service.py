@@ -1,7 +1,7 @@
 from collections import defaultdict
 from datetime import date, datetime, timedelta
 from typing import Any
-from icecream import ic
+
 import pandas
 from redis.asyncio import Redis
 from sqlalchemy.ext.asyncio import AsyncSession

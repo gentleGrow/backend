@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Depends, status
 from redis.asyncio import Redis
 from sqlalchemy.ext.asyncio import AsyncSession
-from icecream import ic
+
 from app.common.auth.security import verify_jwt_token
 from app.common.schema.common_schema import DeleteResponse, PutResponse
 from app.module.asset.constant import KOREA, USA, CurrencyType
@@ -267,7 +267,7 @@ async def get_asset_stock(
     ) = await asset_query.get_user_data(session, redis_client, assets, token.get("user"))
 
     complete_asset, incomplete_assets = asset_service.separate_assets_by_full_data(assets, stock_daily_map)
-    
+
     buy_stock_assets = [
         buy_asset for buy_asset in filter(lambda asset: asset.asset_stock.trade == TradeType.BUY, complete_asset)
     ]
