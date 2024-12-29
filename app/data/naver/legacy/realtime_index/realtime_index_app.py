@@ -2,9 +2,9 @@ import asyncio
 
 import ray
 
-from app.data.naver.realtime_index.realtime_index_collector_korea import RealtimeIndexKoreaCollector
-from app.data.naver.realtime_index.realtime_index_collector_world import RealtimeIndexWorldCollector
-from app.data.naver.realtime_index.realtime_index_monitor import RealtimeIndexMonitor
+from app.data.naver.legacy.realtime_index.realtime_index_collector_korea import RealtimeIndexKoreaCollector
+from app.data.naver.legacy.realtime_index.realtime_index_collector_world import RealtimeIndexWorldCollector
+from app.data.naver.legacy.realtime_index.realtime_index_monitor import RealtimeIndexMonitor
 
 
 async def execute_async_task():
