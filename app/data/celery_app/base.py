@@ -5,6 +5,7 @@ from celery.schedules import crontab
 from dotenv import load_dotenv
 
 import app.data.custom.validate_data  # noqa: F401 > task 위치를 찾는데 필요합니다.
+import app.data.yahoo.current_stock  # noqa: F401 > task 위치를 찾는데 필요합니다.
 import app.data.yahoo.dividend  # noqa: F401 > task 위치를 찾는데 필요합니다.
 import app.data.yahoo.index  # noqa: F401 > task 위치를 찾는데 필요합니다.
 import app.data.yahoo.stock  # noqa: F401 > task 위치를 찾는데 필요합니다.
@@ -51,5 +52,9 @@ celery_task.conf.beat_schedule = {
     "validate_data": {
         "task": "app.data.custom.validate_data.main",
         "schedule": crontab(hour=23, minute=0, day_of_week="1-6"),
+    },
+    "current_stock": {
+        "task": "app.data.yahoo.current_stock.main",
+        "schedule": crontab(minute=0),
     },
 }

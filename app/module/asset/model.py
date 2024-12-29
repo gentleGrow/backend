@@ -91,21 +91,6 @@ class Stock(TimestampMixin, MySQLBase):
     dividend = relationship("Dividend", back_populates="stock")
 
 
-class StockMinutely(MySQLBase):
-    __tablename__ = "stock_minutely"
-
-    id = Column(BigInteger, primary_key=True, autoincrement=True)
-    code = Column(String(255), nullable=False)
-    datetime = Column(DateTime, nullable=False)
-    price = Column(Float, nullable=False)
-
-    __table_args__ = (
-        UniqueConstraint("code", "datetime", name="uq_code_name_datetime"),
-        Index("idx_code", "code"),
-        Index("idx_code_datetime_desc", "code", text("datetime DESC")),
-    )
-
-
 class StockDaily(MySQLBase):
     __tablename__ = "stock_daily"
 
@@ -154,21 +139,6 @@ class StockDaily(MySQLBase):
         )
 
 
-class MarketIndexMinutely(MySQLBase):
-    __tablename__ = "market_index_minutely"
-
-    id = Column(BigInteger, primary_key=True, autoincrement=True)
-    name = Column(String(255), nullable=False)
-    datetime = Column(DateTime, nullable=False)
-    price = Column(Float, nullable=False)
-
-    __table_args__ = (
-        UniqueConstraint("name", "datetime", name="uq_name_datetime"),
-        Index("idx_name", "name"),
-        Index("idx_name_datetime", "name", text("datetime DESC")),
-    )
-
-
 class MarketIndexDaily(MySQLBase):
     __tablename__ = "market_index_daily"
 
@@ -184,4 +154,42 @@ class MarketIndexDaily(MySQLBase):
     __table_args__ = (
         UniqueConstraint("name", "date", name="uq_name_date"),
         Index("idx_name_date_desc", "name", text("date DESC")),
+    )
+
+
+class StockMinutely(MySQLBase):
+    """비용적 문제로 인해 중단된 코드입니다.
+    추후 분당 데이터 수집 시 사용될 엔티티입니다.
+    """
+
+    __tablename__ = "stock_minutely"
+
+    id = Column(BigInteger, primary_key=True, autoincrement=True)
+    code = Column(String(255), nullable=False)
+    datetime = Column(DateTime, nullable=False)
+    price = Column(Float, nullable=False)
+
+    __table_args__ = (
+        UniqueConstraint("code", "datetime", name="uq_code_name_datetime"),
+        Index("idx_code", "code"),
+        Index("idx_code_datetime_desc", "code", text("datetime DESC")),
+    )
+
+
+class MarketIndexMinutely(MySQLBase):
+    """비용적 문제로 인해 중단된 코드입니다.
+    추후 분당 데이터 수집 시 사용될 엔티티입니다.
+    """
+
+    __tablename__ = "market_index_minutely"
+
+    id = Column(BigInteger, primary_key=True, autoincrement=True)
+    name = Column(String(255), nullable=False)
+    datetime = Column(DateTime, nullable=False)
+    price = Column(Float, nullable=False)
+
+    __table_args__ = (
+        UniqueConstraint("name", "datetime", name="uq_name_datetime"),
+        Index("idx_name", "name"),
+        Index("idx_name_datetime", "name", text("datetime DESC")),
     )

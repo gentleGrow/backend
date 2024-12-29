@@ -21,7 +21,7 @@ class RedisRealTimeStockRepository:
         await redis_client.set(key, price, ex=expire_time)
 
     @staticmethod
-    async def bulk_save(redis_client: Redis, stock_data: list[tuple[str, int]], expire_time: int) -> None:
+    async def bulk_save(redis_client: Redis, stock_data: list[tuple[str, int|float]], expire_time: int) -> None:
         async with redis_client.pipeline() as pipe:
             for key, price in stock_data:
                 pipe.set(key, price, ex=expire_time)
