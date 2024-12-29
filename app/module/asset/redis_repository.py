@@ -40,7 +40,7 @@ class RedisExchangeRateRepository:
     @staticmethod
     async def get(redis_client: Redis, key: str) -> float | None:
         return await redis_client.get(key)
-    
+
     @staticmethod
     async def bulk_save(redis_client: Redis, bulk_data: list, expire_time: int) -> None:
         pipeline = redis_client.pipeline()

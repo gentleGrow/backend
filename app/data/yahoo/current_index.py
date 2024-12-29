@@ -34,7 +34,7 @@ async def process_index_data(redis_client: Redis):
             index = yfinance.Ticker(index_symbol.value)
             current_price = index.info.get("regularMarketPrice") or index.info.get("regularMarketPreviousClose")
             if not index.info.get("regularMarketPrice"):
-                logger.error(f'No regularMarketPrice, {index_symbol.value}')
+                logger.error(f"No regularMarketPrice, {index_symbol.value}")
         except Exception as e:
             logger.error(e)
             continue
