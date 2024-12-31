@@ -304,12 +304,12 @@ class StockInfo(BaseModel):
 
 
 class MarketIndexData(BaseModel):
-    country: str = Field(..., description="Country of the market index")
-    name: str = Field(..., description="Name of the market index")
-    current_value: str = Field(..., description="Current value of the index")
-    change_value: str = Field(..., description="The change in value from the previous close")
-    change_percent: str = Field(..., description="The percentage change from the previous close")
-    update_time: str = Field(..., description="The time at which the data was last updated")
+    country: str = Field(..., description="지수 국가")
+    name: str = Field(..., description="지수명")
+    current_value: str = Field(..., description="현재 지수")
+    change_value: str = Field(..., description="이전 지수 대비 변동 값")
+    change_percent: str = Field(..., description="이전 지수 대비 변동률")
+    update_time: str = Field(..., description="최근 업데이트 시간")
 
 
 class TodayTempStockDaily(BaseModel):

@@ -97,37 +97,6 @@ class IntervalType(StrEnum):
 
         return result
 
-    def get_days(self) -> int:
-        if self == IntervalType.FIVEDAY:
-            return 7
-        elif self == IntervalType.ONEMONTH:
-            return 30
-        return 5
-
-    def get_start_end_time(self) -> tuple[date | datetime, date | datetime]:
-        if self == IntervalType.FIVEDAY:
-            end_datetime = get_now_datetime().replace(hour=0, minute=0, second=0, microsecond=0)
-            start_datetime = end_datetime - timedelta(days=4)
-            days_between = [(start_datetime + timedelta(days=i)).weekday() for i in range(5)]
-            if 5 in days_between:
-                start_datetime -= timedelta(days=1)
-            if 6 in days_between:
-                start_datetime -= timedelta(days=1)
-            return start_datetime, end_datetime
-        elif self == IntervalType.ONEMONTH:
-            end_date = get_now_date()
-            return end_date - timedelta(days=(7 * 4) + 1), end_date
-        elif self == IntervalType.THREEMONTH:
-            end_date = get_now_date()
-            return end_date - relativedelta(months=2), end_date
-        elif self == IntervalType.SIXMONTH:
-            end_date = get_now_date()
-            return end_date - relativedelta(months=5), end_date
-        elif self == IntervalType.ONEYEAR:
-            end_date = get_now_date()
-            return end_date - relativedelta(months=11), end_date
-        return get_now_date(), get_now_date()
-
     def get_interval(self) -> int:
         if self == IntervalType.FIVEDAY:
             return 30
@@ -140,3 +109,59 @@ class IntervalType(StrEnum):
         elif self == IntervalType.ONEYEAR:
             return 60 * 24 * 30
         return 1
+
+
+class IntervalTypeV2(StrEnum):
+    ONEMONTH = "1month"
+    THREEMONTH = "3month"
+    SIXMONTH = "6month"
+    ONEYEAR = "1year"
+
+    def filter_assets_by_date(self, assets: list[Asset]) -> list[Asset]:
+        start_date = self._get_start_date()
+        if not len(assets):
+            return []
+        else:
+            return [asset for asset in assets if asset.asset_stock.trade_date > start_date]
+
+    def get_chart_month_interval(self) -> list[date]:
+        if self == IntervalTypeV2.THREEMONTH:
+            interval_months = 3
+        elif self == IntervalTypeV2.SIXMONTH:
+            interval_months = 6
+        elif self == IntervalTypeV2.ONEYEAR:
+            interval_months = 12
+        else:
+            interval_months = 12
+
+        today = pd.Timestamp.today().normalize()
+        start_date = (today - pd.DateOffset(months=interval_months - 1)).replace(day=1)
+
+        dates = pd.date_range(start=start_date, end=today, freq="B")
+
+        valid_months = {(start_date + pd.DateOffset(months=i)).month for i in range(interval_months)}
+
+        return [d.date() for d in dates if d.month in valid_months]
+
+    def get_chart_date_interval(self) -> list[date]:
+        start_date = self._get_start_date()
+        end_date = get_now_date()
+        result = []
+
+        current_date = start_date
+        while current_date <= end_date:
+            if current_date.weekday() not in (5, 6):
+                result.append(current_date)
+            current_date += timedelta(days=1)
+
+        return result
+
+    def _get_start_date(self) -> date:
+        result = get_now_date() - timedelta(days=30)
+        days_between = [(result + timedelta(days=i)).weekday() for i in range(5)]
+        if 5 in days_between:
+            result -= timedelta(days=1)
+        if 6 in days_between:
+            result -= timedelta(days=1)
+
+        return result
