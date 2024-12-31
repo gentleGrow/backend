@@ -1,7 +1,7 @@
-import asyncio
+import logging
 import os
-from dotenv import load_dotenv
 
+from dotenv import load_dotenv
 from pyvirtualdisplay import Display
 from selenium import webdriver
 from selenium.webdriver.chrome.options import Options
@@ -10,12 +10,14 @@ from selenium.webdriver.common.by import By
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.support.ui import WebDriverWait
 from webdriver_manager.chrome import ChromeDriverManager
+
 from app.module.asset.constant import COUNTRY_TRANSLATIONS, INDEX_NAME_TRANSLATIONS
 from app.module.asset.schema import MarketIndexData
+from database.enum import EnvironmentType
 
 load_dotenv()
 
-ENVIRONMENT = getenv("ENVIRONMENT", None)
+ENVIRONMENT = os.getenv("ENVIRONMENT", None)
 
 logger = logging.getLogger("current_index")
 logger.setLevel(logging.INFO)
@@ -31,17 +33,14 @@ class IndexWorldCollector:
         self.driver = None
         self.display = None
 
-
     async def get_current_index(self) -> list[tuple[str, str]]:
         if not self.display or not self.driver:
             await self._init_webdriver()
 
         return await self._fetch_market_data()
 
-
     async def _fetch_market_data(self) -> list[tuple[str, str]]:
         try:
-            # 수집 경로는 별도 환경변수에 추가 할 예정입니다
             self.driver.get("https://finance.naver.com/world/")
             result = []
 
@@ -63,7 +62,6 @@ class IndexWorldCollector:
             return result
         except Exception:
             return []
-
 
     def _parse_tr_row(self, tr_row) -> tuple[str, str] | None:
         tds = tr_row.find_elements(By.TAG_NAME, "td")
@@ -100,15 +98,14 @@ class IndexWorldCollector:
             market_index = MarketIndexData(
                 country=country_en,
                 name=name_en,
-                current_value=current_value,
-                change_value=change_value,
-                change_percent=change_percent,
+                current_value=float(current_value),
+                change_value=float(change_value),
+                change_percent=float(change_percent),
                 update_time=tr_row_data[5],
             )
-        
+
             return (name_en, market_index.model_dump_json())
         return None
-
 
     async def _init_webdriver(self):
         self.display = Display(visible=0, size=(800, 600))
@@ -122,4 +119,3 @@ class IndexWorldCollector:
         chrome_options.add_argument("--enable-automation")
 
         self.driver = webdriver.Chrome(service=Service(ChromeDriverManager().install()), options=chrome_options)
-

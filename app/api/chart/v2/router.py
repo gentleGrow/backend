@@ -20,8 +20,6 @@ from database.dependency import get_mysql_session_router, get_redis_pool
 chart_router = APIRouter(prefix="/v2")
 
 
-
-
 @chart_router.get("/sample/performance-analysis", summary="더미 투자 성과 분석", response_model=PerformanceAnalysisResponse)
 async def get_sample_performance_analysis(
     interval: IntervalTypeV2 = Query(IntervalTypeV2.ONEMONTH, description="기간 별, 투자 성관 분석 데이터가 제공 됩니다."),
@@ -112,5 +110,3 @@ async def get_performance_analysis(
     )
 
     return PerformanceAnalysisResponse.parse(market_analysis_data, user_analysis_data, interval_times, interval)
-
-

@@ -2,7 +2,6 @@ from datetime import date, datetime, timedelta
 from enum import StrEnum
 
 import pandas as pd
-from dateutil.relativedelta import relativedelta
 
 from app.common.util.time import get_now_date, get_now_datetime
 from app.module.asset.model import Asset

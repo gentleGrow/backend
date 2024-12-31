@@ -15,7 +15,7 @@ from app.module.asset.services.realtime_index_service import RealtimeIndexServic
 from app.module.asset.services.stock.stock_service import StockService
 from app.module.asset.services.stock_daily_service import StockDailyService
 from app.module.asset.services.stock_minutely_service import StockMinutelyService
-from app.module.chart.enum import IntervalType
+from app.module.chart.enum import IntervalType, IntervalTypeV2
 
 
 class PerformanceAnalysisService:
@@ -49,7 +49,7 @@ class PerformanceAnalysisService:
         stock_daily_map,
         exchange_rate_map,
         current_stock_price_map,
-        interval: IntervalType,
+        interval: IntervalType | IntervalTypeV2,
     ) -> tuple[dict[datetime, float], dict[datetime, float], list[datetime]] | tuple[
         dict[date, float], dict[date, float], list[date]
     ] | tuple[dict[tuple[int, int], float], dict[tuple[int, int], float], list[date]]:
@@ -81,7 +81,7 @@ class PerformanceAnalysisService:
             )
 
             return market_analysis_data_short, user_analysis_data_short, interval_datetimes
-        elif interval is IntervalType.ONEMONTH:
+        elif interval is IntervalType.ONEMONTH or interval is IntervalTypeV2.ONEMONTH:
             interval_dates = interval.get_chart_date_interval()
             market_index_date_map = await self.index_daily_service.get_market_index_date_map(
                 session, (interval_dates[0], interval_dates[-1]), MarketIndex.KOSPI

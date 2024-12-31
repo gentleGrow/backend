@@ -3,9 +3,9 @@ import asyncio
 import yfinance
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.module.asset.enum import MarketIndex
 from app.data.yahoo.source.constant import MARKET_TIME_INTERVAL, STOCK_HISTORY_TIMERANGE_YEAR
 from app.data.yahoo.source.service import get_period_bounds
+from app.module.asset.enum import MarketIndex
 from app.module.asset.model import MarketIndexDaily
 from app.module.asset.repository.market_index_daily_repository import MarketIndexDailyRepository
 from database.dependency import get_mysql_session

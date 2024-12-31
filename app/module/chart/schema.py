@@ -15,7 +15,7 @@ from app.module.asset.constant import (
 )
 from app.module.asset.enum import ASSETNAME, AmountUnit, MarketIndex
 from app.module.asset.model import Asset
-from app.module.chart.enum import IntervalType
+from app.module.chart.enum import IntervalType, IntervalTypeV2
 
 
 class AssetSaveTrendResponse(BaseModel):
@@ -168,7 +168,7 @@ class PerformanceAnalysisResponse(BaseModel):
         market_analysis_data: dict[datetime, float] | dict[date, float] | dict[tuple[int, int], float],
         user_analysis_data: dict[datetime, float] | dict[date, float] | dict[tuple[int, int], float],
         interval_times: list[datetime] | list[date],
-        interval: IntervalType,
+        interval: IntervalType | IntervalTypeV2,
     ) -> "PerformanceAnalysisResponse":
         if interval is IntervalType.FIVEDAY:
             return cls(
@@ -194,7 +194,7 @@ class PerformanceAnalysisResponse(BaseModel):
                     [market_analysis_data[interval_time.replace(tzinfo=None)] for interval_time in interval_times]  # type: ignore # IntervalType.FIVEDAY 조건에 의해 datetime 보장
                 ),
             )
-        elif interval is IntervalType.ONEMONTH:
+        elif interval is IntervalType.ONEMONTH or interval is IntervalTypeV2.ONEMONTH:
             return cls(
                 xAxises=[interval_time.strftime("%m.%d") for interval_time in interval_times],
                 dates=[interval_time.strftime("%Y.%m.%d") for interval_time in interval_times],

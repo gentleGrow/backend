@@ -7,9 +7,9 @@ from celery import shared_task
 from dotenv import load_dotenv
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.module.asset.enum import MarketIndex
 from app.data.yahoo.source.constant import MARKET_TIME_INTERVAL
 from app.data.yahoo.source.service import get_last_week_period_bounds
+from app.module.asset.enum import MarketIndex
 from app.module.asset.model import MarketIndexDaily
 from app.module.asset.repository.market_index_daily_repository import MarketIndexDailyRepository
 from database.dependency import get_mysql_session

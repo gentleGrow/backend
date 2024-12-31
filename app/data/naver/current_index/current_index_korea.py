@@ -1,14 +1,17 @@
-import asyncio
+import logging
 import os
-from dotenv import load_dotenv
-from app.module.asset.enum import Country, MarketIndex
-from app.module.asset.schema import MarketIndexData
+
 import requests
 from bs4 import BeautifulSoup
+from dotenv import load_dotenv
+
+from app.module.asset.enum import Country, MarketIndex
+from app.module.asset.schema import MarketIndexData
+from database.enum import EnvironmentType
 
 load_dotenv()
 
-ENVIRONMENT = getenv("ENVIRONMENT", None)
+ENVIRONMENT = os.getenv("ENVIRONMENT", None)
 
 logger = logging.getLogger("current_index")
 logger.setLevel(logging.INFO)
@@ -19,10 +22,8 @@ if ENVIRONMENT == EnvironmentType.PROD:
     logger.addHandler(file_handler)
 
 
-
 class IndexKoreaCollector:
     async def get_current_index(self) -> list[tuple[str, str]]:
-        # 경로는 환경 변수로 분리합니다
         url = "https://finance.naver.com/"
         response = requests.get(url)
         response.raise_for_status()
@@ -32,7 +33,6 @@ class IndexKoreaCollector:
         kospi_data = self._parse_kospi(soup)
         kosdaq_data = self._parse_kosdaq(soup)
         return [data for data in [kospi_data, kosdaq_data] if data is not None]
-    
 
     def _parse_kosdaq(self, soup: BeautifulSoup) -> tuple[str, str] | None:
         try:
@@ -46,16 +46,15 @@ class IndexKoreaCollector:
             market_index_data = MarketIndexData(
                 country=Country.KOREA,
                 name=MarketIndex.KOSDAQ,
-                current_value=kosdaq_current_value,
-                change_value=kosdaq_change_value,
-                change_percent=percent_change,
+                current_value=float(kosdaq_current_value),
+                change_value=float(kosdaq_change_value),
+                change_percent=float(percent_change),
                 update_time="",
             )
             return (MarketIndex.KOSDAQ, market_index_data.model_dump_json())
         except Exception as e:
             logger.error(e)
             return None
-
 
     def _parse_kospi(self, soup: BeautifulSoup) -> tuple[str, str] | None:
         try:
@@ -79,8 +78,3 @@ class IndexKoreaCollector:
         except Exception as e:
             logger.error(e)
             return None
-
-
-
-
-

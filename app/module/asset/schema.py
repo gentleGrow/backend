@@ -306,9 +306,9 @@ class StockInfo(BaseModel):
 class MarketIndexData(BaseModel):
     country: str = Field(..., description="지수 국가")
     name: str = Field(..., description="지수명")
-    current_value: str = Field(..., description="현재 지수")
-    change_value: str = Field(..., description="이전 지수 대비 변동 값")
-    change_percent: str = Field(..., description="이전 지수 대비 변동률")
+    current_value: str | float = Field(..., description="현재 지수")
+    change_value: str | float = Field(..., description="이전 지수 대비 변동 값")
+    change_percent: str | float = Field(..., description="이전 지수 대비 변동률")
     update_time: str = Field(..., description="최근 업데이트 시간")
 
 
