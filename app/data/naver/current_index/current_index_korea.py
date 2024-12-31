@@ -1,7 +1,8 @@
 import asyncio
 import os
 from dotenv import load_dotenv
-from app.module.asset.enum import MarketIndex
+from app.module.asset.enum import Country, MarketIndex
+from app.module.asset.schema import MarketIndexData
 import requests
 from bs4 import BeautifulSoup
 
@@ -20,7 +21,7 @@ if ENVIRONMENT == EnvironmentType.PROD:
 
 
 class IndexKoreaCollector:
-    async def get_current_index(self) -> list[tuple[str, float]]:
+    async def get_current_index(self) -> list[tuple[str, str]]:
         # 경로는 환경 변수로 분리합니다
         url = "https://finance.naver.com/"
         response = requests.get(url)
@@ -33,24 +34,48 @@ class IndexKoreaCollector:
         return [data for data in [kospi_data, kosdaq_data] if data is not None]
     
 
-    def _parse_kosdaq(self, soup: BeautifulSoup) -> tuple[str, float] | None:
+    def _parse_kosdaq(self, soup: BeautifulSoup) -> tuple[str, str] | None:
         try:
             section_stock_market = soup.find("div", {"class": "section_stock_market"})
             kosdaq_area = section_stock_market.find("div", {"class": "kosdaq_area"})
             kosdaq_current_value = kosdaq_area.find("span", {"class": "num"}).text.strip().replace(",", "")
+            kosdaq_change_value = kosdaq_area.find("span", {"class": "num2"}).text.strip().replace(",", "")
+            num3_span = kosdaq_area.find("span", {"class": "num3"})
+            percent_change = "".join(num3_span.stripped_strings).replace("%", "").strip()
 
-            return (MarketIndex.KOSDAQ, float(kosdaq_current_value))
+            market_index_data = MarketIndexData(
+                country=Country.KOREA,
+                name=MarketIndex.KOSDAQ,
+                current_value=kosdaq_current_value,
+                change_value=kosdaq_change_value,
+                change_percent=percent_change,
+                update_time="",
+            )
+            return (MarketIndex.KOSDAQ, market_index_data.model_dump_json())
         except Exception as e:
             logger.error(e)
             return None
 
 
-    def _parse_kospi(self, soup: BeautifulSoup) -> tuple[str, float] | None:
+    def _parse_kospi(self, soup: BeautifulSoup) -> tuple[str, str] | None:
         try:
             kospi_area = soup.find("div", {"class": "kospi_area"})
             kospi_current_value = kospi_area.find("span", {"class": "num"}).text.strip().replace(",", "")
-            
-            return (MarketIndex.KOSPI, float(kospi_current_value))
+            kospi_change_value = kospi_area.find("span", {"class": "num2"}).text.strip().replace(",", "")
+            num3_span = kospi_area.find("span", {"class": "num3"})
+            percent_change = (
+                num3_span.text.replace(num3_span.find("span", {"class": "blind"}).text, "").strip().replace("%", "")
+            )
+
+            market_index_data = MarketIndexData(
+                country=Country.KOREA,
+                name=MarketIndex.KOSPI,
+                current_value=kospi_current_value,
+                change_value=kospi_change_value,
+                change_percent=percent_change,
+                update_time="",
+            )
+            return (MarketIndex.KOSPI, market_index_data.model_dump_json())
         except Exception as e:
             logger.error(e)
             return None

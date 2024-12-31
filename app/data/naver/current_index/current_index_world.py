@@ -10,8 +10,8 @@ from selenium.webdriver.common.by import By
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.support.ui import WebDriverWait
 from webdriver_manager.chrome import ChromeDriverManager
-from app.module.asset.constant import INDEX_NAME_TRANSLATIONS
-
+from app.module.asset.constant import COUNTRY_TRANSLATIONS, INDEX_NAME_TRANSLATIONS
+from app.module.asset.schema import MarketIndexData
 
 load_dotenv()
 
@@ -32,14 +32,14 @@ class IndexWorldCollector:
         self.display = None
 
 
-    async def get_current_index(self) -> list[tuple[str, float]]:
+    async def get_current_index(self) -> list[tuple[str, str]]:
         if not self.display or not self.driver:
             await self._init_webdriver()
 
         return await self._fetch_market_data()
 
 
-    async def _fetch_market_data(self) -> list[tuple[str, float]]:
+    async def _fetch_market_data(self) -> list[tuple[str, str]]:
         try:
             # 수집 경로는 별도 환경변수에 추가 할 예정입니다
             self.driver.get("https://finance.naver.com/world/")
@@ -65,7 +65,7 @@ class IndexWorldCollector:
             return []
 
 
-    def _parse_tr_row(self, tr_row) -> tuple[str, float] | None:
+    def _parse_tr_row(self, tr_row) -> tuple[str, str] | None:
         tds = tr_row.find_elements(By.TAG_NAME, "td")
         tr_row_data = []
 
@@ -84,12 +84,30 @@ class IndexWorldCollector:
                     tr_row_data.append(td.text)
 
         if tr_row_data:
+            country_kr = tr_row_data[0]
+            if country_kr in COUNTRY_TRANSLATIONS:
+                country_en = COUNTRY_TRANSLATIONS[country_kr]
+            else:
+                return None
+
             name_kr = tr_row_data[1]
             name_en = INDEX_NAME_TRANSLATIONS.get(name_kr, name_kr)
+
             current_value = tr_row_data[2].strip().replace(",", "")
-            return (name_en, float(current_value))
-        else:
-            return None
+            change_value = tr_row_data[3].strip().replace(",", "")
+            change_percent = tr_row_data[4].strip().replace("%", "")
+
+            market_index = MarketIndexData(
+                country=country_en,
+                name=name_en,
+                current_value=current_value,
+                change_value=change_value,
+                change_percent=change_percent,
+                update_time=tr_row_data[5],
+            )
+        
+            return (name_en, market_index.model_dump_json())
+        return None
 
 
     async def _init_webdriver(self):
