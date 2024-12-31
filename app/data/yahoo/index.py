@@ -7,7 +7,7 @@ from celery import shared_task
 from dotenv import load_dotenv
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.data.common.enum import MarketIndexEnum
+from app.module.asset.enum import MarketIndex
 from app.data.yahoo.source.constant import MARKET_TIME_INTERVAL
 from app.data.yahoo.source.service import get_last_week_period_bounds
 from app.module.asset.model import MarketIndexDaily
@@ -37,7 +37,7 @@ async def fetch_and_save_market_index_data(
     end_period: str,
 ):
     index_data = yfinance.download(
-        index_symbol, start=start_period, end=end_period, interval=MARKET_TIME_INTERVAL, progress=False
+        f"^{index_symbol}", start=start_period, end=end_period, interval=MARKET_TIME_INTERVAL, progress=False
     )
 
     if index_data.empty:
@@ -48,7 +48,7 @@ async def fetch_and_save_market_index_data(
 
     for index, row in index_data.iterrows():
         market_index_record = MarketIndexDaily(
-            name=index_symbol.lstrip("^"),
+            name=index_symbol,
             date=index.date(),
             open_price=row["Open"],
             close_price=row["Close"],
@@ -73,7 +73,7 @@ async def execute_async_task():
     start_period, end_period = get_last_week_period_bounds()
 
     async with get_mysql_session() as session:
-        for index_symbol in MarketIndexEnum:
+        for index_symbol in MarketIndex:
             await fetch_and_save_all_intervals(session, index_symbol, start_period, end_period)
 
     logger.info("일별 시장 지수 수집을 마칩니다.")

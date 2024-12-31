@@ -6,7 +6,7 @@ from dotenv import load_dotenv
 
 import app.data.yahoo.current_exchange_rate  # noqa: F401 > task 위치를 찾는데 필요합니다.
 import app.data.custom.validate_data  # noqa: F401 > task 위치를 찾는데 필요합니다.
-import app.data.yahoo.current_index  # noqa: F401 > task 위치를 찾는데 필요합니다.
+import app.data.naver.current_index.app  # noqa: F401 > task 위치를 찾는데 필요합니다.
 import app.data.yahoo.current_stock  # noqa: F401 > task 위치를 찾는데 필요합니다.
 import app.data.yahoo.dividend  # noqa: F401 > task 위치를 찾는데 필요합니다.
 import app.data.yahoo.index  # noqa: F401 > task 위치를 찾는데 필요합니다.
@@ -57,14 +57,14 @@ celery_task.conf.beat_schedule = {
     },
     "current_stock": {
         "task": "app.data.yahoo.current_stock.main",
-        "schedule": crontab(minute=0),
+        "schedule": crontab(minute=10),
     },
     "current_index": {
-        "task": "app.data.yahoo.current_index.main",
-        "schedule": crontab(minute=0),
+        "task": "app.data.naver.current_index.app.main",
+        "schedule": crontab(minute=20),
     },
     "current_exchange_rate": {
         "task": "app.data.yahoo.current_exchange_rate.main",
-        "schedule": crontab(minute=0),
+        "schedule": crontab(minute=30),
     }
 }
