@@ -57,14 +57,14 @@ celery_task.conf.beat_schedule = {
     },
     "current_stock": {
         "task": "app.data.yahoo.current_stock.main",
-        "schedule": crontab(minute=0),
+        "schedule": crontab(minute='*/15'),
     },
     "current_index": {
         "task": "app.data.naver.current_index.collector.main",
-        "schedule": crontab(minute=0),
+        "schedule": crontab(minute='*/15'),
     },
     "current_exchange_rate": {
         "task": "app.data.yahoo.current_exchange_rate.main",
-        "schedule": crontab(minute=0),
+        "schedule": crontab(minute='*/15'), 
     },
 }
