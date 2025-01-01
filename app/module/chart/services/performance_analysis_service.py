@@ -3,7 +3,7 @@ from datetime import date, datetime
 from statistics import mean
 
 from sqlalchemy.ext.asyncio import AsyncSession
-
+from icecream import ic
 from app.module.asset.enum import MarketIndex
 from app.module.asset.model import Asset, MarketIndexDaily, MarketIndexMinutely, StockDaily
 from app.module.asset.services.asset.asset_service import AssetService
@@ -15,7 +15,7 @@ from app.module.asset.services.realtime_index_service import RealtimeIndexServic
 from app.module.asset.services.stock.stock_service import StockService
 from app.module.asset.services.stock_daily_service import StockDailyService
 from app.module.asset.services.stock_minutely_service import StockMinutelyService
-from app.module.chart.enum import IntervalType, IntervalTypeV2
+from app.module.chart.enum import IntervalType
 
 
 class PerformanceAnalysisService:
@@ -46,42 +46,13 @@ class PerformanceAnalysisService:
         assets: list[Asset],
         session: AsyncSession,
         current_index_price: float,
-        stock_daily_map,
         exchange_rate_map,
         current_stock_price_map,
-        interval: IntervalType | IntervalTypeV2,
-    ) -> tuple[dict[datetime, float], dict[datetime, float], list[datetime]] | tuple[
+        interval: IntervalType,
+    ) -> tuple[
         dict[date, float], dict[date, float], list[date]
     ] | tuple[dict[tuple[int, int], float], dict[tuple[int, int], float], list[date]]:
-        if interval is IntervalType.FIVEDAY:
-            interval_datetimes = interval.get_chart_datetime_interval()
-            market_index_minutely_map: dict[
-                datetime, MarketIndexMinutely
-            ] = await self.index_minutely_service.get_index_range_map(
-                session, MarketIndex.KOSPI, (interval_datetimes[0], interval_datetimes[-1])
-            )
-            stock_datetime_price_map: dict[
-                tuple[str, datetime], float
-            ] = await self.stock_minutely_service.get_datetime_interval_map(
-                session, interval_datetimes[0], interval_datetimes[-1], assets
-            )
-
-            market_analysis_data_short: dict[datetime, float] = self._get_market_analysis_short(
-                market_index_minutely_map, current_index_price, interval_datetimes, interval.get_interval()
-            )
-
-            user_analysis_data_short: dict[datetime, float] = self._get_user_analysis_short(
-                assets,
-                stock_daily_map,
-                stock_datetime_price_map,
-                exchange_rate_map,
-                interval_datetimes,
-                current_stock_price_map,
-                interval.get_interval(),
-            )
-
-            return market_analysis_data_short, user_analysis_data_short, interval_datetimes
-        elif interval is IntervalType.ONEMONTH or interval is IntervalTypeV2.ONEMONTH:
+        if interval is IntervalType.ONEMONTH:
             interval_dates = interval.get_chart_date_interval()
             market_index_date_map = await self.index_daily_service.get_market_index_date_map(
                 session, (interval_dates[0], interval_dates[-1]), MarketIndex.KOSPI
