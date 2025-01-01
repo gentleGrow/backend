@@ -33,16 +33,14 @@ async def process_exchange_rate_data(redis_client: Redis):
         try:
             ticker = yfinance.Ticker(url)
             current_price = ticker.info.get("regularMarketPrice") or ticker.info.get("regularMarketPreviousClose")
-            if not ticker.info.get("regularMarketPrice"):
-                logger.error(f"No regularMarketPrice, {url}")
         except Exception as e:
             logger.error(e)
             continue
 
         if not current_price:
             continue
-
-        redis_bulk_data.append((url, current_price))
+        cache_key = source_currency + "_" + target_currency
+        redis_bulk_data.append((cache_key, current_price))
 
     if redis_bulk_data:
         await RedisExchangeRateRepository.bulk_save(redis_client, redis_bulk_data, expire_time=STOCK_CACHE_SECOND)
