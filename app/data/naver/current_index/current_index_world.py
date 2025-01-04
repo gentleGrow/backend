@@ -11,7 +11,9 @@ from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.support.ui import WebDriverWait
 from webdriver_manager.chrome import ChromeDriverManager
 
+from app.common.util.time import get_now_datetime
 from app.module.asset.constant import COUNTRY_TRANSLATIONS, INDEX_NAME_TRANSLATIONS
+from app.module.asset.model import MarketIndexMinutely
 from app.module.asset.schema import MarketIndexData
 from database.enum import EnvironmentType
 
@@ -33,16 +35,17 @@ class IndexWorldCollector:
         self.driver = None
         self.display = None
 
-    async def get_current_index(self) -> list[tuple[str, str]]:
+    async def get_current_index(self) -> tuple[list[tuple[str, str]], list[MarketIndexMinutely]] | tuple[None, None]:
         if not self.display or not self.driver:
             await self._init_webdriver()
 
         return await self._fetch_market_data()
 
-    async def _fetch_market_data(self) -> list[tuple[str, str]]:
+    async def _fetch_market_data(self) -> tuple[list[tuple[str, str]], list[MarketIndexMinutely]]:
         try:
             self.driver.get("https://finance.naver.com/world/")
-            result = []
+            redis_result = []
+            db_result = []
 
             america_index_table = WebDriverWait(self.driver, 10).until(
                 EC.presence_of_element_located((By.ID, "americaIndex"))
@@ -52,20 +55,22 @@ class IndexWorldCollector:
 
             for tr_row in tr_rows:
                 try:
-                    market_data = self._parse_tr_row(tr_row)
-                    if market_data:
-                        result.append(market_data)
+                    redis_market_data, db_market_data = self._parse_tr_row(tr_row)
+                    if redis_market_data and db_market_data:
+                        redis_result.append(redis_market_data)
+                        db_result.append(db_market_data)
                 except Exception as e:
                     logger.error(e)
                     continue
 
-            return result
+            return redis_result, db_result
         except Exception:
-            return []
+            return [], []
 
-    def _parse_tr_row(self, tr_row) -> tuple[str, str] | None:
+    def _parse_tr_row(self, tr_row) -> tuple[tuple[str, str], MarketIndexMinutely] | tuple[None, None]:
         tds = tr_row.find_elements(By.TAG_NAME, "td")
         tr_row_data = []
+        now = get_now_datetime()
 
         for td in tds:
             if "graph" in td.get_attribute("class"):
@@ -86,7 +91,7 @@ class IndexWorldCollector:
             if country_kr in COUNTRY_TRANSLATIONS:
                 country_en = COUNTRY_TRANSLATIONS[country_kr]
             else:
-                return None
+                return None, None
 
             name_kr = tr_row_data[1]
             name_en = INDEX_NAME_TRANSLATIONS.get(name_kr, name_kr)
@@ -104,8 +109,9 @@ class IndexWorldCollector:
                 update_time=tr_row_data[5],
             )
 
-            return (name_en, market_index.model_dump_json())
-        return None
+            market_index_db = MarketIndexMinutely(name=name_en, datetime=now, price=current_value)
+            return (name_en, market_index.model_dump_json()), market_index_db
+        return None, None
 
     async def _init_webdriver(self):
         self.display = Display(visible=0, size=(800, 600))

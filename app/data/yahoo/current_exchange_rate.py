@@ -42,7 +42,6 @@ async def process_exchange_rate_data(redis_client: Redis):
         cache_key = source_currency + "_" + target_currency
         redis_bulk_data.append((cache_key, current_price))
 
-    
     if redis_bulk_data:
         await RedisExchangeRateRepository.bulk_save(redis_client, redis_bulk_data, expire_time=STOCK_CACHE_SECOND)
 

@@ -1,12 +1,14 @@
 import asyncio
 import logging
 from os import getenv
-from app.module.asset.schema import StockInfo
+
 from celery import shared_task
 from dotenv import load_dotenv
+
 from app.data.common.services.stock_code_file_service import StockCodeFileReader
-from database.enum import EnvironmentType
 from app.data.naver.current_korea_stock.korea_stock_service import KoreaRealtimeStockCollector
+from app.module.asset.schema import StockInfo
+from database.enum import EnvironmentType
 
 load_dotenv()
 
@@ -29,7 +31,6 @@ async def execute_async_task():
     await collector.collect(stock_list)
 
 
-
 @shared_task
 def main():
     asyncio.run(execute_async_task())
@@ -37,5 +38,3 @@ def main():
 
 if __name__ == "__main__":
     asyncio.run(execute_async_task())
-
-

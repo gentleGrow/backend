@@ -4,9 +4,9 @@ from celery import Celery
 from celery.schedules import crontab
 from dotenv import load_dotenv
 
-import app.data.naver.current_korea_stock.collector  # noqa: F401 > task 위치를 찾는데 필요합니다.
 import app.data.custom.validate_data  # noqa: F401 > task 위치를 찾는데 필요합니다.
 import app.data.naver.current_index.collector  # noqa: F401 > task 위치를 찾는데 필요합니다.
+import app.data.naver.current_korea_stock.collector  # noqa: F401 > task 위치를 찾는데 필요합니다.
 import app.data.yahoo.current_exchange_rate  # noqa: F401 > task 위치를 찾는데 필요합니다.
 import app.data.yahoo.current_usa_stock  # noqa: F401 > task 위치를 찾는데 필요합니다.
 import app.data.yahoo.dividend  # noqa: F401 > task 위치를 찾는데 필요합니다.
