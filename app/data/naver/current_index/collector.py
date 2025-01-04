@@ -52,8 +52,6 @@ async def process_index_data(session: AsyncSession, redis_client: Redis):
             redis_client, redis_bulk_data, expire_time=STOCK_CACHE_SECOND
         )
 
-    logger.info(f"redis_bulk_data:{len(redis_bulk_data)}와 db_bulk_data:{len(db_bulk_data)}개의 데이터가 저장되었습니다.")
-
 
 async def execute_async_task():
     logger.info("현재 시장 지수를 수집합니다.")
@@ -65,10 +63,7 @@ async def execute_async_task():
 @shared_task
 def main():
     loop = asyncio.get_event_loop()
-    if loop.is_running():
-        loop.create_task(execute_async_task())
-    else:
-        loop.run_until_complete(execute_async_task())
+    loop.create_task(execute_async_task())
 
 
 if __name__ == "__main__":
