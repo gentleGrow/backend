@@ -10,7 +10,6 @@ from selenium.webdriver.common.by import By
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.support.ui import WebDriverWait
 from webdriver_manager.chrome import ChromeDriverManager
-
 from app.common.util.time import get_now_datetime
 from app.module.asset.constant import COUNTRY_TRANSLATIONS, INDEX_NAME_TRANSLATIONS
 from app.module.asset.model import MarketIndexMinutely
@@ -68,50 +67,54 @@ class IndexWorldCollector:
             return [], []
 
     def _parse_tr_row(self, tr_row) -> tuple[tuple[str, str], MarketIndexMinutely] | tuple[None, None]:
-        tds = tr_row.find_elements(By.TAG_NAME, "td")
-        tr_row_data = []
-        now = get_now_datetime()
+        try:
+            tds = tr_row.find_elements(By.TAG_NAME, "td")
+            tr_row_data = []
+            now = get_now_datetime()
 
-        for td in tds:
-            if "graph" in td.get_attribute("class"):
-                continue
+            for td in tds:
+                if "graph" in td.get_attribute("class"):
+                    continue
 
-            span = td.find_elements(By.TAG_NAME, "span")
-            if span:
-                tr_row_data.append(span[0].text)
-            else:
-                a_elements = td.find_elements(By.TAG_NAME, "a")
-                if a_elements:
-                    tr_row_data.append(a_elements[0].text)
+                span = td.find_elements(By.TAG_NAME, "span")
+                if span:
+                    tr_row_data.append(span[0].text)
                 else:
-                    tr_row_data.append(td.text)
+                    a_elements = td.find_elements(By.TAG_NAME, "a")
+                    if a_elements:
+                        tr_row_data.append(a_elements[0].text)
+                    else:
+                        tr_row_data.append(td.text)
 
-        if tr_row_data:
-            country_kr = tr_row_data[0]
-            if country_kr in COUNTRY_TRANSLATIONS:
-                country_en = COUNTRY_TRANSLATIONS[country_kr]
-            else:
-                return None, None
+            if tr_row_data:
+                country_kr = tr_row_data[0]
+                if country_kr in COUNTRY_TRANSLATIONS:
+                    country_en = COUNTRY_TRANSLATIONS[country_kr]
+                else:
+                    return None, None
 
-            name_kr = tr_row_data[1]
-            name_en = INDEX_NAME_TRANSLATIONS.get(name_kr, name_kr)
+                name_kr = tr_row_data[1]
+                name_en = INDEX_NAME_TRANSLATIONS.get(name_kr, name_kr)
 
-            current_value = tr_row_data[2].strip().replace(",", "")
-            change_value = tr_row_data[3].strip().replace(",", "")
-            change_percent = tr_row_data[4].strip().replace("%", "")
+                current_value = tr_row_data[2].strip().replace(",", "")
+                change_value = tr_row_data[3].strip().replace(",", "")
+                change_percent = tr_row_data[4].strip().replace("%", "")
 
-            market_index = MarketIndexData(
-                country=country_en,
-                name=name_en,
-                current_value=float(current_value),
-                change_value=float(change_value),
-                change_percent=float(change_percent),
-                update_time=tr_row_data[5],
-            )
+                market_index = MarketIndexData(
+                    country=country_en,
+                    name=name_en,
+                    current_value=float(current_value),
+                    change_value=float(change_value),
+                    change_percent=float(change_percent),
+                    update_time=tr_row_data[5],
+                )
 
-            market_index_db = MarketIndexMinutely(name=name_en, datetime=now, price=current_value)
-            return (name_en, market_index.model_dump_json()), market_index_db
-        return None, None
+                market_index_db = MarketIndexMinutely(name=name_en, datetime=now, price=current_value)
+                return (name_en, market_index.model_dump_json()), market_index_db
+            return None, None
+        except Exception as e:
+            logger.error(e)
+            return None, None
 
     async def _init_webdriver(self):
         self.display = Display(visible=0, size=(800, 600))

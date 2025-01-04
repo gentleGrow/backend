@@ -4,7 +4,6 @@ import os
 import requests
 from bs4 import BeautifulSoup
 from dotenv import load_dotenv
-
 from app.common.util.time import get_now_datetime
 from app.module.asset.enum import Country, MarketIndex
 from app.module.asset.model import MarketIndexMinutely

@@ -1,14 +1,17 @@
 import asyncio
 import logging
+
 from os import getenv
+
 from celery import shared_task
 from dotenv import load_dotenv
 from redis.asyncio import Redis
 from sqlalchemy.ext.asyncio import AsyncSession
-from app.module.asset.model import MarketIndexMinutely
+
 from app.data.common.constant import STOCK_CACHE_SECOND
 from app.data.naver.current_index.current_index_korea import IndexKoreaCollector
 from app.data.naver.current_index.current_index_world import IndexWorldCollector
+from app.module.asset.model import MarketIndexMinutely
 from app.module.asset.redis_repository import RedisRealTimeMarketIndexRepository
 from app.module.asset.repository.market_index_minutely_repository import MarketIndexMinutelyRepository
 from database.dependency import get_mysql_session, get_redis_pool
@@ -50,6 +53,7 @@ async def process_index_data(session: AsyncSession, redis_client: Redis):
             redis_client, redis_bulk_data, expire_time=STOCK_CACHE_SECOND
         )
 
+    logger.info(f"현재 시장 지수를 수집하였습니다., {len(db_bulk_data)}개의 데이터가 저장되었습니다.")
 
 async def execute_async_task():
     logger.info("현재 시장 지수를 수집합니다.")
@@ -65,4 +69,3 @@ def main():
 
 if __name__ == "__main__":
     asyncio.run(execute_async_task())
-
