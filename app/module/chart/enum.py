@@ -1,9 +1,9 @@
-from datetime import date, datetime, timedelta
+from datetime import date, timedelta
 from enum import StrEnum
 
 import pandas as pd
 
-from app.common.util.time import get_now_date, get_now_datetime
+from app.common.util.time import get_now_date
 from app.module.asset.model import Asset
 
 
@@ -15,6 +15,7 @@ class EstimateDividendType(StrEnum):
 class CompositionType(StrEnum):
     COMPOSITION = "composition"
     ACCOUNT = "account"
+
 
 class IntervalType(StrEnum):
     ONEMONTH = "1month"

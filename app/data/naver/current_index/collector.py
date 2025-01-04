@@ -1,6 +1,7 @@
 import asyncio
 import logging
 from os import getenv
+
 from celery import shared_task
 from dotenv import load_dotenv
 from redis.asyncio import Redis

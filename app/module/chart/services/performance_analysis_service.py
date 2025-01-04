@@ -3,7 +3,7 @@ from datetime import date, datetime
 from statistics import mean
 
 from sqlalchemy.ext.asyncio import AsyncSession
-from icecream import ic
+
 from app.module.asset.enum import MarketIndex
 from app.module.asset.model import Asset, MarketIndexDaily, MarketIndexMinutely, StockDaily
 from app.module.asset.services.asset.asset_service import AssetService
@@ -49,9 +49,10 @@ class PerformanceAnalysisService:
         exchange_rate_map,
         current_stock_price_map,
         interval: IntervalType,
-    ) -> tuple[
-        dict[date, float], dict[date, float], list[date]
-    ] | tuple[dict[tuple[int, int], float], dict[tuple[int, int], float], list[date]]:
+    ) -> tuple[dict[date, float], dict[date, float], list[date]] | tuple[
+        dict[tuple[int, int], float], dict[tuple[int, int], float], list[date]
+    ]:
+        #[정보] 5일 단위 코드, 커밋: 754524756fb2567f4dace9bec6cde5ad67ffc523에서 전부 삭제, 필요 시 확인 후 추가
         if interval is IntervalType.ONEMONTH:
             interval_dates = interval.get_chart_date_interval()
             market_index_date_map = await self.index_daily_service.get_market_index_date_map(

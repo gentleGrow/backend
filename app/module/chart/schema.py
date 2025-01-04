@@ -1,7 +1,7 @@
 from datetime import date, datetime, timedelta
 from statistics import mean
 from typing import Optional, Union
-from icecream import ic
+
 from pydantic import BaseModel, Field, RootModel
 
 from app.common.util.time import get_now_date, get_now_datetime
@@ -194,7 +194,7 @@ class PerformanceAnalysisResponse(BaseModel):
                 xAxises=[f"{str(year)[-2:]}.{month}" for year, month in interval_year_month],
                 dates=[f"{year}.{month}" for year, month in interval_year_month],
                 values1={
-                    "values": [user_analysis_data.get(interval_time, 0) for interval_time in interval_year_month ],  # type: ignore # IntervalType.FIVEDAY 조건에 의해 date 보장
+                    "values": [user_analysis_data.get(interval_time, 0) for interval_time in interval_year_month],  # type: ignore # IntervalType.FIVEDAY 조건에 의해 date 보장
                     "name": "내 수익률",
                 },
                 values2={
