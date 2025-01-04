@@ -24,7 +24,7 @@ class KoreaRealtimeStockCollector:
         async with get_mysql_session() as session:
             self.session = session
 
-    async def collect(self, stock_code_list: list[StockInfo]) -> tuple[int,int]:
+    async def collect(self, stock_code_list: list[StockInfo]) -> tuple[int, int]:
         if self.redis_client is None or self.session is None:
             await self._setup()
 
@@ -58,7 +58,7 @@ class KoreaRealtimeStockCollector:
                     self.redis_client, redis_bulk_data, expire_time=STOCK_CACHE_SECOND
                 )
                 await StockMinutelyRepository.bulk_upsert(self.session, db_bulk_data)
-                
+
             return len(redis_bulk_data), len(db_bulk_data)
         finally:
             self._is_running = False

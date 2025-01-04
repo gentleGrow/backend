@@ -6,6 +6,22 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import aliased
 
 from app.module.asset.model import MarketIndexMinutely
+from os import getenv
+import logging
+from dotenv import load_dotenv
+from database.enum import EnvironmentType
+
+load_dotenv()
+
+ENVIRONMENT = getenv("ENVIRONMENT", None)
+
+logger = logging.getLogger("current_index")
+logger.setLevel(logging.INFO)
+
+if ENVIRONMENT == EnvironmentType.PROD:
+    file_handler = logging.FileHandler("/home/backend/current_index.log", delay=False)
+    file_handler.setFormatter(logging.Formatter("%(asctime)s - %(levelname)s - %(message)s"))
+    logger.addHandler(file_handler)
 
 
 class MarketIndexMinutelyRepository:
@@ -61,23 +77,24 @@ class MarketIndexMinutelyRepository:
 
     @staticmethod
     async def bulk_upsert(session: AsyncSession, market_indexes: list[MarketIndexMinutely]) -> None:
-        stmt = insert(MarketIndexMinutely).values(
-            [
-                {
-                    "name": market_index.name,
-                    "datetime": market_index.datetime,
-                    "price": market_index.price,
-                }
-                for market_index in market_indexes
-            ]
-        )
-
-        update_dict = {"price": stmt.inserted.price}
-
-        upsert_stmt = stmt.on_duplicate_key_update(update_dict)
-
         try:
+            stmt = insert(MarketIndexMinutely).values(
+                [
+                    {
+                        "name": market_index.name,
+                        "datetime": market_index.datetime,
+                        "price": market_index.price,
+                    }
+                    for market_index in market_indexes
+                ]
+            )
+
+            update_dict = {"price": stmt.inserted.price}
+
+            upsert_stmt = stmt.on_duplicate_key_update(update_dict)
+
             await session.execute(upsert_stmt)
             await session.commit()
-        except Exception:
+        except Exception as e:
+            logger.error(f"bulk_upsert error: {e}")
             await session.rollback()
