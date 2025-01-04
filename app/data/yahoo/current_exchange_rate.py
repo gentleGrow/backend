@@ -54,7 +54,11 @@ async def execute_async_task():
 
 @shared_task
 def main():
-    asyncio.run(execute_async_task())
+    loop = asyncio.get_event_loop()
+    if loop.is_running():
+        loop.create_task(execute_async_task())
+    else:
+        loop.run_until_complete(execute_async_task())
 
 
 if __name__ == "__main__":

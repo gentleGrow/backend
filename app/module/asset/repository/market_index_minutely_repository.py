@@ -1,27 +1,11 @@
-import logging
 from datetime import datetime
-from os import getenv
 
-from dotenv import load_dotenv
 from sqlalchemy import delete, func, select
 from sqlalchemy.dialects.mysql import insert
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import aliased
 
 from app.module.asset.model import MarketIndexMinutely
-from database.enum import EnvironmentType
-
-load_dotenv()
-
-ENVIRONMENT = getenv("ENVIRONMENT", None)
-
-logger = logging.getLogger("current_index")
-logger.setLevel(logging.INFO)
-
-if ENVIRONMENT == EnvironmentType.PROD:
-    file_handler = logging.FileHandler("/home/backend/current_index.log", delay=False)
-    file_handler.setFormatter(logging.Formatter("%(asctime)s - %(levelname)s - %(message)s"))
-    logger.addHandler(file_handler)
 
 
 class MarketIndexMinutelyRepository:
@@ -95,6 +79,5 @@ class MarketIndexMinutelyRepository:
 
             await session.execute(upsert_stmt)
             await session.commit()
-        except Exception as e:
-            logger.error(f"bulk_upsert error: {e}")
+        except Exception:
             await session.rollback()
