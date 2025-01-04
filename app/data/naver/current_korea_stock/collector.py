@@ -28,7 +28,8 @@ async def execute_async_task():
     logger.info("현재 한국 주식을 수집합니다.")
     collector = KoreaRealtimeStockCollector()
     stock_list: list[StockInfo] = StockCodeFileReader.get_korea_stock_code_list()
-    await collector.collect(stock_list)
+    redis_len, db_len = await collector.collect(stock_list)
+    logger.info(f"redis_bulk_data:{redis_len}와 db_bulk_data:{db_len}개의 데이터가 저장되었습니다.")
 
 
 @shared_task
