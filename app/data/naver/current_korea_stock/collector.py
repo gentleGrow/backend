@@ -36,15 +36,15 @@ async def execute_async_task():
 def main():
     try:
         loop = asyncio.get_event_loop()
-        if loop.is_running():
-            logger.info("main loop가 이미 실행 중입니다. task를 실행합니다.")
-            asyncio.ensure_future(execute_async_task())
-        else:
-            logger.info("현재 시장 지수를 수집합니다.")
-            asyncio.run(execute_async_task())
-    except RuntimeError as e:
-        logger.error(f"이벤트 루프 실행 중 문제가 발생했습니다: {e}")
+    except RuntimeError:
+        loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(loop)
 
+    if loop.is_running():
+        logger.info("main loop가 이미 실행 중입니다. task를 실행합니다.")
+        asyncio.ensure_future(execute_async_task())
+    else:
+        loop.run_until_complete(execute_async_task())
 
 
 if __name__ == "__main__":
