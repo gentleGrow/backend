@@ -27,18 +27,20 @@ if ENVIRONMENT == EnvironmentType.PROD:
 class IndexKoreaCollector:
     async def get_current_index(self) -> tuple[list[tuple[str, str]], list[MarketIndexMinutely]] | tuple[None, None]:
         url = "https://finance.naver.com/"
-        response = requests.get(url)
+        response = await requests.get(url)
         response.raise_for_status()
 
         soup = BeautifulSoup(response.content, "html.parser")
 
-        redis_kospi_data, db_kospi_data = self._parse_kospi(soup)
-        redis_kosdaq_data, db_kosdaq_data = self._parse_kosdaq(soup)
+        redis_kospi_data, db_kospi_data = await self._parse_kospi(soup)
+        redis_kosdaq_data, db_kosdaq_data = await self._parse_kosdaq(soup)
         return [data for data in [redis_kospi_data, redis_kosdaq_data] if data], [
             data for data in [db_kospi_data, db_kosdaq_data] if data
         ]
 
-    def _parse_kosdaq(self, soup: BeautifulSoup) -> tuple[tuple[str, str], MarketIndexMinutely] | tuple[None, None]:
+    async def _parse_kosdaq(
+        self, soup: BeautifulSoup
+    ) -> tuple[tuple[str, str], MarketIndexMinutely] | tuple[None, None]:
         try:
             section_stock_market = soup.find("div", {"class": "section_stock_market"})
             kosdaq_area = section_stock_market.find("div", {"class": "kosdaq_area"})
@@ -64,7 +66,9 @@ class IndexKoreaCollector:
             logger.error(e)
             return None, None
 
-    def _parse_kospi(self, soup: BeautifulSoup) -> tuple[tuple[str, str], MarketIndexMinutely] | tuple[None, None]:
+    async def _parse_kospi(
+        self, soup: BeautifulSoup
+    ) -> tuple[tuple[str, str], MarketIndexMinutely] | tuple[None, None]:
         try:
             kospi_area = soup.find("div", {"class": "kospi_area"})
             kospi_current_value = kospi_area.find("span", {"class": "num"}).text.strip().replace(",", "")

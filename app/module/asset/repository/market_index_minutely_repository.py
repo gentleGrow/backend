@@ -1,14 +1,14 @@
+import logging
 from datetime import datetime
+from os import getenv
 
+from dotenv import load_dotenv
 from sqlalchemy import delete, func, select
 from sqlalchemy.dialects.mysql import insert
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import aliased
 
 from app.module.asset.model import MarketIndexMinutely
-from os import getenv
-import logging
-from dotenv import load_dotenv
 from database.enum import EnvironmentType
 
 load_dotenv()
