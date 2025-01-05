@@ -6,33 +6,26 @@ from bs4 import BeautifulSoup
 
 from app.common.util.time import get_now_datetime
 from app.data.common.constant import STOCK_CACHE_SECOND
-from app.module.asset.model import StockMinutely
 from app.module.asset.redis_repository import RedisRealTimeStockRepository
-from app.module.asset.repository.stock_minutely_repository import StockMinutelyRepository
 from app.module.asset.schema import StockInfo
-from database.dependency import get_mysql_session, get_redis_pool
+from database.dependency import get_redis_pool
 
 
 class KoreaRealtimeStockCollector:
     def __init__(self):
         self.redis_client = None
-        self.session = None
         self._is_running = False
 
     async def _setup(self):
         self.redis_client = get_redis_pool()
-        async with get_mysql_session() as session:
-            self.session = session
 
-    async def collect(self, stock_code_list: list[StockInfo]) -> tuple[int, int]:
-        if self.redis_client is None or self.session is None:
+    async def collect(self, stock_code_list: list[StockInfo]) -> None:
+        if not self.redis_client:
             await self._setup()
 
         self._is_running = True
         try:
-            now = get_now_datetime()
             code_price_pairs = []
-            db_bulk_data = []
             fetch_tasks = []
 
             event_loop = asyncio.get_event_loop()
@@ -49,17 +42,10 @@ class KoreaRealtimeStockCollector:
 
             redis_bulk_data = [(code, price) for code, price in code_price_pairs if price]
 
-            for code, price in redis_bulk_data:
-                current_stock_data = StockMinutely(code=code, datetime=now, price=price)
-                db_bulk_data.append(current_stock_data)
-
-            if redis_bulk_data and db_bulk_data:
+            if redis_bulk_data:
                 await RedisRealTimeStockRepository.bulk_save(
                     self.redis_client, redis_bulk_data, expire_time=STOCK_CACHE_SECOND
                 )
-                await StockMinutelyRepository.bulk_upsert(self.session, db_bulk_data)
-
-            return len(redis_bulk_data), len(db_bulk_data)
         finally:
             self._is_running = False
 

@@ -62,14 +62,14 @@ celery_task.conf.beat_schedule = {
     },
     "current_usa_stock": {
         "task": "app.data.yahoo.current_usa_stock.main",
-        "schedule": crontab(minute="*/5"),
+        "schedule": crontab(minute="*/15"),
     },
     "current_korea_stock": {
         "task": "app.data.naver.current_korea_stock.collector.main",
-        "schedule": crontab(minute="*/5"),
+        "schedule": crontab(minute="*/15"),
     },
     "current_index": {
         "task": "app.data.naver.current_index.collector.main",
-        "schedule": crontab(minute="*/5"),
+        "schedule": crontab(minute="*/15"),
     },
 }
