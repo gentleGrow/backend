@@ -6,7 +6,7 @@ import yfinance
 from celery import shared_task
 from dotenv import load_dotenv
 from redis.asyncio import Redis
-from icecream import ic
+
 from app.data.common.constant import STOCK_CACHE_SECOND
 from app.data.common.services.stock_code_file_service import StockCodeFileReader
 from app.data.yahoo.source.service import format_stock_code
@@ -48,7 +48,7 @@ async def process_stock_data(redis_client: Redis, stock_list: list[StockInfo]):
         if not current_price:
             continue
         redis_bulk_data.append((code, current_price))
-    
+
     if redis_bulk_data:
         await RedisRealTimeStockRepository.bulk_save(redis_client, redis_bulk_data, expire_time=STOCK_CACHE_SECOND)
 

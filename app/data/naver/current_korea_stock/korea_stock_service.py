@@ -4,7 +4,6 @@ import re
 import requests
 from bs4 import BeautifulSoup
 
-from app.common.util.time import get_now_datetime
 from app.data.common.constant import STOCK_CACHE_SECOND
 from app.module.asset.redis_repository import RedisRealTimeStockRepository
 from app.module.asset.schema import StockInfo

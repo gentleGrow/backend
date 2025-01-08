@@ -5,15 +5,12 @@ from os import getenv
 from celery import shared_task
 from dotenv import load_dotenv
 from redis.asyncio import Redis
-from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.data.common.constant import STOCK_CACHE_SECOND
 from app.data.naver.current_index.current_index_korea import IndexKoreaCollector
 from app.data.naver.current_index.current_index_world import IndexWorldCollector
-from app.module.asset.model import MarketIndexMinutely
 from app.module.asset.redis_repository import RedisRealTimeMarketIndexRepository
-from app.module.asset.repository.market_index_minutely_repository import MarketIndexMinutelyRepository
-from database.dependency import get_mysql_session, get_redis_pool
+from database.dependency import get_redis_pool
 from database.enum import EnvironmentType
 
 load_dotenv()

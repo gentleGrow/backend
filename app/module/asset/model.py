@@ -91,7 +91,7 @@ class Stock(TimestampMixin, MySQLBase):
     dividend = relationship("Dividend", back_populates="stock")
 
 
-class StockDaily(MySQLBase):
+class StockDaily(TimestampMixin, MySQLBase):
     __tablename__ = "stock_daily"
 
     id = Column(BigInteger, primary_key=True, autoincrement=True)
@@ -139,7 +139,7 @@ class StockDaily(MySQLBase):
         )
 
 
-class MarketIndexDaily(MySQLBase):
+class MarketIndexDaily(TimestampMixin, MySQLBase):
     __tablename__ = "market_index_daily"
 
     id = Column(BigInteger, primary_key=True, autoincrement=True)
@@ -157,7 +157,7 @@ class MarketIndexDaily(MySQLBase):
     )
 
 
-class StockMinutely(MySQLBase):
+class StockMinutely(TimestampMixin, MySQLBase):
     """비용적 문제로 인해 중단된 코드입니다.
     추후 분당 데이터 수집 시 사용될 엔티티입니다.
     """
@@ -176,7 +176,7 @@ class StockMinutely(MySQLBase):
     )
 
 
-class MarketIndexMinutely(MySQLBase):
+class MarketIndexMinutely(TimestampMixin, MySQLBase):
     """비용적 문제로 인해 중단된 코드입니다.
     추후 분당 데이터 수집 시 사용될 엔티티입니다.
     """

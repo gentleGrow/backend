@@ -1,5 +1,6 @@
 from sqlalchemy import Column, DateTime
 from sqlalchemy.sql import func
+from sqlalchemy import Boolean
 
 
 class TimestampMixin:
@@ -11,3 +12,5 @@ class TimestampMixin:
         nullable=False,
     )
     deleted_at = Column(DateTime, nullable=True)
+    is_deleted = Column(Boolean, default=False, nullable=False)
+    

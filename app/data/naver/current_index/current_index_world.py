@@ -11,9 +11,7 @@ from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.support.ui import WebDriverWait
 from webdriver_manager.chrome import ChromeDriverManager
 
-from app.common.util.time import get_now_datetime
 from app.module.asset.constant import COUNTRY_TRANSLATIONS, INDEX_NAME_TRANSLATIONS
-from app.module.asset.model import MarketIndexMinutely
 from app.module.asset.schema import MarketIndexData
 from database.enum import EnvironmentType
 
@@ -108,7 +106,7 @@ class IndexWorldCollector:
                 )
 
                 return (name_en, market_index.model_dump_json())
-            return None, None
+            return None
         except Exception as e:
             logger.error(e)
             return None
