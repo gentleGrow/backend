@@ -78,17 +78,17 @@ async def setup_exchange_rate(redis_client: Redis):
 
 @pytest.fixture(scope="function")
 async def setup_dividend(session: AsyncSession, setup_stock):
-    dividend1 = Dividend(dividend=1.5, stock_code="AAPL", date=date(2024, 8, 13))
+    dividend1 = Dividend(dividend=1.5, code="AAPL", date=date(2024, 8, 13))
 
-    dividend2 = Dividend(dividend=1.6, stock_code="AAPL", date=date(2024, 8, 14))
+    dividend2 = Dividend(dividend=1.6, code="AAPL", date=date(2024, 8, 14))
 
-    dividend3 = Dividend(dividend=0.8, stock_code="TSLA", date=date(2024, 8, 13))
+    dividend3 = Dividend(dividend=0.8, code="TSLA", date=date(2024, 8, 13))
 
-    dividend4 = Dividend(dividend=0.9, stock_code="TSLA", date=date(2024, 8, 14))
+    dividend4 = Dividend(dividend=0.9, code="TSLA", date=date(2024, 8, 14))
 
-    dividend5 = Dividend(dividend=100.0, stock_code="005930", date=date(2024, 8, 13))
+    dividend5 = Dividend(dividend=100.0, code="005930", date=date(2024, 8, 13))
 
-    dividend6 = Dividend(dividend=105.0, stock_code="005930", date=date(2024, 8, 14))
+    dividend6 = Dividend(dividend=105.0, code="005930", date=date(2024, 8, 14))
 
     session.add_all([dividend1, dividend2, dividend3, dividend4, dividend5, dividend6])
     await session.commit()

@@ -53,7 +53,7 @@ async def insert_dividend_data(session: AsyncSession, stock_list: list[StockInfo
                 for dividend_date, dividend_amount in dividends.items():
                     try:
                         dividend = Dividend(
-                            dividend=dividend_amount, stock_code=stock.code, date=pd.to_datetime(dividend_date).date()
+                            dividend=dividend_amount, code=stock.code, date=pd.to_datetime(dividend_date).date()
                         )
                     except Exception:
                         continue

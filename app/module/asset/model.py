@@ -33,11 +33,11 @@ class Dividend(TimestampMixin, MySQLBase):
 
     id = Column(BigInteger, primary_key=True, autoincrement=True)
     dividend = Column(Float, nullable=False, info={"description": "배당금"})
-    stock_code = Column(String(255), ForeignKey("stock.code"), nullable=False)
+    code = Column(String(255), ForeignKey("stock.code"), nullable=False)
     date = Column(Date, nullable=False, info={"description": "배당일자"})
 
     stock = relationship("Stock", back_populates="dividend")
-    __table_args__ = (UniqueConstraint("stock_code", "date", name="uq_code_date"),)
+    __table_args__ = (UniqueConstraint("code", "date", name="uq_code_date"),)
 
 
 class AssetStock(TimestampMixin, MySQLBase):
@@ -89,6 +89,7 @@ class Stock(TimestampMixin, MySQLBase):
     )
     asset_stock = relationship("AssetStock", back_populates="stock", overlaps="asset", lazy="selectin")
     dividend = relationship("Dividend", back_populates="stock")
+    stock_daily = relationship("StockDaily", back_populates="stock")
 
 
 class StockDaily(TimestampMixin, MySQLBase):
@@ -97,12 +98,14 @@ class StockDaily(TimestampMixin, MySQLBase):
     id = Column(BigInteger, primary_key=True, autoincrement=True)
     adj_close_price = Column(Float, nullable=False, info={"description": "Adjusted closing price of the stock"})
     close_price = Column(Float, nullable=False, info={"description": "Closing price of the stock"})
-    code = Column(String(255), nullable=False)
+    code = Column(String(255), ForeignKey("stock.code"), nullable=False)
     date = Column(Date, nullable=False, info={"description": "stock closing day"})
     highest_price = Column(Float, nullable=False, info={"description": "Highest price of the stock"})
     lowest_price = Column(Float, nullable=False, info={"description": "Lowest price of the stock"})
     opening_price = Column(Float, nullable=False, info={"description": "Opening price of the stock"})
     trade_volume = Column(BigInteger, nullable=False, info={"description": "Volume of stock traded"})
+
+    stock = relationship("Stock", back_populates="stock_daily")
 
     __table_args__ = (
         UniqueConstraint("code", "date", name="uq_code_date"),
@@ -193,3 +196,4 @@ class MarketIndexMinutely(TimestampMixin, MySQLBase):
         Index("idx_name", "name"),
         Index("idx_name_datetime", "name", text("datetime DESC")),
     )
+

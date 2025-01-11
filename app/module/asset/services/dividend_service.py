@@ -73,7 +73,7 @@ class DividendService:
         dividends: list[Dividend] = await DividendRepository.get_dividends(session, stock_codes)
 
         return {
-            (dividend.stock_code, dividend.date): dividend.dividend
+            (dividend.code, dividend.date): dividend.dividend
             for dividend in dividends
             if isinstance(dividend.date, date) and str(dividend.date) != "0000-00-00"
         }
@@ -83,7 +83,7 @@ class DividendService:
         dividends: list[Dividend] = await DividendRepository.get_dividends_recent(session, stock_codes)
 
         return {
-            dividend.stock_code: dividend.dividend
+            dividend.code: dividend.dividend
             for dividend in dividends
             if isinstance(dividend.date, date) and str(dividend.date) != "0000-00-00"
         }
@@ -146,7 +146,7 @@ class DividendService:
 
         result = {}
         for year, months in dividend_data_by_year.items():
-            # 추후 협의 후 수정 할 코드입니다.
+            # [TODO] 추후 협의 후 수정 할 코드입니다.
             # over_만 = any(value > 만 for value in months.values())
             # if over_만:
             #     data = [months.get(month, 0.0) / 만 if months.get(month, 0.0) > 0 else 0.0 for month in range(1, 13)]
