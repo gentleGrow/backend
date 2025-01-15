@@ -219,6 +219,8 @@ class AssetFieldUpdateResponse(BaseModel):
             return cls(status_code=status.HTTP_404_NOT_FOUND, detail=f"{REQUIRED_ASSET_FIELD}가 모두 포함되어 있어야 합니다.")
         elif not proper_fields:
             return cls(status_code=status.HTTP_404_NOT_FOUND, detail=f"필드: {ASSET_FIELD} 만 허용합니다.")
+        elif update_field[:len(REQUIRED_ASSET_FIELD)] != REQUIRED_ASSET_FIELD:
+            return cls(status_code=status.HTTP_404_NOT_FOUND, detail=f"필수 필드의 순서는 {REQUIRED_ASSET_FIELD}와 같아야 합니다.")
         else:
             return None
 

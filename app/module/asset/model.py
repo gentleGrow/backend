@@ -196,4 +196,3 @@ class MarketIndexMinutely(TimestampMixin, MySQLBase):
         Index("idx_name", "name"),
         Index("idx_name_datetime", "name", text("datetime DESC")),
     )
-
