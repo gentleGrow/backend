@@ -25,31 +25,26 @@ class ParentAssetDeleteResponse(BaseModel):
         return ParentAssetDeleteResponse(status_code=status.HTTP_404_NOT_FOUND, detail="해당하는 주식 종목을 보유하고 있지 않습니다.")
 
 
-class StockAssetField(BaseModel):
-    isRequired: bool
-    value: float | str | date | None
-
-
 class StockAssetSchema(BaseModel):
     id: int
-    거래가: StockAssetField
-    거래금: StockAssetField
-    거래량: StockAssetField
-    계좌종류: StockAssetField
-    고가: StockAssetField
-    매매일자: StockAssetField
-    배당금: StockAssetField
-    수량: StockAssetField
-    수익금: StockAssetField
-    수익률: StockAssetField
-    시가: StockAssetField
-    저가: StockAssetField
-    종목명: StockAssetField
-    주식코드: StockAssetField
+    거래가: float | str | date | None
+    거래금: float | str | date | None
+    거래량: float | str | date | None
+    계좌종류: float | str | date | None
+    고가: float | str | date | None
+    매매일자: float | str | date | None
+    배당금: float | str | date | None
+    수량: float | str | date | None
+    수익금: float | str | date | None
+    수익률: float | str | date | None
+    시가: float | str | date | None
+    저가: float | str | date | None
+    종목명: float | str | date | None
+    주식코드: float | str | date | None
     주식통화: str | None
-    증권사: StockAssetField
-    현재가: StockAssetField
-    매매: StockAssetField
+    증권사: float | str | date | None
+    현재가: float | str | date | None
+    매매: float | str | date | None
 
 
 class AggregateStockAsset(BaseModel):

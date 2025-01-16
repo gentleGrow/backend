@@ -213,7 +213,7 @@ async def get_sample_asset_stock(
     full_stock_asset_elements = incomplete_stock_asset_elements + complete_stock_asset_elements
 
     buy_stock_assets_elements = [
-        buy_asset for buy_asset in filter(lambda asset: asset.매매.value == TradeType.BUY, complete_stock_asset_elements)
+        buy_asset for buy_asset in filter(lambda asset: asset.매매 == TradeType.BUY, complete_stock_asset_elements)
     ]
     aggregate_stock_assets: list[AggregateStockAsset] = asset_service.aggregate_stock_assets(buy_stock_assets_elements)
     stock_assets: list[StockAssetGroup] = asset_service.group_stock_assets(
@@ -284,7 +284,7 @@ async def get_asset_stock(
     full_stock_asset_elements = incomplete_stock_asset_elements + complete_stock_asset_elements
 
     buy_stock_assets_elements = [
-        buy_asset for buy_asset in filter(lambda asset: asset.매매.value == TradeType.BUY, complete_stock_asset_elements)
+        buy_asset for buy_asset in filter(lambda asset: asset.매매 == TradeType.BUY, complete_stock_asset_elements)
     ]
     aggregate_stock_assets: list[AggregateStockAsset] = asset_service.aggregate_stock_assets(buy_stock_assets_elements)
     stock_assets: list[StockAssetGroup] = asset_service.group_stock_assets(

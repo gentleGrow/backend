@@ -449,11 +449,11 @@ async def get_sample_my_stock(
     return MyStockResponse(
         [
             MyStockResponseValue(
-                name=stock_asset.종목명.value,
-                current_price=stock_asset.현재가.value,
-                profit_rate=stock_asset.수익률.value,
-                profit_amount=stock_asset.수익금.value,
-                quantity=stock_asset.수량.value,
+                name=stock_asset.종목명,
+                current_price=stock_asset.현재가,
+                profit_rate=stock_asset.수익률,
+                profit_amount=stock_asset.수익금,
+                quantity=stock_asset.수량,
             )
             for stock_asset in stock_assets
         ]
@@ -494,11 +494,11 @@ async def get_my_stock(
     return MyStockResponse(
         [
             MyStockResponseValue(
-                name=stock_asset.종목명.value,
-                current_price=stock_asset.현재가.value,
-                profit_rate=stock_asset.수익률.value,
-                profit_amount=stock_asset.수익금.value,
-                quantity=stock_asset.수량.value,
+                name=stock_asset.종목명,
+                current_price=stock_asset.현재가,
+                profit_rate=stock_asset.수익률,
+                profit_amount=stock_asset.수익금,
+                quantity=stock_asset.수량,
             )
             for stock_asset in stock_assets
         ]

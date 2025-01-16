@@ -375,7 +375,7 @@ class AssetService:
 
         stock_elements_by_name = defaultdict(list)
         for stock_asset in stock_asset_elements:
-            stock_name = str(stock_asset.종목명.value)
+            stock_name = str(stock_asset.종목명)
             stock_elements_by_name[stock_name].append(stock_asset)
 
         for stock_name, sub_stock_assets in stock_elements_by_name.items():
@@ -394,10 +394,10 @@ class AssetService:
     def aggregate_stock_assets(self, stock_assets: list[StockAssetSchema]) -> list[AggregateStockAsset]:
         stock_asset_dataframe = pandas.DataFrame(
             {
-                "stock_name": [stock_asset.종목명.value for stock_asset in stock_assets],
-                "profit_rate": [stock_asset.수익률.value for stock_asset in stock_assets],
-                "profit_amount": [stock_asset.수익금.value for stock_asset in stock_assets],
-                "dividend": [stock_asset.배당금.value for stock_asset in stock_assets],
+                "stock_name": [stock_asset.종목명 for stock_asset in stock_assets],
+                "profit_rate": [stock_asset.수익률 for stock_asset in stock_assets],
+                "profit_amount": [stock_asset.수익금 for stock_asset in stock_assets],
+                "dividend": [stock_asset.배당금 for stock_asset in stock_assets],
             }
         )
 
@@ -425,8 +425,7 @@ class AssetService:
         result = []
         for asset in assets:
             incomplete_stock_asset_data = self._build_incomplete_stock_asset(asset)
-            incomplete_stock_asset_formatted_data = self._apply_require_sign(incomplete_stock_asset_data)
-            incomplete_stock_asset_schema = StockAssetSchema(**incomplete_stock_asset_formatted_data)
+            incomplete_stock_asset_schema = StockAssetSchema(**incomplete_stock_asset_data)
             result.append(incomplete_stock_asset_schema)
         return result
 
@@ -479,9 +478,7 @@ class AssetService:
                 asset, stock_daily, apply_exchange_rate, current_stock_price_map, dividend_map, purchase_price
             )
 
-            stock_asset_formatted_data = self._apply_require_sign(stock_asset_data)
-
-            stock_asset_schema = StockAssetSchema(**stock_asset_formatted_data)
+            stock_asset_schema = StockAssetSchema(**stock_asset_data)
 
             result.append(stock_asset_schema)
 
@@ -609,13 +606,3 @@ class AssetService:
 
     def _get_purchase_price(self, asset: Asset, stock_daily: TodayTempStockDaily) -> float:
         return asset.asset_stock.trade_price if asset.asset_stock.trade_price else stock_daily.adj_close_price
-
-    def _apply_require_sign(self, stock_asset_data: dict) -> dict:
-        result = {
-            field: {"isRequired": field in REQUIRED_ASSET_FIELD, "value": value}
-            for field, value in stock_asset_data.items()
-        }
-
-        result[StockAsset.ID.value] = stock_asset_data[StockAsset.ID.value]
-        result[StockAsset.PURCHASE_CURRENCY_TYPE.value] = stock_asset_data[StockAsset.PURCHASE_CURRENCY_TYPE.value]
-        return result
