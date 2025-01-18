@@ -7,7 +7,7 @@ from redis.asyncio import Redis
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.common.util.time import get_now_date
-from app.module.asset.constant import INFLATION_RATE, REQUIRED_ASSET_FIELD, THREE_MONTH, THREE_MONTH_DAY, 만, 억
+from app.module.asset.constant import INFLATION_RATE, THREE_MONTH, THREE_MONTH_DAY, 만, 억
 from app.module.asset.enum import ASSETNAME, AmountUnit, PurchaseCurrencyType, StockAsset, TradeType
 from app.module.asset.model import Asset, StockDaily
 from app.module.asset.repository.asset_repository import AssetRepository
@@ -217,15 +217,30 @@ class AssetService:
 
     async def save_asset_by_put(self, session: AsyncSession, request_data: AssetStockPutRequest) -> None:
         asset = await AssetRepository.get_asset_by_id(session, request_data.id)
-        asset.asset_stock.account_type = request_data.account_type if request_data.account_type else None
-        asset.asset_stock.investment_bank = request_data.investment_bank if request_data.investment_bank else None
-        asset.asset_stock.purchase_currency_type = (
-            request_data.purchase_currency_type if request_data.purchase_currency_type else None
-        )
-        asset.asset_stock.trade_date = request_data.trade_date if request_data.trade_date else None
-        asset.asset_stock.trade_price = request_data.trade_price if request_data.trade_price else None
-        asset.asset_stock.quantity = request_data.quantity if request_data.quantity else None
-        asset.asset_stock.trade = request_data.trade if request_data.trade else None
+        
+        if request_data.account_type:
+            asset.asset_stock.account_type = request_data.account_type
+        if request_data.investment_bank:
+            asset.asset_stock.investment_bank = request_data.investment_bank
+        if request_data.purchase_currency_type:
+            asset.asset_stock.purchase_currency_type = request_data.purchase_currency_type
+        if request_data.trade_date:
+            asset.asset_stock.trade_date = request_data.trade_date
+        if request_data.trade_price:
+            asset.asset_stock.trade_price = request_data.trade_price
+        if request_data.quantity:
+            asset.asset_stock.quantity = request_data.quantity
+        if request_data.trade:
+            asset.asset_stock.trade = request_data.trade
+        # asset.asset_stock.account_type = request_data.account_type if request_data.account_type else None
+        # asset.asset_stock.investment_bank = request_data.investment_bank if request_data.investment_bank else None
+        # asset.asset_stock.purchase_currency_type = (
+        #     request_data.purchase_currency_type if request_data.purchase_currency_type else None
+        # )
+        # asset.asset_stock.trade_date = request_data.trade_date if request_data.trade_date else None
+        # asset.asset_stock.trade_price = request_data.trade_price if request_data.trade_price else None
+        # asset.asset_stock.quantity = request_data.quantity if request_data.quantity else None
+        # asset.asset_stock.trade = request_data.trade if request_data.trade else None
 
         stock = await StockRepository.get_by_code(session, request_data.stock_code)
         asset.asset_stock.stock_id = stock.id
