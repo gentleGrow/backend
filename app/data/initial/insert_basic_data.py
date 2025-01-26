@@ -100,7 +100,6 @@ async def create_dummy_assets(session: AsyncSession):
 async def create_asset_field(session: AsyncSession):
     asset_field = await AssetFieldRepository.get(session, DUMMY_USER_ID)
     if asset_field:
-        ic("이미 asset_field를 저장하였습니다.")
         return
 
     fields_to_disable = ["stock_volume", "purchase_price", "purchase_amount"]

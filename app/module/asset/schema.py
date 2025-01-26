@@ -212,6 +212,9 @@ class AssetFieldUpdateResponse(BaseModel):
 
         if not all_include:
             return cls(status_code=status.HTTP_404_NOT_FOUND, detail=f"{REQUIRED_ASSET_FIELD}가 모두 포함되어 있어야 합니다.")
+        elif len(update_field) != len(set(update_field)):
+            duplicates = [field for field in update_field if update_field.count(field) > 1]
+            return cls(status_code=status.HTTP_404_NOT_FOUND, detail=f"중복된 필드: {duplicates} 있습니다.")
         elif not proper_fields:
             return cls(status_code=status.HTTP_404_NOT_FOUND, detail=f"필드: {ASSET_FIELD} 만 허용합니다.")
         elif update_field[: len(REQUIRED_ASSET_FIELD)] != REQUIRED_ASSET_FIELD:

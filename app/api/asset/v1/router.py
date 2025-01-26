@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Depends, status
 from redis.asyncio import Redis
 from sqlalchemy.ext.asyncio import AsyncSession
-
+from icecream import ic
 from app.common.auth.security import verify_jwt_token
 from app.common.schema.common_schema import DeleteResponse, PutResponse
 from app.module.asset.constant import KOREA, USA, CurrencyType
@@ -70,6 +70,7 @@ async def update_asset_field(
     await AssetFieldRepository.update(
         session, AssetField(id=asset_field.id, user_id=token.get("user"), field_preference=request_data.root)
     )
+    
     return AssetFieldUpdateResponse(status_code=status.HTTP_200_OK, detail="자산관리 필드를 성공적으로 수정 하였습니다.")
 
 
@@ -83,7 +84,7 @@ async def get_bank_account_list() -> BankAccountResponse:
 
 @asset_stock_router.get("/stocks", summary="주시 종목 코드를 반환합니다.", response_model=StockListResponse)
 async def get_stock_list(session: AsyncSession = Depends(get_mysql_session_router)) -> StockListResponse:
-    # 현재는 국내/미국 주식만 반환하고 추후 서비스 안정화가 되면 전세계 주식을 반환합니다.
+    # [INFO] 현재는 국내/미국 주식만 반환하고 추후 서비스 안정화가 되면 전세계 주식을 반환합니다.
     stock_list: list[Stock] = await StockRepository.get_countries_stock(session, [KOREA, USA])
 
     return StockListResponse(
