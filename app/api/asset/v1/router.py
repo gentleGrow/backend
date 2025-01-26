@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Depends, status
 from redis.asyncio import Redis
 from sqlalchemy.ext.asyncio import AsyncSession
-from icecream import ic
+
 from app.common.auth.security import verify_jwt_token
 from app.common.schema.common_schema import DeleteResponse, PutResponse
 from app.module.asset.constant import KOREA, USA, CurrencyType
@@ -70,7 +70,7 @@ async def update_asset_field(
     await AssetFieldRepository.update(
         session, AssetField(id=asset_field.id, user_id=token.get("user"), field_preference=request_data.root)
     )
-    
+
     return AssetFieldUpdateResponse(status_code=status.HTTP_200_OK, detail="자산관리 필드를 성공적으로 수정 하였습니다.")
 
 
