@@ -5,7 +5,7 @@ from redis.asyncio import Redis
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.common.auth.security import verify_jwt_token
-from app.module.asset.constant import ASSET_SAVE_TREND_YEAR, RICH_PEOPLE_DATA_KEY
+from app.module.asset.constant import ASSET_SAVE_TREND_YEAR, RICH_PEOPLE_DATA_KEY, RICH_TOP_PICK_NUM
 from app.module.asset.dependencies.asset_dependency import get_asset_query, get_asset_service
 from app.module.asset.dependencies.dividend_dependency import get_dividend_service
 from app.module.asset.dependencies.realtime_index_dependency import get_realtime_index_service
@@ -555,7 +555,7 @@ async def get_summary(
         complete_buy_asset, current_stock_price_map, exchange_rate_map, past_stock_map
     )
 
-    # 협의 후 바로 추가할 인자입니다.
+    # [TODO] 협의 후 바로 추가할 인자입니다.
     return SummaryResponse(
         # increase_asset_amount=increase_asset_amount,
         today_review_rate=today_review_rate,
@@ -604,7 +604,7 @@ async def get_sample_summary(
         complete_buy_asset, current_stock_price_map, exchange_rate_map, past_stock_map
     )
 
-    # 협의 후 바로 추가할 인자입니다.
+    # [TODO] 협의 후 바로 추가할 인자입니다.
     return SummaryResponse(
         # increase_asset_amount=increase_asset_amount,
         today_review_rate=today_review_rate,
@@ -614,7 +614,7 @@ async def get_sample_summary(
     )
 
 
-# 삭제될 예정입니다.
+# [TODO] 삭제될 예정입니다.
 @chart_router.get("/tip", summary="오늘의 투자 tip", response_model=ChartTipResponse)
 async def get_today_tip() -> ChartTipResponse:
     return ChartTipResponse(DEFAULT_TIP)
@@ -639,6 +639,7 @@ async def get_rich_pick(
     asset_query: AssetQuery = Depends(get_asset_query),
 ) -> RichPickResponse:
     assets = await rich_service.get_full_rich_assets(session)
+
     (
         stock_daily_map,
         lastest_stock_daily_map,
@@ -648,13 +649,13 @@ async def get_rich_pick(
     ) = await asset_query.get_user_data(session, redis_client, assets, RICH_PEOPLE_DATA_KEY)
 
     top_rich_pick_list = rich_service.get_top_rich_pick(
-        assets, 10, current_stock_price_map, exchange_rate_map, stock_daily_map
+        assets, RICH_TOP_PICK_NUM, current_stock_price_map, exchange_rate_map, stock_daily_map
     )
 
     return RichPickResponse(top_rich_pick_list)
 
 
-# 임시 dummy api 생성, 추후 개발하겠습니다.
+# [TODO] 임시 dummy api 생성, 추후 개발하겠습니다.
 @chart_router.get("/people-portfolio", summary="포트폴리오 구경하기", response_model=PeoplePortfolioResponse)
 async def get_people_portfolio():
     return PeoplePortfolioResponse(

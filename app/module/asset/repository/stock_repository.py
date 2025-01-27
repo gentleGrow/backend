@@ -13,7 +13,7 @@ class StockRepository:
         query = select(Stock).where(Stock.country.in_(countries))
         result = await session.execute(query)
         return result.scalars().all()
-    
+
     @staticmethod
     async def get_all(session: AsyncSession) -> list[Stock]:
         stmt = select(Stock)
