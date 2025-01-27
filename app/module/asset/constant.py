@@ -9,6 +9,7 @@ from app.module.asset.enum import (
     PurchaseCurrencyType,
 )
 
+RICH_TOP_PICK_NUM = 10
 RICH_PEOPLE_DATA_KEY = "rich_data_key"
 USER_DATA_KEY = "user_data_key"
 USER_DATA_EXPIRE_TIME_SEC = 10 * 60

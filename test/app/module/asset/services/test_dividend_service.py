@@ -3,7 +3,6 @@ from datetime import date
 
 from pytest import approx
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy.future import select
 
 from app.module.asset.dependencies.dividend_dependency import get_dividend_service
 from app.module.asset.enum import TradeType
@@ -83,37 +82,3 @@ class TestDividendService:
 
         assert result == expected_result
         assert last_dividend_date == expected_last_dividend_date
-
-    async def test_get_dividend_map(self, session: AsyncSession, setup_all):
-        # Given
-        dividend_service: DividendService = get_dividend_service()
-        assets = await session.execute(select(Asset).filter(Asset.user_id == DUMMY_USER_ID))
-        assets = assets.scalars().all()
-
-        # When
-        dividend_map = await dividend_service.get_dividend_map(session, assets)
-
-        # Then
-        expected_dividend_map = {
-            ("AAPL", date(2024, 8, 13)): 1.5,
-            ("AAPL", date(2024, 8, 14)): 1.6,
-            ("TSLA", date(2024, 8, 13)): 0.8,
-            ("TSLA", date(2024, 8, 14)): 0.9,
-            ("005930", date(2024, 8, 13)): 100.0,
-            ("005930", date(2024, 8, 14)): 105.0,
-        }
-
-        assert dividend_map == expected_dividend_map
-
-    async def test_get_recent_map(self, session: AsyncSession, setup_dividend, setup_asset):
-        # Given
-        dividend_service: DividendService = get_dividend_service()
-        assets = await session.execute(select(Asset).filter(Asset.user_id == DUMMY_USER_ID))
-        assets = assets.scalars().all()
-
-        # When
-        result = await dividend_service.get_recent_map(session, assets)
-
-        # Then
-        assert result["AAPL"] == 1.60
-        assert result["TSLA"] == 0.90

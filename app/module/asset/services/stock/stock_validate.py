@@ -13,7 +13,7 @@ class StockValidate:
         return True if stock else False
 
     async def check_stock_data_exist(self, session: AsyncSession, code: str, buy_date: date) -> bool:
-        # 오늘 날짜는 일별 데이터가 미 수집 상태라 허용합니다.
+        # [INFO] 오늘 날짜는 일별 데이터가 미 수집 상태라 허용합니다.
         if buy_date == get_now_date():
             return True
 

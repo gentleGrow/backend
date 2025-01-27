@@ -35,7 +35,7 @@ class RichService:
         top_10_stock_codes = await RedisRichPickRepository.get(redis_client, REDIS_RICH_PICK_KEY)
         stock_name_map = await RedisRichPickRepository.get(redis_client, REDIS_RICH_PICK_NAME_KEY)
 
-        # 임시 변수 할당, 추후 변경 예정
+        # [TODO] 임시 변수 할당, 추후 변경 예정
         RichPeople = []  # type: ignore
 
         if top_10_stock_codes is None or stock_name_map is None:
@@ -69,6 +69,7 @@ class RichService:
         self, session: AsyncSession, redis_client: Redis
     ) -> list[PortfolioStockData]:
         result = []
+
         for person_name in RichPeople:
             user = await UserRepository.get_by_name(session, person_name)
             if not user:
@@ -101,18 +102,14 @@ class RichService:
 
     async def get_full_rich_assets(self, session: AsyncSession) -> list[Asset]:
         result: list[Asset] = []
-        for person_name in RichPeople:
-            user = await UserRepository.get_by_name(session, person_name)
-            if not user:
-                continue
+        users = await UserRepository.get_by_names(session, [person.value for person in RichPeople])
+        user_ids = [user.id for user in users]
 
-            assets = await AssetRepository.get_assets(session, user.id)
-            if not len(assets):
-                continue
+        if not user_ids:
+            return result
 
-            result = result + assets
-
-        return result
+        assets = await AssetRepository.get_assets_by_user_ids(session, user_ids)
+        return assets
 
     def get_top_rich_pick(
         self,

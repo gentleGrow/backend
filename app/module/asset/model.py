@@ -1,5 +1,6 @@
 from datetime import datetime as dt
 from typing import List
+
 from sqlalchemy import (
     JSON,
     BigInteger,
@@ -7,21 +8,25 @@ from sqlalchemy import (
     DateTime,
     Float,
     ForeignKey,
-    Integer,
     Index,
+    Integer,
     String,
     UniqueConstraint,
     text,
 )
 from sqlalchemy.orm import Mapped, mapped_column, relationship
+
 from app.common.mixin.timestamp import TimestampMixin
 from database.config import MySQLBase
+
 
 class AssetField(TimestampMixin, MySQLBase):
     __tablename__ = "asset_field"
 
     id: Mapped[int] = mapped_column(BigInteger, primary_key=True, autoincrement=True)
-    user_id: Mapped[int] = mapped_column(BigInteger, ForeignKey("user.id", ondelete="CASCADE"), nullable=False, unique=True)
+    user_id: Mapped[int] = mapped_column(
+        BigInteger, ForeignKey("user.id", ondelete="CASCADE"), nullable=False, unique=True
+    )
     field_preference: Mapped[JSON] = mapped_column(JSON, nullable=False, default=list)
 
 
@@ -53,8 +58,10 @@ class AssetStock(TimestampMixin, MySQLBase):
     stock_id: Mapped[int] = mapped_column(BigInteger, ForeignKey("stock.id"), primary_key=True)
     asset_id: Mapped[int] = mapped_column(BigInteger, ForeignKey("asset.id", ondelete="CASCADE"), primary_key=True)
 
-    asset: Mapped["Asset"] = relationship(back_populates="asset_stock", uselist=False, overlaps="stock,asset", lazy="selectin")
-    stock: Mapped["Stock"] = relationship(back_populates="asset_stock", overlaps="asset,stock", lazy="selectin")
+    asset: Mapped["Asset"] = relationship(
+        back_populates="asset_stock", uselist=False, overlaps="stock,asset", lazy="select"
+    )
+    stock: Mapped["Stock"] = relationship(back_populates="asset_stock", overlaps="asset,stock", lazy="select")
 
 
 class Asset(TimestampMixin, MySQLBase):
@@ -65,15 +72,13 @@ class Asset(TimestampMixin, MySQLBase):
     user_id: Mapped[int] = mapped_column(BigInteger, ForeignKey("user.id", ondelete="CASCADE"), nullable=False)
 
     stock: Mapped[List["Stock"]] = relationship(
-        secondary="asset_stock", back_populates="asset", overlaps="asset_stock", lazy="selectin"
+        secondary="asset_stock", back_populates="asset", overlaps="asset_stock", lazy="select"
     )
     asset_stock: Mapped["AssetStock"] = relationship(
-        back_populates="asset", uselist=False, overlaps="stock", lazy="selectin"
+        back_populates="asset", uselist=False, overlaps="stock", lazy="select"
     )
 
-    __table_args__ = (
-        Index("idx_user_id_asset_type_deleted_at", "user_id", "asset_type", "deleted_at"),
-    )
+    __table_args__ = (Index("idx_user_id_asset_type_deleted_at", "user_id", "asset_type", "deleted_at"),)
 
 
 class Stock(TimestampMixin, MySQLBase):
@@ -89,14 +94,13 @@ class Stock(TimestampMixin, MySQLBase):
     asset: Mapped[List["Asset"]] = relationship(
         secondary="asset_stock", back_populates="stock", overlaps="asset_stock", lazy="select"
     )
-    asset_stock: Mapped[List["AssetStock"]] = relationship(
-        back_populates="stock", overlaps="asset", lazy="select"
-    )
+    asset_stock: Mapped[List["AssetStock"]] = relationship(back_populates="stock", overlaps="asset", lazy="select")
     dividend: Mapped[List["Dividend"]] = relationship(back_populates="stock")
     stock_daily: Mapped[List["StockDaily"]] = relationship(back_populates="stock")
 
     __table_args__ = (
         Index("idx_country", "country"),
+        Index("idx_code", "code"),
     )
 
 
@@ -104,14 +108,26 @@ class StockDaily(TimestampMixin, MySQLBase):
     __tablename__ = "stock_daily"
 
     id: Mapped[int] = mapped_column(BigInteger, primary_key=True, autoincrement=True)
-    adj_close_price: Mapped[float] = mapped_column(Float, nullable=False, info={"description": "Adjusted closing price of the stock"})
-    close_price: Mapped[float] = mapped_column(Float, nullable=False, info={"description": "Closing price of the stock"})
+    adj_close_price: Mapped[float] = mapped_column(
+        Float, nullable=False, info={"description": "Adjusted closing price of the stock"}
+    )
+    close_price: Mapped[float] = mapped_column(
+        Float, nullable=False, info={"description": "Closing price of the stock"}
+    )
     code: Mapped[str] = mapped_column(String(255), ForeignKey("stock.code"), nullable=False)
     date: Mapped[Date] = mapped_column(Date, nullable=False, info={"description": "stock closing day"})
-    highest_price: Mapped[float] = mapped_column(Float, nullable=False, info={"description": "Highest price of the stock"})
-    lowest_price: Mapped[float] = mapped_column(Float, nullable=False, info={"description": "Lowest price of the stock"})
-    opening_price: Mapped[float] = mapped_column(Float, nullable=False, info={"description": "Opening price of the stock"})
-    trade_volume: Mapped[int] = mapped_column(BigInteger, nullable=False, info={"description": "Volume of stock traded"})
+    highest_price: Mapped[float] = mapped_column(
+        Float, nullable=False, info={"description": "Highest price of the stock"}
+    )
+    lowest_price: Mapped[float] = mapped_column(
+        Float, nullable=False, info={"description": "Lowest price of the stock"}
+    )
+    opening_price: Mapped[float] = mapped_column(
+        Float, nullable=False, info={"description": "Opening price of the stock"}
+    )
+    trade_volume: Mapped[int] = mapped_column(
+        BigInteger, nullable=False, info={"description": "Volume of stock traded"}
+    )
 
     stock: Mapped["Stock"] = relationship(back_populates="stock_daily")
 

@@ -134,6 +134,7 @@ async def update_asset_stock(
         return validate_response
 
     await asset_service.save_asset_by_put(session, request_data)
+
     await asset_query.cache_user_data(session, redis_client, token.get("user"))
     return AssetStockStatusResponse(status_code=status.HTTP_200_OK, detail="주식 자산을 성공적으로 수정 하였습니다.", field="")
 

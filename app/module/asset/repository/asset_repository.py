@@ -67,7 +67,11 @@ class AssetRepository:
 
     @staticmethod
     async def get_assets(session: AsyncSession, user_id: str) -> list[Asset]:
-        result = await session.execute(select(Asset).filter(and_(Asset.user_id == user_id, Asset.deleted_at.is_(None))))
+        result = await session.execute(
+            select(Asset)
+            .filter(and_(Asset.user_id == user_id, Asset.deleted_at.is_(None)))
+            .options(joinedload(Asset.asset_stock).joinedload(AssetStock.stock))
+        )
         return result.scalars().all()
 
     @staticmethod
@@ -107,5 +111,18 @@ class AssetRepository:
 
     @staticmethod
     async def get_asset_by_id(session: AsyncSession, asset_id: int) -> Asset | None:
-        result = await session.execute(select(Asset).where(Asset.id == asset_id))
+        result = await session.execute(
+            select(Asset)
+            .options(joinedload(Asset.asset_stock).joinedload(AssetStock.stock))
+            .where(Asset.id == asset_id)
+        )
         return result.scalar_one_or_none()
+
+    @staticmethod
+    async def get_assets_by_user_ids(session: AsyncSession, user_ids: list[int]) -> list[Asset]:
+        result = await session.execute(
+            select(Asset)
+            .filter(and_(Asset.user_id.in_(user_ids), Asset.deleted_at.is_(None)))
+            .options(joinedload(Asset.asset_stock).joinedload(AssetStock.stock))
+        )
+        return result.scalars().all()

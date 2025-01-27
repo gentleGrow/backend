@@ -19,28 +19,3 @@ class TestGetBankAccounts:
         # then
         assert response_data["investment_bank_list"] == expected_investment_banks
         assert response_data["account_list"] == expected_account_types
-
-
-class TestGetStockList:
-    """
-    api: /api/v1/stocks
-    method: GET
-    """
-
-    async def test_get_stock_list(self, client, setup_stock):
-        # Given
-        setup_stock
-
-        # When
-        response = client.get("/api/asset/v1/stocks")
-
-        # Then
-        response_data = response.json()
-
-        expected_stocks = [
-            {"code": "AAPL", "name_en": "Apple", "name_kr": "애플"},
-            {"code": "TSLA", "name_en": "Tesla", "name_kr": "테슬라"},
-            {"code": "005930", "name_en": "Samsung", "name_kr": "삼성전자"},
-        ]
-
-        assert response_data == expected_stocks

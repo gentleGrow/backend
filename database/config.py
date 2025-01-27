@@ -1,10 +1,9 @@
 from os import getenv
-from icecream import ic
+
 from dotenv import load_dotenv
-from sqlalchemy.ext.asyncio import AsyncEngine, AsyncSession, create_async_engine
-from sqlalchemy.orm import declarative_base, sessionmaker
 from sqlalchemy import event
-from sqlalchemy.engine import Engine
+from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine
+from sqlalchemy.orm import declarative_base, sessionmaker
 
 from database.constant import (
     COLLECT_MAX_OVERFLOW,
@@ -35,13 +34,13 @@ if ENVIRONMENT == EnvironmentType.DEV:
         pool_timeout=POOL_TIMEOUT_SECOND,
         connect_args={"connect_timeout": CONNECTION_TIMEOUT_SECOND},
     )
-    
+
+    # [INFO] api 별 쿼리 실행 계획 확인을 위한 custom 이벤트 리스너
     @event.listens_for(mysql_engine.sync_engine, "before_cursor_execute")
     def before_cursor_execute(conn, cursor, statement, parameters, context, executemany):
         full_query = statement % parameters
         print(full_query)
-        print('_____')
-
+        print("_____")
 
 elif ENVIRONMENT == EnvironmentType.TEST:
     MYSQL_URL = getenv("TEST_DATABASE_URL", None)
@@ -83,4 +82,3 @@ collection_mysql_session_factory = sessionmaker(
 )
 
 MySQLBase = declarative_base()
-
