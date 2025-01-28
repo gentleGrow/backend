@@ -97,7 +97,7 @@ class ProfitDetail(BaseModel):
 
 
 class SummaryResponse(BaseModel):
-    # 협의 후 바로 추가할 인자입니다.
+    # [TODO] 협의 후 바로 추가할 인자입니다.
     # increase_asset_amount: float = Field(..., description="오늘의 review 증가액")
     today_review_rate: float = Field(..., description="오늘의 review 수익금")
     total_asset_amount: float = Field(..., description="나의 총 자산")
