@@ -3,7 +3,7 @@ from datetime import date
 from fastapi import APIRouter, Depends, Query
 from redis.asyncio import Redis
 from sqlalchemy.ext.asyncio import AsyncSession
-from icecream import ic
+
 from app.common.auth.security import verify_jwt_token
 from app.module.asset.constant import ASSET_SAVE_TREND_YEAR, RICH_PEOPLE_DATA_KEY, RICH_TOP_PICK_NUM
 from app.module.asset.dependencies.asset_dependency import get_asset_query, get_asset_service
@@ -50,7 +50,6 @@ from app.module.chart.services.rich_service import RichService
 from app.module.chart.services.save_trend_service import SaveTrendService
 from app.module.chart.services.summary_service import SummaryService
 from database.dependency import get_mysql_session_router, get_redis_pool
-
 
 chart_router = APIRouter(prefix="/v1")
 
@@ -516,7 +515,7 @@ async def get_market_index(
     return MarketIndiceResponse(market_index_data)
 
 
-@chart_router.get("/summary", summary="오늘의 리뷰, 나의 총자산, 나의 투자 금액, 수익금", response_model=SummaryResponse)
+@chart_router.get("/summary", summary="지난달 보다, 나의 총자산, 나의 투자 금액, 수익금", response_model=SummaryResponse)
 async def get_summary(
     token: AccessToken = Depends(verify_jwt_token),
     session: AsyncSession = Depends(get_mysql_session_router),
@@ -552,14 +551,12 @@ async def get_summary(
         complete_buy_asset, stock_daily_map, exchange_rate_map
     )
 
-    today_review_rate, increase_asset_amount = summary_service.get_today_review_rate(
+    increase_asset_amount = summary_service.get_asset_increase(
         complete_buy_asset, current_stock_price_map, exchange_rate_map, past_stock_map
     )
 
-    # [TODO] 협의 후 바로 추가할 인자입니다.
     return SummaryResponse(
-        # increase_asset_amount=increase_asset_amount,
-        today_review_rate=today_review_rate,
+        increase_asset_amount=increase_asset_amount,
         total_asset_amount=total_asset_amount,
         total_investment_amount=total_investment_amount,
         profit=ProfitDetail.parse(total_asset_amount, total_investment_amount),
@@ -601,14 +598,12 @@ async def get_sample_summary(
         complete_buy_asset, stock_daily_map, exchange_rate_map
     )
 
-    today_review_rate, increase_asset_amount = summary_service.get_today_review_rate(
+    increase_asset_amount = summary_service.get_asset_increase(
         complete_buy_asset, current_stock_price_map, exchange_rate_map, past_stock_map
     )
 
-    # [TODO] 협의 후 바로 추가할 인자입니다.
     return SummaryResponse(
-        # increase_asset_amount=increase_asset_amount,
-        today_review_rate=today_review_rate,
+        increase_asset_amount=increase_asset_amount,
         total_asset_amount=total_asset_amount,
         total_investment_amount=total_investment_amount,
         profit=ProfitDetail.parse(total_asset_amount, total_investment_amount),
@@ -628,7 +623,7 @@ async def get_rich_portfolio(
     rich_service: RichService = Depends(get_rich_service),
 ) -> RichPortfolioResponse:
     rich_portfolio_list = await rich_service.get_rich_portfolio_chart_data(session, redis_client)
-    
+
     return RichPortfolioResponse(rich_portfolio_list)
 
 
@@ -742,6 +737,3 @@ async def get_people_portfolio():
             ),
         ]
     )
-
-
-

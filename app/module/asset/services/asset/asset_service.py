@@ -355,13 +355,13 @@ class AssetService:
         return result
 
     def get_total_asset_amount(
-        self, assets: list[Asset], current_stock_price_map: dict[str, float], exchange_rate_map: dict[str, float]
+        self, assets: list[Asset], stock_price_map: dict[str, float], exchange_rate_map: dict[str, float]
     ) -> float:
         result = 0.0
 
         for asset in assets:
             result += (
-                current_stock_price_map.get(asset.asset_stock.stock.code)
+                stock_price_map.get(asset.asset_stock.stock.code)
                 * asset.asset_stock.quantity
                 * self.exchange_rate_service.get_won_exchange_rate(asset, exchange_rate_map)
             )
