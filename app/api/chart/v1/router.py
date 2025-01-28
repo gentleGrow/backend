@@ -3,7 +3,7 @@ from datetime import date
 from fastapi import APIRouter, Depends, Query
 from redis.asyncio import Redis
 from sqlalchemy.ext.asyncio import AsyncSession
-
+from icecream import ic
 from app.common.auth.security import verify_jwt_token
 from app.module.asset.constant import ASSET_SAVE_TREND_YEAR, RICH_PEOPLE_DATA_KEY, RICH_TOP_PICK_NUM
 from app.module.asset.dependencies.asset_dependency import get_asset_query, get_asset_service
@@ -50,6 +50,7 @@ from app.module.chart.services.rich_service import RichService
 from app.module.chart.services.save_trend_service import SaveTrendService
 from app.module.chart.services.summary_service import SummaryService
 from database.dependency import get_mysql_session_router, get_redis_pool
+
 
 chart_router = APIRouter(prefix="/v1")
 
@@ -627,7 +628,7 @@ async def get_rich_portfolio(
     rich_service: RichService = Depends(get_rich_service),
 ) -> RichPortfolioResponse:
     rich_portfolio_list = await rich_service.get_rich_portfolio_chart_data(session, redis_client)
-
+    
     return RichPortfolioResponse(rich_portfolio_list)
 
 
@@ -741,3 +742,6 @@ async def get_people_portfolio():
             ),
         ]
     )
+
+
+

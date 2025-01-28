@@ -4,6 +4,7 @@ from datetime import date
 
 from redis.asyncio import Redis
 from sqlalchemy.ext.asyncio import AsyncSession
+from icecream import ic
 
 from app.module.asset.enum import AssetType, CurrencyType, RichPeople
 from app.module.asset.model import Asset, StockDaily
@@ -13,10 +14,11 @@ from app.module.asset.services.asset.asset_service import AssetService
 from app.module.asset.services.exchange_rate_service import ExchangeRateService
 from app.module.asset.services.stock.stock_service import StockService
 from app.module.auth.repository import UserRepository
-from app.module.chart.constant import REDIS_RICH_PICK_KEY, REDIS_RICH_PICK_NAME_KEY, RICH_PICK_SECOND
-from app.module.chart.redis_repository import RedisRichPickRepository
+from app.module.chart.constant import REDIS_RICH_PICK_KEY, REDIS_RICH_PICK_NAME_KEY, RICH_PICK_SECOND, REDIS_RICH_PORTFOLIO_KEY, REDIS_RICH_PORTFOLIO_SECOND
+from app.module.chart.redis_repository import RedisRichPickRepository, RedisRichPortfolioRepository
 from app.module.chart.schema import PortfolioStockData, RichPickValue, RichPortfolioValue
 
+from fastapi.encoders import jsonable_encoder
 
 class RichService:
     def __init__(
@@ -68,6 +70,12 @@ class RichService:
     async def get_rich_portfolio_chart_data(
         self, session: AsyncSession, redis_client: Redis
     ) -> list[PortfolioStockData]:
+        rich_portfolio_raw_data = await RedisRichPortfolioRepository.get(redis_client, REDIS_RICH_PORTFOLIO_KEY)
+        if rich_portfolio_raw_data:
+            rich_data_json = json.loads(rich_portfolio_raw_data)
+            rich_portfolio_data = [RichPortfolioValue(**data) for data in rich_data_json]
+            return rich_portfolio_data
+        
         result = []
 
         for person_name in RichPeople:
@@ -97,6 +105,8 @@ class RichService:
                     data=[PortfolioStockData(name=code, percent_ratio=rate) for code, rate in asset_percentage.items()],
                 )
             )
+        rich_portfolio_data = jsonable_encoder(result)
+        await RedisRichPortfolioRepository.save(redis_client, REDIS_RICH_PORTFOLIO_KEY, json.dumps(rich_portfolio_data), REDIS_RICH_PORTFOLIO_SECOND)
 
         return result
 
