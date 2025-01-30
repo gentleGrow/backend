@@ -52,6 +52,7 @@ class AggregateStockAsset(BaseModel):
     수익률: float
     수익금: float
     배당금: float
+    수량: float
 
 
 class StockAssetGroup(BaseModel):

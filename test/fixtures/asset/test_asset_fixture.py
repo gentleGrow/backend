@@ -5,7 +5,7 @@ import pytest
 from redis.asyncio import Redis
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.module.asset.constant import REQUIRED_ASSET_FIELD, KOREA, USA
+from app.module.asset.constant import KOREA, REQUIRED_ASSET_FIELD, USA
 from app.module.asset.enum import (
     AccountType,
     AssetType,
@@ -29,6 +29,7 @@ from app.module.asset.model import (
 from app.module.auth.constant import DUMMY_NAME, DUMMY_USER_ID
 from app.module.auth.enum import ProviderEnum, UserRoleEnum
 from app.module.auth.model import User
+
 
 @pytest.fixture(scope="function")
 async def setup_user(session: AsyncSession):

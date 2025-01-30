@@ -1,12 +1,12 @@
 from sqlalchemy.ext.asyncio import AsyncSession
-from icecream import ic
+
 from app.module.asset.repository.asset_repository import AssetRepository
 
 
 class AssetValidate:
     async def check_asset_exist(self, session: AsyncSession, asset_id: int, user_id: str) -> bool:
         asset = await AssetRepository.get_asset_by_id(session, asset_id)
-        
+
         if asset is None:
             return False
         elif str(asset.user_id) != str(user_id):

@@ -3,17 +3,16 @@ from os import getenv
 
 import pytest
 from dotenv import load_dotenv
+from httpx import AsyncClient
 from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.pool import AsyncAdaptedQueuePool
-from httpx import AsyncClient
 
 from app.common.auth.security import verify_jwt_token
 from app.module.auth.constant import DUMMY_USER_ID
 from database.config import MySQLBase
-from database.dependency import get_mysql_session_router, get_test_redis_pool, get_redis_pool
+from database.dependency import get_mysql_session_router, get_redis_pool, get_test_redis_pool
 from main import app
-
 
 load_dotenv()
 
@@ -41,7 +40,7 @@ async def session():
     async def drop_tables():
         async with test_engine.begin() as conn:
             await conn.run_sync(MySQLBase.metadata.drop_all)
-    
+
     async with TestSessionLocal() as test_session:
         await create_tables()
         yield test_session
@@ -61,10 +60,10 @@ async def redis_client():
 def override_dependencies(session, redis_client):
     async def override_get_mysql_session():
         return session
-    
+
     async def override_redis_pool():
         return redis_client
-    
+
     def override_verify_jwt_token():
         return {"user": DUMMY_USER_ID}
 
@@ -74,9 +73,8 @@ def override_dependencies(session, redis_client):
     yield
     app.dependency_overrides.clear()
 
+
 @pytest.fixture(scope="function")
 async def client(override_dependencies):
     async with AsyncClient(app=app, base_url="http://test") as c:
         yield c
-
-

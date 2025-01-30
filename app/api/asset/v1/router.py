@@ -42,7 +42,6 @@ from app.module.asset.services.dividend_service import DividendService
 from app.module.auth.constant import DUMMY_USER_ID
 from app.module.auth.schema import AccessToken
 from database.dependency import get_mysql_session_router, get_redis_pool
-from icecream import ic
 
 asset_stock_router = APIRouter(prefix="/v1")
 
