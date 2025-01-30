@@ -26,20 +26,20 @@ TEST_REDIS_PORT = int(getenv("TEST_REDIS_PORT", 6379))
 
 
 async def get_mysql_session_router() -> AsyncGenerator[AsyncSession, None]:
-    db = mysql_session_factory()
+    session = mysql_session_factory()
     try:
-        yield db
+        yield session
     finally:
-        await db.close()
+        await session.close()
 
 
 @asynccontextmanager
 async def get_mysql_session() -> AsyncGenerator[AsyncSession, None]:
-    db = collection_mysql_session_factory()
+    session = collection_mysql_session_factory()
     try:
-        yield db
+        yield session
     finally:
-        await db.close()
+        await session.close()
 
 
 def get_redis_pool() -> Redis:
