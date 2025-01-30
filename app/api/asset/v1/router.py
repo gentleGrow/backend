@@ -42,6 +42,7 @@ from app.module.asset.services.dividend_service import DividendService
 from app.module.auth.constant import DUMMY_USER_ID
 from app.module.auth.schema import AccessToken
 from database.dependency import get_mysql_session_router, get_redis_pool
+from icecream import ic
 
 asset_stock_router = APIRouter(prefix="/v1")
 
@@ -139,7 +140,7 @@ async def update_asset_stock(
     return AssetStockStatusResponse(status_code=status.HTTP_200_OK, detail="주식 자산을 성공적으로 수정 하였습니다.", field="")
 
 
-@asset_stock_router.delete("/{asset_id}", summary="자산을 삭제합니다.", response_model=DeleteResponse)
+@asset_stock_router.delete("/assetstock/{asset_id}", summary="자산을 삭제합니다.", response_model=DeleteResponse)
 async def delete_asset(
     asset_id: int,
     token: AccessToken = Depends(verify_jwt_token),
@@ -156,7 +157,7 @@ async def delete_asset(
     return DeleteResponse(status_code=status.HTTP_200_OK, detail="주식 자산이 성공적으로 삭제 되었습니다.")
 
 
-@asset_stock_router.delete("/assetstock/{stock_code}", summary="주식 부모 행을 삭제합니다.", response_model=DeleteResponse)
+@asset_stock_router.delete("/assetstock/stock/{stock_code}", summary="주식 부모 행을 삭제합니다.", response_model=DeleteResponse)
 async def delete_asset_stock(
     stock_code: str,
     token: AccessToken = Depends(verify_jwt_token),
