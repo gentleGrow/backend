@@ -391,7 +391,7 @@ class AssetService:
                 result.append(stock_asset_group)
             else:
                 empty_stock_asset_group = StockAssetGroup(
-                    parent=AggregateStockAsset(종목명=stock_name, 수익률=0.0, 수익금=0.0, 배당금=0.0), sub=sub_stock_assets
+                    parent=AggregateStockAsset(종목명=stock_name, 수익률=0.0, 수익금=0.0, 배당금=0.0, 수량=0.0), sub=sub_stock_assets
                 )
                 result.append(empty_stock_asset_group)
 
@@ -400,10 +400,11 @@ class AssetService:
     def aggregate_stock_assets(self, stock_assets: list[StockAssetSchema]) -> list[AggregateStockAsset]:
         stock_asset_dataframe = pandas.DataFrame(
             {
-                "stock_name": [stock_asset.종목명 for stock_asset in stock_assets],
-                "profit_rate": [stock_asset.수익률 for stock_asset in stock_assets],
-                "profit_amount": [stock_asset.수익금 for stock_asset in stock_assets],
-                "dividend": [stock_asset.배당금 for stock_asset in stock_assets],
+                "stock_name": [stock_asset.종목명 for stock_asset in stock_assets if stock_asset.매매 == TradeType.BUY.value],
+                "profit_rate": [stock_asset.수익률 for stock_asset in stock_assets if stock_asset.매매 == TradeType.BUY.value],
+                "profit_amount": [stock_asset.수익금 for stock_asset in stock_assets if stock_asset.매매 == TradeType.BUY.value],
+                "dividend": [stock_asset.배당금 for stock_asset in stock_assets if stock_asset.매매 == TradeType.BUY.value],
+                "quantity": [stock_asset.수량 for stock_asset in stock_assets if stock_asset.매매 == TradeType.BUY.value],
             }
         )
 
@@ -413,6 +414,7 @@ class AssetService:
                 avg_profit_rate=("profit_rate", "mean"),
                 total_profit_amount=("profit_amount", "sum"),
                 total_dividend=("dividend", "sum"),
+                total_quantity=("quantity", "sum"),
             )
             .reset_index()
         )
@@ -423,6 +425,7 @@ class AssetService:
                 수익률=row["avg_profit_rate"],
                 수익금=row["total_profit_amount"],
                 배당금=row["total_dividend"],
+                수량=row["total_quantity"],
             )
             for _, row in aggregated_df.iterrows()
         ]
