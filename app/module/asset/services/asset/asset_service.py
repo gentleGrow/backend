@@ -400,9 +400,15 @@ class AssetService:
     def aggregate_stock_assets(self, stock_assets: list[StockAssetSchema]) -> list[AggregateStockAsset]:
         stock_asset_dataframe = pandas.DataFrame(
             {
-                "stock_name": [stock_asset.종목명 for stock_asset in stock_assets if stock_asset.매매 == TradeType.BUY.value],
-                "profit_rate": [stock_asset.수익률 for stock_asset in stock_assets if stock_asset.매매 == TradeType.BUY.value],
-                "profit_amount": [stock_asset.수익금 for stock_asset in stock_assets if stock_asset.매매 == TradeType.BUY.value],
+                "stock_name": [
+                    stock_asset.종목명 for stock_asset in stock_assets if stock_asset.매매 == TradeType.BUY.value
+                ],
+                "profit_rate": [
+                    stock_asset.수익률 for stock_asset in stock_assets if stock_asset.매매 == TradeType.BUY.value
+                ],
+                "profit_amount": [
+                    stock_asset.수익금 for stock_asset in stock_assets if stock_asset.매매 == TradeType.BUY.value
+                ],
                 "dividend": [stock_asset.배당금 for stock_asset in stock_assets if stock_asset.매매 == TradeType.BUY.value],
                 "quantity": [stock_asset.수량 for stock_asset in stock_assets if stock_asset.매매 == TradeType.BUY.value],
             }
