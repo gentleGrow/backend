@@ -27,10 +27,11 @@ from app.module.auth.services.oauth_service import Google, Kakao, Naver
 from app.module.auth.services.user_service import UserService
 from database.dependency import get_mysql_session_router, get_redis_pool
 
+
 auth_router = APIRouter(prefix="/v1")
 
 
-@auth_router.post("/user/delete", summary="회원 탈퇴합니다.", response_model="")
+@auth_router.post("/user/delete", summary="회원 탈퇴합니다.", response_model=DeleteResponse)
 async def delete_user(
     request: UserDeleteRequest,
     user_service: UserService = Depends(get_user_service),
