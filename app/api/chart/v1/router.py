@@ -1,15 +1,20 @@
 from datetime import date
-
+from icecream import ic
+from app.module.chart.services.portfolio_service import PortfolioService
+from app.module.chart.dependencies.portfolio_dependency import get_portfolio_service
 from fastapi import APIRouter, Depends, Query
 from redis.asyncio import Redis
 from sqlalchemy.ext.asyncio import AsyncSession
-
+from app.module.event.enum import EventTypeID
+from app.module.event.dependency import get_event_service
+from app.module.event.service import EventService
 from app.common.auth.security import verify_jwt_token
 from app.module.asset.constant import ASSET_SAVE_TREND_YEAR, RICH_PEOPLE_DATA_KEY, RICH_TOP_PICK_NUM
 from app.module.asset.dependencies.asset_dependency import get_asset_query, get_asset_service
 from app.module.asset.dependencies.dividend_dependency import get_dividend_service
 from app.module.asset.dependencies.realtime_index_dependency import get_realtime_index_service
 from app.module.asset.enum import AssetType, MarketIndex
+from app.module.asset.model import Asset
 from app.module.asset.schema import MarketIndexData, StockAssetSchema
 from app.module.asset.services.asset.asset_query import AssetQuery
 from app.module.asset.services.asset.asset_service import AssetService
@@ -17,7 +22,7 @@ from app.module.asset.services.dividend_service import DividendService
 from app.module.asset.services.realtime_index_service import RealtimeIndexService
 from app.module.auth.constant import DUMMY_USER_ID
 from app.module.auth.schema import AccessToken
-from app.module.chart.constant import DEFAULT_TIP
+from app.module.chart.constant import DEFAULT_TIP, PORTFOLIO_SHARE_LIMIT
 from app.module.chart.dependencies.composition_dependency import get_composition_service
 from app.module.chart.dependencies.performance_analysis_dependency import get_performance_analysis_service
 from app.module.chart.dependencies.rich_dependency import get_rich_service
@@ -651,89 +656,18 @@ async def get_rich_pick(
     return RichPickResponse(top_rich_pick_list)
 
 
-# [TODO] 임시 dummy api 생성, 추후 개발하겠습니다.
+
 @chart_router.get("/people-portfolio", summary="포트폴리오 구경하기", response_model=PeoplePortfolioResponse)
-async def get_people_portfolio():
-    return PeoplePortfolioResponse(
-        [
-            PeoplePortfolioValue(
-                name="배당주 포트폴리오",
-                data=[
-                    PortfolioStockData(name="코카콜라", percent_ratio=10.5),
-                    PortfolioStockData(name="펩시코", percent_ratio=8.4),
-                    PortfolioStockData(name="존슨앤존슨", percent_ratio=7.2),
-                    PortfolioStockData(name="프록터 앤 갬블", percent_ratio=6.3),
-                    PortfolioStockData(name="맥도날드", percent_ratio=5.7),
-                    PortfolioStockData(name="화이자", percent_ratio=4.9),
-                    PortfolioStockData(name="머크", percent_ratio=4.3),
-                    PortfolioStockData(name="AT&T", percent_ratio=3.8),
-                    PortfolioStockData(name="버라이즌", percent_ratio=3.2),
-                    PortfolioStockData(name="IBM", percent_ratio=2.9),
-                ],
-            ),
-            PeoplePortfolioValue(
-                name="성장주 포트폴리오",
-                data=[
-                    PortfolioStockData(name="애플", percent_ratio=20.1),
-                    PortfolioStockData(name="아마존", percent_ratio=18.3),
-                    PortfolioStockData(name="구글", percent_ratio=17.2),
-                    PortfolioStockData(name="마이크로소프트", percent_ratio=15.5),
-                    PortfolioStockData(name="엔비디아", percent_ratio=12.3),
-                    PortfolioStockData(name="테슬라", percent_ratio=8.9),
-                    PortfolioStockData(name="메타", percent_ratio=5.0),
-                    PortfolioStockData(name="넷플릭스", percent_ratio=2.7),
-                ],
-            ),
-            PeoplePortfolioValue(
-                name="국내 포트폴리오",
-                data=[
-                    PortfolioStockData(name="삼성전자", percent_ratio=25.6),
-                    PortfolioStockData(name="SK하이닉스", percent_ratio=19.8),
-                    PortfolioStockData(name="LG화학", percent_ratio=12.4),
-                    PortfolioStockData(name="NAVER", percent_ratio=9.3),
-                    PortfolioStockData(name="카카오", percent_ratio=8.7),
-                    PortfolioStockData(name="셀트리온", percent_ratio=7.4),
-                    PortfolioStockData(name="현대차", percent_ratio=6.2),
-                    PortfolioStockData(name="삼성SDI", percent_ratio=5.1),
-                ],
-            ),
-            PeoplePortfolioValue(
-                name="안전자산 포트폴리오",
-                data=[
-                    PortfolioStockData(name="SPDR 골드 트러스트", percent_ratio=35.0),
-                    PortfolioStockData(name="바클레이즈 미국 채권", percent_ratio=25.0),
-                    PortfolioStockData(name="뱅가드 리츠", percent_ratio=15.0),
-                    PortfolioStockData(name="팁스 (물가연동채)", percent_ratio=10.0),
-                    PortfolioStockData(name="애그리게이트 채권", percent_ratio=8.0),
-                    PortfolioStockData(name="중기채권 (IEF)", percent_ratio=7.0),
-                ],
-            ),
-            PeoplePortfolioValue(
-                name="소형주 포트폴리오",
-                data=[
-                    PortfolioStockData(name="리제네론", percent_ratio=14.7),
-                    PortfolioStockData(name="빌드", percent_ratio=13.4),
-                    PortfolioStockData(name="코덱스시스", percent_ratio=11.9),
-                    PortfolioStockData(name="크라토스", percent_ratio=10.5),
-                    PortfolioStockData(name="NMI 홀딩스", percent_ratio=9.1),
-                    PortfolioStockData(name="트랜스메딕스", percent_ratio=8.8),
-                    PortfolioStockData(name="브룸", percent_ratio=8.4),
-                    PortfolioStockData(name="캐네디언솔라", percent_ratio=7.6),
-                    PortfolioStockData(name="이뮤노메딕스", percent_ratio=6.5),
-                    PortfolioStockData(name="래피드7", percent_ratio=5.1),
-                ],
-            ),
-            PeoplePortfolioValue(
-                name="테크주 포트폴리오",
-                data=[
-                    PortfolioStockData(name="애플", percent_ratio=22.0),
-                    PortfolioStockData(name="마이크로소프트", percent_ratio=18.3),
-                    PortfolioStockData(name="구글", percent_ratio=16.1),
-                    PortfolioStockData(name="아마존", percent_ratio=15.5),
-                    PortfolioStockData(name="엔비디아", percent_ratio=12.2),
-                    PortfolioStockData(name="테슬라", percent_ratio=9.8),
-                    PortfolioStockData(name="메타", percent_ratio=6.1),
-                ],
-            ),
-        ]
-    )
+async def get_people_portfolio(
+    session: AsyncSession = Depends(get_mysql_session_router),
+    event_service: EventService = Depends(get_event_service),
+    asset_query: AssetQuery = Depends(get_asset_query),
+    portfolio_service: PortfolioService = Depends(get_portfolio_service),
+):
+    user_id_nickname: list[tuple[int, str | None]] = await event_service.get_agreed_user_id_nickname(session, EventTypeID.PORTFOLIO_SHARE.value, PORTFOLIO_SHARE_LIMIT)
+    users_assets: dict[str, list[Asset]] = await asset_query.get_user_asset_with_id_nickname(session, user_id_nickname)
+    portfolio_values = portfolio_service.get_porfolio_value(users_assets)    
+    return PeoplePortfolioResponse(portfolio_values)
+    
+
+

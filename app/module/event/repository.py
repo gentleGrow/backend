@@ -1,6 +1,9 @@
-from sqlalchemy import update
+from sqlalchemy import update, select
 from sqlalchemy.ext.asyncio import AsyncSession
-from app.module.auth.model import UserEventConsent
+from sqlalchemy.orm import joinedload
+
+from app.module.auth.model import UserEventConsent, User
+
 
 class EventRepository:
     @classmethod
@@ -19,6 +22,20 @@ class EventRepository:
             session.add(new_record)
 
         await session.commit()
+
+
+    @classmethod
+    async def get_agreed_user_id_nickname(cls, session: AsyncSession, event_id: int, limit: int) -> list[tuple[int, str | None]]:
+        stmt = (
+            select(UserEventConsent.user_id, User.nickname)
+            .join(User, UserEventConsent.user_id == User.id)
+            .where(UserEventConsent.event_id == event_id, UserEventConsent.consent == True)
+            .limit(limit)
+        )
+
+        result = await session.execute(stmt)
+        return [(row[0], row[1]) for row in result]
+
 
 
 

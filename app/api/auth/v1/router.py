@@ -27,7 +27,6 @@ from app.module.auth.services.oauth_service import Google, Kakao, Naver
 from app.module.auth.services.user_service import UserService
 from database.dependency import get_mysql_session_router, get_redis_pool
 
-
 auth_router = APIRouter(prefix="/v1")
 
 

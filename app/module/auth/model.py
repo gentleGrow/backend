@@ -1,7 +1,7 @@
 from typing import List, Optional
 
-from sqlalchemy import BigInteger, Enum, String, Boolean, ForeignKey
-from sqlalchemy.orm import relationship, Mapped, mapped_column
+from sqlalchemy import BigInteger, Boolean, Enum, ForeignKey, String
+from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.common.mixin.timestamp import TimestampMixin
 from app.module.auth.enum import UserRoleEnum
@@ -18,9 +18,7 @@ class User(TimestampMixin, MySQLBase):
     nickname: Mapped[Optional[str]] = mapped_column(String(255), nullable=True, unique=True)
     email: Mapped[Optional[str]] = mapped_column(String(255), nullable=True, unique=True)
 
-    event_consents: Mapped[List["UserEventConsent"]] = relationship(
-        "UserEventConsent", back_populates="user"
-    )
+    event_consents: Mapped[List["UserEventConsent"]] = relationship("UserEventConsent", back_populates="user")
 
 
 class UserEventConsent(TimestampMixin, MySQLBase):

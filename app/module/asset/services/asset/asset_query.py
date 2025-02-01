@@ -14,6 +14,7 @@ from app.module.asset.services.dividend_service import DividendService
 from app.module.asset.services.exchange_rate_service import ExchangeRateService
 from app.module.asset.services.stock.stock_service import StockService
 from app.module.asset.services.stock_daily_service import StockDailyService
+from app.module.auth.constant import NO_NICKNAME_USER
 
 
 class AssetQuery:
@@ -177,3 +178,20 @@ class AssetQuery:
         )
 
         return (stock_daily_map, lastest_stock_daily_map, dividend_map, exchange_rate_map, current_stock_price_map)
+
+    async def get_user_asset_with_id_nickname(self, session: AsyncSession, user_id_nickname: list[tuple[int, str | None]]) -> dict[str, list[Asset]]:
+        result = {}
+        
+        for user_id, user_nickname in user_id_nickname:
+            raw_assets: list = await AssetRepository.get_eager(session, user_id, AssetType.STOCK)
+            perfect_assets = [filterd_asset for filterd_asset in filter(self._filter_full_required_asset, raw_assets)]
+            if user_nickname:
+                result[user_nickname] = perfect_assets
+            else:
+                result[NO_NICKNAME_USER] = perfect_assets        
+        return result
+    
+    
+    
+    
+    

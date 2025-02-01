@@ -1,14 +1,14 @@
 from fastapi import APIRouter, Depends, status
 from sqlalchemy.ext.asyncio import AsyncSession
-from app.module.auth.schema import AccessToken
-from app.module.auth.repository import UserRepository
-from app.module.event.schema import UserPorfolioShareConsentRequst
+
 from app.common.auth.security import verify_jwt_token
-from database.dependency import get_mysql_session_router
 from app.common.schema.common_schema import PutResponse
+from app.module.auth.repository import UserRepository
+from app.module.auth.schema import AccessToken
 from app.module.event.enum import EventTypeID
 from app.module.event.repository import EventRepository
-
+from app.module.event.schema import UserPorfolioShareConsentRequst
+from database.dependency import get_mysql_session_router
 
 event_router = APIRouter(prefix="/v1")
 
@@ -25,5 +25,3 @@ async def update_share_portfolio(
 
     await EventRepository.update_event(session, user.id, EventTypeID.PORTFOLIO_SHARE.value, request_data.sharing)
     return PutResponse(status_code=status.HTTP_200_OK, detail="성공적으로 수정하였습니다.")
-
-
