@@ -136,4 +136,3 @@ class TestSummary:
         # then
         assert summary["increase_asset_amount"]
         assert summary["total_asset_amount"]
-
