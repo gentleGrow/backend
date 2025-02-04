@@ -7,12 +7,14 @@ from httpx import AsyncClient
 from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.pool import AsyncAdaptedQueuePool
-
+from redis.asyncio import ConnectionPool, Redis
 from app.common.auth.security import verify_jwt_token
 from app.module.auth.constant import DUMMY_USER_ID
 from database.config import MySQLBase
-from database.dependency import get_mysql_session_router, get_redis_pool, get_test_redis_pool
+from database.dependency import get_mysql_session_router, get_redis_pool
+from database.constant import POOL_SIZE
 from main import app
+
 
 load_dotenv()
 
@@ -20,6 +22,9 @@ load_dotenv()
 TEST_DATABASE_URL = getenv("TEST_DATABASE_URL", None)
 test_engine = create_async_engine(TEST_DATABASE_URL, pool_pre_ping=True, poolclass=AsyncAdaptedQueuePool)
 TestSessionLocal = sessionmaker(bind=test_engine, class_=AsyncSession, expire_on_commit=False)
+
+TEST_REDIS_HOST = getenv("TEST_REDIS_HOST", None)
+TEST_REDIS_PORT = int(getenv("TEST_REDIS_PORT", 6379))
 
 
 # [INFO] 세션 단위로 event loop를 관리하여 모든 테스트가 같은 루프에서 실행되도록 해야합니다.
@@ -50,6 +55,10 @@ async def session():
 
 @pytest.fixture(scope="function")
 async def redis_client():
+    def get_test_redis_pool() -> Redis:
+        pool = ConnectionPool(host=TEST_REDIS_HOST, port=TEST_REDIS_PORT, max_connections=POOL_SIZE, decode_responses=True)
+        return Redis(connection_pool=pool)
+    
     redis = get_test_redis_pool()
     yield redis
     await redis.flushall()
