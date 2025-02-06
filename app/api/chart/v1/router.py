@@ -1,13 +1,9 @@
 from datetime import date
-from icecream import ic
-from app.module.chart.services.portfolio_service import PortfolioService
-from app.module.chart.dependencies.portfolio_dependency import get_portfolio_service
+
 from fastapi import APIRouter, Depends, Query
 from redis.asyncio import Redis
 from sqlalchemy.ext.asyncio import AsyncSession
-from app.module.event.enum import EventTypeID
-from app.module.event.dependency import get_event_service
-from app.module.event.service import EventService
+
 from app.common.auth.security import verify_jwt_token
 from app.module.asset.constant import ASSET_SAVE_TREND_YEAR, RICH_PEOPLE_DATA_KEY, RICH_TOP_PICK_NUM
 from app.module.asset.dependencies.asset_dependency import get_asset_query, get_asset_service
@@ -25,6 +21,7 @@ from app.module.auth.schema import AccessToken
 from app.module.chart.constant import DEFAULT_TIP, PORTFOLIO_SHARE_LIMIT
 from app.module.chart.dependencies.composition_dependency import get_composition_service
 from app.module.chart.dependencies.performance_analysis_dependency import get_performance_analysis_service
+from app.module.chart.dependencies.portfolio_dependency import get_portfolio_service
 from app.module.chart.dependencies.rich_dependency import get_rich_service
 from app.module.chart.dependencies.save_trend_dependency import get_save_trend_service
 from app.module.chart.dependencies.summary_dependency import get_summary_service
@@ -41,9 +38,7 @@ from app.module.chart.schema import (
     MyStockResponse,
     MyStockResponseValue,
     PeoplePortfolioResponse,
-    PeoplePortfolioValue,
     PerformanceAnalysisResponse,
-    PortfolioStockData,
     ProfitDetail,
     RichPickResponse,
     RichPortfolioResponse,
@@ -51,9 +46,13 @@ from app.module.chart.schema import (
 )
 from app.module.chart.services.composition_service import CompositionService
 from app.module.chart.services.performance_analysis_service import PerformanceAnalysisService
+from app.module.chart.services.portfolio_service import PortfolioService
 from app.module.chart.services.rich_service import RichService
 from app.module.chart.services.save_trend_service import SaveTrendService
 from app.module.chart.services.summary_service import SummaryService
+from app.module.event.dependency import get_event_service
+from app.module.event.enum import EventTypeID
+from app.module.event.service import EventService
 from database.dependency import get_mysql_session_router, get_redis_pool
 
 chart_router = APIRouter(prefix="/v1")
@@ -656,7 +655,6 @@ async def get_rich_pick(
     return RichPickResponse(top_rich_pick_list)
 
 
-
 @chart_router.get("/people-portfolio", summary="포트폴리오 구경하기", response_model=PeoplePortfolioResponse)
 async def get_people_portfolio(
     session: AsyncSession = Depends(get_mysql_session_router),
@@ -664,10 +662,9 @@ async def get_people_portfolio(
     asset_query: AssetQuery = Depends(get_asset_query),
     portfolio_service: PortfolioService = Depends(get_portfolio_service),
 ):
-    user_id_nickname: list[tuple[int, str | None]] = await event_service.get_agreed_user_id_nickname(session, EventTypeID.PORTFOLIO_SHARE.value, PORTFOLIO_SHARE_LIMIT)
+    user_id_nickname: list[tuple[int, str | None]] = await event_service.get_agreed_user_id_nickname(
+        session, EventTypeID.PORTFOLIO_SHARE.value, PORTFOLIO_SHARE_LIMIT
+    )
     users_assets: dict[str, list[Asset]] = await asset_query.get_user_asset_with_id_nickname(session, user_id_nickname)
-    portfolio_values = portfolio_service.get_porfolio_value(users_assets)    
+    portfolio_values = portfolio_service.get_porfolio_value(users_assets)
     return PeoplePortfolioResponse(portfolio_values)
-    
-
-
