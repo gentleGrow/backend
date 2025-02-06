@@ -26,7 +26,7 @@ ENVIRONMENT = getenv("ENVIRONMENT", None)
 QUERY_LOG = getenv("QUERY_LOG", False)
 
 
-if ENVIRONMENT == EnvironmentType.LOCAL.value:
+if ENVIRONMENT == EnvironmentType.LOCAL.value or ENVIRONMENT == EnvironmentType.TEST.value:
     MYSQL_URL = getenv("LOCAL_MYSQL_URL", None)
     mysql_engine = create_async_engine(
         url=MYSQL_URL, pool_pre_ping=True, echo=False, pool_size=DEV_POOL_SIZE, max_overflow=DEV_MAX_OVERFLOW
@@ -81,8 +81,6 @@ elif ENVIRONMENT == EnvironmentType.PROD.value:
         pool_timeout=POOL_TIMEOUT_SECOND,
         connect_args={"connect_timeout": CONNECTION_TIMEOUT_SECOND},
     )
-elif ENVIRONMENT == EnvironmentType.TEST.value:
-    pass
 else:
     raise ValueError(f"{ENVIRONMENT} 환경변수 설정이 잘못되었습니다.")
 
