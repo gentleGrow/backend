@@ -43,6 +43,3 @@ class UserService:
         self.s3_client.put_object(
             Bucket=self.bucket_name, Key=file_key, Body=json.dumps(reasons), ContentType="application/json"
         )
-
-    
-    

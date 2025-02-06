@@ -4,17 +4,17 @@ from os import getenv
 import pytest
 from dotenv import load_dotenv
 from httpx import AsyncClient
+from redis.asyncio import ConnectionPool, Redis
 from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.pool import AsyncAdaptedQueuePool
-from redis.asyncio import ConnectionPool, Redis
+
 from app.common.auth.security import verify_jwt_token
 from app.module.auth.constant import DUMMY_USER_ID
 from database.config import MySQLBase
+from database.constant import DEV_POOL_SIZE
 from database.dependency import get_mysql_session_router, get_redis_pool
-from database.constant import POOL_SIZE
 from main import app
-
 
 load_dotenv()
 
@@ -56,9 +56,11 @@ async def session():
 @pytest.fixture(scope="function")
 async def redis_client():
     def get_test_redis_pool() -> Redis:
-        pool = ConnectionPool(host=TEST_REDIS_HOST, port=TEST_REDIS_PORT, max_connections=POOL_SIZE, decode_responses=True)
+        pool = ConnectionPool(
+            host=TEST_REDIS_HOST, port=TEST_REDIS_PORT, max_connections=DEV_POOL_SIZE, decode_responses=True
+        )
         return Redis(connection_pool=pool)
-    
+
     redis = get_test_redis_pool()
     yield redis
     await redis.flushall()

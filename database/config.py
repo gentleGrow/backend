@@ -1,22 +1,21 @@
 from os import getenv
 
 from dotenv import load_dotenv
-
 from sqlalchemy import event
 from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine
 from sqlalchemy.orm import declarative_base, sessionmaker
 
 from database.constant import (
+    CONNECTION_TIMEOUT_SECOND,
     DEV_COLLECT_MAX_OVERFLOW,
     DEV_COLLECT_POOL_SIZE,
     DEV_MAX_OVERFLOW,
     DEV_POOL_SIZE,
+    POOL_TIMEOUT_SECOND,
     PROD_COLLECT_MAX_OVERFLOW,
     PROD_COLLECT_POOL_SIZE,
     PROD_MAX_OVERFLOW,
     PROD_POOL_SIZE,
-    POOL_TIMEOUT_SECOND,
-    CONNECTION_TIMEOUT_SECOND,
 )
 from database.enum import EnvironmentType
 
@@ -27,8 +26,8 @@ ENVIRONMENT = getenv("ENVIRONMENT", None)
 QUERY_LOG = getenv("QUERY_LOG", False)
 
 
-if ENVIRONMENT == EnvironmentType.LOCAL:
-    MYSQL_URL = getenv("DEV_MYSQL_URL", None)
+if ENVIRONMENT == EnvironmentType.LOCAL.value:
+    MYSQL_URL = getenv("LOCAL_MYSQL_URL", None)
     mysql_engine = create_async_engine(
         url=MYSQL_URL, pool_pre_ping=True, echo=False, pool_size=DEV_POOL_SIZE, max_overflow=DEV_MAX_OVERFLOW
     )
@@ -42,13 +41,15 @@ if ENVIRONMENT == EnvironmentType.LOCAL:
     )
 
     # [INFO] api 별 쿼리 실행 계획 확인을 위한 custom 이벤트 리스너
-    if QUERY_LOG:
+    if QUERY_LOG == "True":
+
         @event.listens_for(mysql_engine.sync_engine, "before_cursor_execute")
         def before_cursor_execute(conn, cursor, statement, parameters, context, executemany):
             full_query = statement % parameters
             print(full_query)
             print("_____")
-elif ENVIRONMENT == EnvironmentType.DEV:
+
+elif ENVIRONMENT == EnvironmentType.DEV.value:
     MYSQL_URL = getenv("DEV_MYSQL_URL", None)
     mysql_engine = create_async_engine(
         url=MYSQL_URL, pool_pre_ping=True, echo=False, pool_size=DEV_POOL_SIZE, max_overflow=DEV_MAX_OVERFLOW
@@ -61,7 +62,7 @@ elif ENVIRONMENT == EnvironmentType.DEV:
         pool_timeout=POOL_TIMEOUT_SECOND,
         connect_args={"connect_timeout": CONNECTION_TIMEOUT_SECOND},
     )
-elif ENVIRONMENT == EnvironmentType.PROD:
+elif ENVIRONMENT == EnvironmentType.PROD.value:
     MYSQL_URL = getenv("PROD_MYSQL_URL", None)
     mysql_engine = create_async_engine(
         MYSQL_URL,
@@ -80,8 +81,10 @@ elif ENVIRONMENT == EnvironmentType.PROD:
         pool_timeout=POOL_TIMEOUT_SECOND,
         connect_args={"connect_timeout": CONNECTION_TIMEOUT_SECOND},
     )
+elif ENVIRONMENT == EnvironmentType.TEST.value:
+    pass
 else:
-    raise ValueError("환경변수 설정이 잘못되었습니다.")
+    raise ValueError(f"{ENVIRONMENT} 환경변수 설정이 잘못되었습니다.")
 
 
 mysql_session_factory = sessionmaker(bind=mysql_engine, class_=AsyncSession, expire_on_commit=False)

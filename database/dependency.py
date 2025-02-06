@@ -15,13 +15,13 @@ load_dotenv()
 ENVIRONMENT = getenv("ENVIRONMENT", None)
 
 
-if ENVIRONMENT == EnvironmentType.LOCAL:
+if ENVIRONMENT == EnvironmentType.LOCAL.value:
     REDIS_HOST = getenv("LOCAL_REDIS_HOST", None)
     REDIS_POOL_SIZE = DEV_POOL_SIZE
-elif ENVIRONMENT == EnvironmentType.DEV:
+elif ENVIRONMENT == EnvironmentType.DEV.value:
     REDIS_HOST = getenv("DEV_REDIS_HOST", None)
     REDIS_POOL_SIZE = DEV_POOL_SIZE
-elif ENVIRONMENT == EnvironmentType.PROD:
+elif ENVIRONMENT == EnvironmentType.PROD.value:
     REDIS_HOST = getenv("PROD_REDIS_HOST", None)
     REDIS_POOL_SIZE = PROD_POOL_SIZE
 else:
