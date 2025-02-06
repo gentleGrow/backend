@@ -15,7 +15,7 @@ load_dotenv()
 ENVIRONMENT = getenv("ENVIRONMENT", None)
 
 
-if ENVIRONMENT == EnvironmentType.LOCAL.value:
+if ENVIRONMENT == EnvironmentType.LOCAL.value or ENVIRONMENT == EnvironmentType.TEST.value:
     REDIS_HOST = getenv("LOCAL_REDIS_HOST", None)
     REDIS_POOL_SIZE = DEV_POOL_SIZE
 elif ENVIRONMENT == EnvironmentType.DEV.value:
@@ -25,7 +25,7 @@ elif ENVIRONMENT == EnvironmentType.PROD.value:
     REDIS_HOST = getenv("PROD_REDIS_HOST", None)
     REDIS_POOL_SIZE = PROD_POOL_SIZE
 else:
-    raise ValueError("환경변수 설정이 잘못되었습니다.")
+    raise ValueError(f"{ENVIRONMENT} 환경변수 설정이 잘못되었습니다.")
 
 
 REDIS_PORT = int(getenv("REDIS_PORT", 6379))
