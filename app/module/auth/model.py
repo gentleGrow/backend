@@ -16,7 +16,7 @@ class User(TimestampMixin, MySQLBase):
     provider: Mapped[str] = mapped_column(String(50), nullable=False)
     role: Mapped[UserRoleEnum] = mapped_column(Enum(UserRoleEnum), default=UserRoleEnum.USER)
     nickname: Mapped[Optional[str]] = mapped_column(String(255), nullable=True, unique=True)
-    email: Mapped[Optional[str]] = mapped_column(String(255), nullable=True, unique=True)
+    email: Mapped[Optional[str]] = mapped_column(String(255), nullable=True, unique=False)
 
     event_consents: Mapped[List["UserEventConsent"]] = relationship("UserEventConsent", back_populates="user")
 
