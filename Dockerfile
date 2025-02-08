@@ -7,9 +7,10 @@ RUN apt-get update && \
     apt-get clean
 
 RUN pip install poetry
-RUN pip install  peewee==3.17.6
+RUN pip install  peewee>=3.17.6
+RUN pip install  asyncmy>=0.2.10
 
-COPY pyproject.toml poetry.lock /app/
+COPY pyproject.toml /app/
 
 RUN poetry config virtualenvs.create false && poetry install --no-interaction --no-ansi --no-root
 
