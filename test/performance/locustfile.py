@@ -1,14 +1,14 @@
-from locust import HttpUser, task, between
 from os import getenv
+
 from dotenv import load_dotenv
+from locust import HttpUser, task
 
 load_dotenv()
 
 STRESS_TEST_USER_TOKEN = getenv("STRESS_TEST_USER_TOKEN", None)
 
-class FastAPIUser(HttpUser):
-    wait_time = between(1, 3)
 
+class FastAPIUser(HttpUser):
     @task
     def test_api(self):
         headers = {"Authorization": f"Bearer {STRESS_TEST_USER_TOKEN}"}
@@ -24,6 +24,3 @@ class FastAPIUser(HttpUser):
         self.client.get("http://localhost:8000/api/chart/v1/rich-pick", headers=headers)
         self.client.get("http://localhost:8000/api/chart/v1/people-portfolio", headers=headers)
         self.client.get("http://localhost:8000/api/chart/v1/tip", headers=headers)
-
-
-        
