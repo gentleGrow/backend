@@ -26,9 +26,10 @@ ignore = ["E203","W501","W503"]
 [tool.poetry]
 name = "backend"
 version = "0.1.0"
-description = "A prototype asset manamgement"
+description = "A prototype asset management"
 authors = ["kcw2297 <kcw2371@gmail.com>"]
 readme = "README.md"
+package-mode = false  
 
 [tool.poetry.dependencies]
 python = "^3.11"

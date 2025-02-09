@@ -3,6 +3,7 @@ from datetime import date
 
 from icecream import ic
 from sqlalchemy.ext.asyncio import AsyncSession
+from botocore.exceptions import ClientError
 
 from app.data.custom.rich_portfolio_file_service import RichPortfolioFileReader
 from app.module.asset.constant import (
