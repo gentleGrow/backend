@@ -17,10 +17,13 @@ from database.enum import EnvironmentType
 load_dotenv()
 
 ENVIRONMENT = getenv("ENVIRONMENT", None)
-if ENVIRONMENT == EnvironmentType.DEV:
+
+if ENVIRONMENT == EnvironmentType.LOCAL.value or ENVIRONMENT == EnvironmentType.TEST.value:
     REDIS_HOST = getenv("LOCAL_REDIS_HOST", None)
-else:
-    REDIS_HOST = getenv("REDIS_HOST", None)
+elif ENVIRONMENT == EnvironmentType.DEV.value:
+    REDIS_HOST = getenv("DEV_REDIS_HOST", None)
+elif ENVIRONMENT == EnvironmentType.PROD.value:
+    REDIS_HOST = getenv("PROD_REDIS_HOST", None)
 
 REDIS_PORT = getenv("REDIS_PORT", None)
 
