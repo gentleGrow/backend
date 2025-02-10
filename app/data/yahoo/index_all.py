@@ -2,7 +2,7 @@ import asyncio
 
 import yfinance
 from sqlalchemy.ext.asyncio import AsyncSession
-
+from icecream import ic
 from app.data.yahoo.source.constant import MARKET_TIME_INTERVAL, STOCK_HISTORY_TIMERANGE_YEAR
 from app.data.yahoo.source.service import get_period_bounds
 from app.module.asset.enum import MarketIndex
@@ -31,12 +31,13 @@ async def fetch_and_save_market_index_data(
         market_index_record = MarketIndexDaily(
             name=index_symbol,
             date=index.date(),
-            open_price=row["Open"],
-            close_price=row["Close"],
-            high_price=row["High"],
-            low_price=row["Low"],
-            volume=row["Volume"],
+            open_price=row["Open"].item(),
+            close_price=row["Close"].item(),
+            high_price=row["High"].item(),
+            low_price=row["Low"].item(),
+            volume=row["Volume"].item(),
         )
+        
         market_index_records.append(market_index_record)
 
     if market_index_records:
