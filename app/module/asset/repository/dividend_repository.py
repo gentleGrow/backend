@@ -59,7 +59,7 @@ class DividendRepository:
     async def bulk_upsert(session: AsyncSession, dividends: list[Dividend]) -> None:
         stmt = insert(Dividend).values(
             [
-                {"dividend": float(dividend.dividend), "stock_code": str(dividend.code), "date": dividend.date}
+                {"dividend": float(dividend.dividend), "code": str(dividend.code), "date": dividend.date}
                 for dividend in dividends
             ]
         )

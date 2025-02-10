@@ -1,7 +1,7 @@
 import asyncio
 import logging
 from os import getenv
-
+from icecream import ic
 import yfinance
 from celery import shared_task
 from dotenv import load_dotenv
@@ -47,14 +47,15 @@ async def fetch_and_save_market_index_data(
     market_index_records = []
 
     for index, row in index_data.iterrows():
+        ic(index, row)
         market_index_record = MarketIndexDaily(
             name=index_symbol,
             date=index.date(),
-            open_price=row["Open"],
-            close_price=row["Close"],
-            high_price=row["High"],
-            low_price=row["Low"],
-            volume=row["Volume"],
+            open_price=row["Open"].item(),
+            close_price=row["Close"].item(),
+            high_price=row["High"].item(),
+            low_price=row["Low"].item(),
+            volume=row["Volume"].item(),
         )
         market_index_records.append(market_index_record)
 

@@ -1,7 +1,6 @@
 import asyncio
 import logging
 from os import getenv
-
 import pandas as pd
 import yfinance
 from celery import shared_task
@@ -35,8 +34,8 @@ async def insert_dividend_data(session: AsyncSession, stock_list: list[StockInfo
     for i in range(0, len(stock_list), batch_size):
         stock_list_batch = stock_list[i : i + batch_size]
 
-        dividend_list = []
         for stock in stock_list_batch:
+            dividend_list = []
             try:
 
                 stock_code = format_stock_code(
@@ -59,10 +58,10 @@ async def insert_dividend_data(session: AsyncSession, stock_list: list[StockInfo
                         continue
 
                     dividend_list.append(dividend)
+                await DividendRepository.bulk_upsert(session=session, dividends=dividend_list)
             except Exception:
                 continue
 
-        await DividendRepository.bulk_upsert(session=session, dividends=dividend_list)
 
     logger.info("배당 수집을 마칩니다")
 

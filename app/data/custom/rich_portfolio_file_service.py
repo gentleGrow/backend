@@ -1,7 +1,6 @@
 import json
-from icecream import ic
+
 from dotenv import find_dotenv, load_dotenv
-from botocore.exceptions import ClientError
 
 from app.common.util.aws_s3 import AwsFileReader
 from app.data.common.config import (
