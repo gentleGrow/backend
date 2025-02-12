@@ -1,4 +1,5 @@
-# FastAPI 기반 온라인 자산관리 프로젝트
+# 온라인 자산관리 프로젝트
+![Ollass Logo](./etc/ollass.png)
 
 ## 프로젝트 개요
 
