@@ -1,5 +1,5 @@
 from datetime import date
-
+import random
 from fastapi import APIRouter, Depends, Query
 from redis.asyncio import Redis
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -40,6 +40,8 @@ from app.module.chart.schema import (
     PeoplePortfolioResponse,
     PerformanceAnalysisResponse,
     ProfitDetail,
+    PortfolioStockData,
+    PeoplePortfolioValue,
     RichPickResponse,
     RichPortfolioResponse,
     SummaryResponse,
@@ -654,7 +656,7 @@ async def get_rich_pick(
 
     return RichPickResponse(top_rich_pick_list)
 
-
+# [TODO] 웹 화면 구성이 완료되면 사용할 예정입니다.
 @chart_router.get("/people-portfolio", summary="포트폴리오 구경하기", response_model=PeoplePortfolioResponse)
 async def get_people_portfolio(
     session: AsyncSession = Depends(get_mysql_session_router),
@@ -662,9 +664,34 @@ async def get_people_portfolio(
     asset_query: AssetQuery = Depends(get_asset_query),
     portfolio_service: PortfolioService = Depends(get_portfolio_service),
 ):
-    user_id_nickname: list[tuple[int, str | None]] = await event_service.get_agreed_user_id_nickname(
-        session, EventTypeID.PORTFOLIO_SHARE.value, PORTFOLIO_SHARE_LIMIT
-    )
-    users_assets: dict[str, list[Asset]] = await asset_query.get_user_asset_with_id_nickname(session, user_id_nickname)
-    portfolio_values = portfolio_service.get_porfolio_value(users_assets)
-    return PeoplePortfolioResponse(portfolio_values)
+    # user_id_nickname: list[tuple[int, str | None]] = await event_service.get_agreed_user_id_nickname(
+    #     session, EventTypeID.PORTFOLIO_SHARE.value, PORTFOLIO_SHARE_LIMIT
+    # )
+    # users_assets: dict[str, list[Asset]] = await asset_query.get_user_asset_with_id_nickname(session, user_id_nickname)
+    # portfolio_values = portfolio_service.get_porfolio_value(users_assets)
+    # return PeoplePortfolioResponse(portfolio_values)
+
+    names = ["김민수", "이서연", "박지훈", "Michael", "Jessica", "David", "Emily"]
+    stock_list = [
+        "AAPL", "TSLA", "GOOGL", "AMZN", "MSFT", "NVDA", "META", "AMD", 
+        "BRK.B", "JPM", "V", "NFLX", "DIS", "PYPL", "XOM", "SPY", "QQQ", "VTI", "ARKK"
+    ]
+
+    sample_data = []
+    for name in names:
+        num_stocks = random.randint(4, 8)  # 4~8개 종목 선택
+        selected_stocks = random.sample(stock_list, num_stocks)
+
+        # 총합이 100%가 되도록 랜덤 비율 생성
+        percent_ratios = [random.uniform(5, 25) for _ in range(num_stocks)]
+        total_ratio = sum(percent_ratios)
+        normalized_ratios = [round((r / total_ratio) * 100, 2) for r in percent_ratios]  # 100% 기준으로 정규화
+
+        portfolio_data = [
+            PortfolioStockData(name=stock, percent_ratio=percent)
+            for stock, percent in zip(selected_stocks, normalized_ratios)
+        ]
+
+        sample_data.append(PeoplePortfolioValue(name=name, data=portfolio_data))
+
+    return PeoplePortfolioResponse(sample_data)
