@@ -1,5 +1,6 @@
-from datetime import date
 import random
+from datetime import date
+
 from fastapi import APIRouter, Depends, Query
 from redis.asyncio import Redis
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -10,7 +11,6 @@ from app.module.asset.dependencies.asset_dependency import get_asset_query, get_
 from app.module.asset.dependencies.dividend_dependency import get_dividend_service
 from app.module.asset.dependencies.realtime_index_dependency import get_realtime_index_service
 from app.module.asset.enum import AssetType, MarketIndex
-from app.module.asset.model import Asset
 from app.module.asset.schema import MarketIndexData, StockAssetSchema
 from app.module.asset.services.asset.asset_query import AssetQuery
 from app.module.asset.services.asset.asset_service import AssetService
@@ -18,7 +18,7 @@ from app.module.asset.services.dividend_service import DividendService
 from app.module.asset.services.realtime_index_service import RealtimeIndexService
 from app.module.auth.constant import DUMMY_USER_ID
 from app.module.auth.schema import AccessToken
-from app.module.chart.constant import DEFAULT_TIP, PORTFOLIO_SHARE_LIMIT
+from app.module.chart.constant import DEFAULT_TIP
 from app.module.chart.dependencies.composition_dependency import get_composition_service
 from app.module.chart.dependencies.performance_analysis_dependency import get_performance_analysis_service
 from app.module.chart.dependencies.portfolio_dependency import get_portfolio_service
@@ -38,10 +38,10 @@ from app.module.chart.schema import (
     MyStockResponse,
     MyStockResponseValue,
     PeoplePortfolioResponse,
-    PerformanceAnalysisResponse,
-    ProfitDetail,
-    PortfolioStockData,
     PeoplePortfolioValue,
+    PerformanceAnalysisResponse,
+    PortfolioStockData,
+    ProfitDetail,
     RichPickResponse,
     RichPortfolioResponse,
     SummaryResponse,
@@ -53,7 +53,6 @@ from app.module.chart.services.rich_service import RichService
 from app.module.chart.services.save_trend_service import SaveTrendService
 from app.module.chart.services.summary_service import SummaryService
 from app.module.event.dependency import get_event_service
-from app.module.event.enum import EventTypeID
 from app.module.event.service import EventService
 from database.dependency import get_mysql_session_router, get_redis_pool
 
@@ -656,6 +655,7 @@ async def get_rich_pick(
 
     return RichPickResponse(top_rich_pick_list)
 
+
 # [TODO] 웹 화면 구성이 완료되면 사용할 예정입니다.
 @chart_router.get("/people-portfolio", summary="포트폴리오 구경하기", response_model=PeoplePortfolioResponse)
 async def get_people_portfolio(
@@ -673,8 +673,25 @@ async def get_people_portfolio(
 
     names = ["김민수", "이서연", "박지훈", "Michael", "Jessica", "David", "Emily"]
     stock_list = [
-        "AAPL", "TSLA", "GOOGL", "AMZN", "MSFT", "NVDA", "META", "AMD", 
-        "BRK.B", "JPM", "V", "NFLX", "DIS", "PYPL", "XOM", "SPY", "QQQ", "VTI", "ARKK"
+        "AAPL",
+        "TSLA",
+        "GOOGL",
+        "AMZN",
+        "MSFT",
+        "NVDA",
+        "META",
+        "AMD",
+        "BRK.B",
+        "JPM",
+        "V",
+        "NFLX",
+        "DIS",
+        "PYPL",
+        "XOM",
+        "SPY",
+        "QQQ",
+        "VTI",
+        "ARKK",
     ]
 
     sample_data = []
