@@ -25,31 +25,26 @@ class ParentAssetDeleteResponse(BaseModel):
         return ParentAssetDeleteResponse(status_code=status.HTTP_404_NOT_FOUND, detail="해당하는 주식 종목을 보유하고 있지 않습니다.")
 
 
-class StockAssetField(BaseModel):
-    isRequired: bool
-    value: float | str | date | None
-
-
 class StockAssetSchema(BaseModel):
     id: int
-    거래가: StockAssetField
-    거래금: StockAssetField
-    거래량: StockAssetField
-    계좌종류: StockAssetField
-    고가: StockAssetField
-    매매일자: StockAssetField
-    배당금: StockAssetField
-    수량: StockAssetField
-    수익금: StockAssetField
-    수익률: StockAssetField
-    시가: StockAssetField
-    저가: StockAssetField
-    종목명: StockAssetField
-    주식코드: StockAssetField
+    거래가: float | str | date | None
+    거래금: float | str | date | None
+    거래량: float | str | date | None
+    계좌종류: float | str | date | None
+    고가: float | str | date | None
+    매매일자: float | str | date | None
+    배당금: float | str | date | None
+    수량: float | str | date | None
+    수익금: float | str | date | None
+    수익률: float | str | date | None
+    시가: float | str | date | None
+    저가: float | str | date | None
+    종목명: float | str | date | None
+    주식코드: float | str | date | None
     주식통화: str | None
-    증권사: StockAssetField
-    현재가: StockAssetField
-    매매: StockAssetField
+    증권사: float | str | date | None
+    현재가: float | str | date | None
+    매매: float | str | date | None
 
 
 class AggregateStockAsset(BaseModel):
@@ -57,6 +52,7 @@ class AggregateStockAsset(BaseModel):
     수익률: float
     수익금: float
     배당금: float
+    수량: float
 
 
 class StockAssetGroup(BaseModel):
@@ -217,8 +213,13 @@ class AssetFieldUpdateResponse(BaseModel):
 
         if not all_include:
             return cls(status_code=status.HTTP_404_NOT_FOUND, detail=f"{REQUIRED_ASSET_FIELD}가 모두 포함되어 있어야 합니다.")
+        elif len(update_field) != len(set(update_field)):
+            duplicates = [field for field in update_field if update_field.count(field) > 1]
+            return cls(status_code=status.HTTP_404_NOT_FOUND, detail=f"중복된 필드: {duplicates} 있습니다.")
         elif not proper_fields:
             return cls(status_code=status.HTTP_404_NOT_FOUND, detail=f"필드: {ASSET_FIELD} 만 허용합니다.")
+        elif update_field[: len(REQUIRED_ASSET_FIELD)] != REQUIRED_ASSET_FIELD:
+            return cls(status_code=status.HTTP_404_NOT_FOUND, detail=f"필수 필드의 순서는 {REQUIRED_ASSET_FIELD}와 같아야 합니다.")
         else:
             return None
 
@@ -304,12 +305,12 @@ class StockInfo(BaseModel):
 
 
 class MarketIndexData(BaseModel):
-    country: str = Field(..., description="Country of the market index")
-    name: str = Field(..., description="Name of the market index")
-    current_value: str = Field(..., description="Current value of the index")
-    change_value: str = Field(..., description="The change in value from the previous close")
-    change_percent: str = Field(..., description="The percentage change from the previous close")
-    update_time: str = Field(..., description="The time at which the data was last updated")
+    country: str = Field(..., description="지수 국가")
+    name: str = Field(..., description="지수명")
+    current_value: str | float = Field(..., description="현재 지수")
+    change_value: str | float = Field(..., description="이전 지수 대비 변동 값")
+    change_percent: str | float = Field(..., description="이전 지수 대비 변동률")
+    update_time: str = Field(..., description="최근 업데이트 시간")
 
 
 class TodayTempStockDaily(BaseModel):

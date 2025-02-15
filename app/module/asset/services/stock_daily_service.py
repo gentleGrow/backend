@@ -12,7 +12,7 @@ class StockDailyService:
         return {daily.code: daily for daily in lastest_stock_dailies}
 
     async def get_latest_map(self, session: AsyncSession, assets: list[Asset]) -> dict[str, StockDaily]:
-        stock_codes = [asset.asset_stock.stock.code for asset in assets]
+        stock_codes = list(set([asset.asset_stock.stock.code for asset in assets]))
         lastest_stock_dailies: list[StockDaily] = await StockDailyRepository.get_latest(session, stock_codes)
         return {daily.code: daily for daily in lastest_stock_dailies}
 

@@ -5,7 +5,7 @@ import pytest
 from redis.asyncio import Redis
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.module.asset.constant import REQUIRED_ASSET_FIELD
+from app.module.asset.constant import KOREA, REQUIRED_ASSET_FIELD, USA
 from app.module.asset.enum import (
     AccountType,
     AssetType,
@@ -29,6 +29,19 @@ from app.module.asset.model import (
 from app.module.auth.constant import DUMMY_NAME, DUMMY_USER_ID
 from app.module.auth.enum import ProviderEnum, UserRoleEnum
 from app.module.auth.model import User
+
+
+@pytest.fixture(scope="function")
+async def setup_user(session: AsyncSession):
+    user = User(
+        id=DUMMY_USER_ID,
+        social_id="test_social_id",
+        provider=ProviderEnum.GOOGLE,
+        role=UserRoleEnum.USER,
+        nickname=DUMMY_NAME,
+    )
+    session.add(user)
+    await session.commit()
 
 
 @pytest.fixture(scope="function")
@@ -78,40 +91,27 @@ async def setup_exchange_rate(redis_client: Redis):
 
 @pytest.fixture(scope="function")
 async def setup_dividend(session: AsyncSession, setup_stock):
-    dividend1 = Dividend(dividend=1.5, stock_code="AAPL", date=date(2024, 8, 13))
+    dividend1 = Dividend(dividend=1.5, code="AAPL", date=date(2024, 8, 13))
 
-    dividend2 = Dividend(dividend=1.6, stock_code="AAPL", date=date(2024, 8, 14))
+    dividend2 = Dividend(dividend=1.6, code="AAPL", date=date(2024, 8, 14))
 
-    dividend3 = Dividend(dividend=0.8, stock_code="TSLA", date=date(2024, 8, 13))
+    dividend3 = Dividend(dividend=0.8, code="TSLA", date=date(2024, 8, 13))
 
-    dividend4 = Dividend(dividend=0.9, stock_code="TSLA", date=date(2024, 8, 14))
+    dividend4 = Dividend(dividend=0.9, code="TSLA", date=date(2024, 8, 14))
 
-    dividend5 = Dividend(dividend=100.0, stock_code="005930", date=date(2024, 8, 13))
+    dividend5 = Dividend(dividend=100.0, code="005930", date=date(2024, 8, 13))
 
-    dividend6 = Dividend(dividend=105.0, stock_code="005930", date=date(2024, 8, 14))
+    dividend6 = Dividend(dividend=105.0, code="005930", date=date(2024, 8, 14))
 
     session.add_all([dividend1, dividend2, dividend3, dividend4, dividend5, dividend6])
     await session.commit()
 
 
 @pytest.fixture(scope="function")
-async def setup_user(session: AsyncSession):
-    user = User(
-        id=DUMMY_USER_ID,
-        social_id="test_social_id",
-        provider=ProviderEnum.GOOGLE,
-        role=UserRoleEnum.USER,
-        nickname=DUMMY_NAME,
-    )
-    session.add(user)
-    await session.commit()
-
-
-@pytest.fixture(scope="function")
 async def setup_stock(session: AsyncSession):
-    stock_1 = Stock(id=1, code="AAPL", country="USA", market_index="NASDAQ", name_kr="애플", name_en="Apple")
-    stock_2 = Stock(id=2, code="TSLA", country="USA", market_index="NASDAQ", name_kr="테슬라", name_en="Tesla")
-    stock_3 = Stock(id=3, code="005930", country="KOREA", market_index="KOSPI", name_kr="삼성전자", name_en="Samsung")
+    stock_1 = Stock(id=1, code="AAPL", country=USA, market_index="NASDAQ", name_kr="애플", name_en="Apple")
+    stock_2 = Stock(id=2, code="TSLA", country=USA, market_index="NASDAQ", name_kr="테슬라", name_en="Tesla")
+    stock_3 = Stock(id=3, code="005930", country=KOREA, market_index="KOSPI", name_kr="삼성전자", name_en="Samsung")
     session.add_all([stock_1, stock_2, stock_3])
     await session.commit()
 
@@ -268,9 +268,9 @@ async def setup_asset(session: AsyncSession, setup_user, setup_stock):
         stock_id=3,
     )
 
-    asset1 = Asset(asset_type=AssetType.STOCK.value, user_id=DUMMY_USER_ID, asset_stock=asset_stock1)
-    asset2 = Asset(asset_type=AssetType.STOCK.value, user_id=DUMMY_USER_ID, asset_stock=asset_stock2)
-    asset3 = Asset(asset_type=AssetType.STOCK.value, user_id=DUMMY_USER_ID, asset_stock=asset_stock3)
+    asset1 = Asset(id=1, asset_type=AssetType.STOCK.value, user_id=DUMMY_USER_ID, asset_stock=asset_stock1)
+    asset2 = Asset(id=2, asset_type=AssetType.STOCK.value, user_id=DUMMY_USER_ID, asset_stock=asset_stock2)
+    asset3 = Asset(id=3, asset_type=AssetType.STOCK.value, user_id=DUMMY_USER_ID, asset_stock=asset_stock3)
     session.add_all([asset1, asset2, asset3])
     await session.commit()
 
@@ -382,12 +382,12 @@ async def setup_stock_minutely(session: AsyncSession):
 
 @pytest.fixture(scope="function")
 async def setup_all(
+    setup_user,
     setup_asset_field,
     setup_current_market_index,
     setup_realtime_stock_price,
     setup_exchange_rate,
     setup_dividend,
-    setup_user,
     setup_stock,
     setup_stock_daily,
     setup_asset,

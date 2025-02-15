@@ -2,6 +2,7 @@ from enum import StrEnum
 
 
 class EnvironmentType(StrEnum):
+    LOCAL = "local"
     DEV = "dev"
-    TEST = "test"
     PROD = "prod"
+    TEST = "test"

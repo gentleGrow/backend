@@ -15,14 +15,13 @@ class AssetCommonValidate:
     async def check_asset_stock_request(
         self, session: AsyncSession, request_data: AssetStockPostRequest | AssetStockPutRequest
     ) -> AssetStockStatusResponse | None:
-
         if request_data.stock_code:
             stock_code_exist = await self.stock_validate.check_code_exist(session, request_data.stock_code)
             if not stock_code_exist:
                 return AssetStockStatusResponse(
                     status_code=status.HTTP_404_NOT_FOUND,
                     detail=f"{request_data.stock_code}를 찾지 못 했습니다.",
-                    field=StockAsset.STOCK_CODE,
+                    field=StockAsset.STOCK_NAME,
                 )
 
         if request_data.stock_code and request_data.trade_date:
@@ -33,7 +32,7 @@ class AssetCommonValidate:
                 return AssetStockStatusResponse(
                     status_code=status.HTTP_404_NOT_FOUND,
                     detail=f"{request_data.stock_code} 코드의 {request_data.trade_date} 날짜 데이터가 존재하지 않습니다.",
-                    field=StockAsset.STOCK_CODE,
+                    field=StockAsset.TRADE_DATE,
                 )
 
         if request_data.stock_code and request_data.purchase_currency_type:
@@ -44,7 +43,7 @@ class AssetCommonValidate:
                 return AssetStockStatusResponse(
                     status_code=status.HTTP_404_NOT_FOUND,
                     detail=f"{request_data.stock_code}는 국내 주식이기에, 원화만 가능합니다.",
-                    field=StockAsset.PURCHASE_CURRENCY_TYPE,
+                    field=StockAsset.TRADE_PRICE,
                 )
 
         return None

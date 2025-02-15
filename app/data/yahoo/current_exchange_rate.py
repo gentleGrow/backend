@@ -33,16 +33,14 @@ async def process_exchange_rate_data(redis_client: Redis):
         try:
             ticker = yfinance.Ticker(url)
             current_price = ticker.info.get("regularMarketPrice") or ticker.info.get("regularMarketPreviousClose")
-            if not ticker.info.get("regularMarketPrice"):
-                logger.error(f"No regularMarketPrice, {url}")
         except Exception as e:
             logger.error(e)
             continue
 
         if not current_price:
             continue
-
-        redis_bulk_data.append((url, current_price))
+        cache_key = source_currency + "_" + target_currency
+        redis_bulk_data.append((cache_key, current_price))
 
     if redis_bulk_data:
         await RedisExchangeRateRepository.bulk_save(redis_client, redis_bulk_data, expire_time=STOCK_CACHE_SECOND)
@@ -56,7 +54,17 @@ async def execute_async_task():
 
 @shared_task
 def main():
-    asyncio.run(execute_async_task())
+    try:
+        loop = asyncio.get_event_loop()
+    except RuntimeError:
+        loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(loop)
+
+    if loop.is_running():
+        logger.info("main loop가 이미 실행 중입니다. task를 실행합니다.")
+        asyncio.ensure_future(execute_async_task())
+    else:
+        loop.run_until_complete(execute_async_task())
 
 
 if __name__ == "__main__":

@@ -61,22 +61,22 @@ class MarketIndexMinutelyRepository:
 
     @staticmethod
     async def bulk_upsert(session: AsyncSession, market_indexes: list[MarketIndexMinutely]) -> None:
-        stmt = insert(MarketIndexMinutely).values(
-            [
-                {
-                    "name": market_index.name,
-                    "datetime": market_index.datetime,
-                    "price": market_index.price,
-                }
-                for market_index in market_indexes
-            ]
-        )
-
-        update_dict = {"price": stmt.inserted.price}
-
-        upsert_stmt = stmt.on_duplicate_key_update(update_dict)
-
         try:
+            stmt = insert(MarketIndexMinutely).values(
+                [
+                    {
+                        "name": market_index.name,
+                        "datetime": market_index.datetime,
+                        "price": market_index.price,
+                    }
+                    for market_index in market_indexes
+                ]
+            )
+
+            update_dict = {"price": stmt.inserted.price}
+
+            upsert_stmt = stmt.on_duplicate_key_update(update_dict)
+
             await session.execute(upsert_stmt)
             await session.commit()
         except Exception:

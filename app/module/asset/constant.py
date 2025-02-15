@@ -9,6 +9,7 @@ from app.module.asset.enum import (
     PurchaseCurrencyType,
 )
 
+RICH_TOP_PICK_NUM = 10
 RICH_PEOPLE_DATA_KEY = "rich_data_key"
 USER_DATA_KEY = "user_data_key"
 USER_DATA_EXPIRE_TIME_SEC = 10 * 60
@@ -37,7 +38,7 @@ THREE_MONTH_DAY = 90
 THREE_MONTH = 3
 MONTHS = ["1월", "2월", "3월", "4월", "5월", "6월", "7월", "8월", "9월", "10월", "11월", "12월"]
 
-REQUIRED_ASSET_FIELD = ["종목명", "매매", "수량", "매매일자", "거래가"]
+REQUIRED_ASSET_FIELD = ["종목명", "매매", "수량", "매매일자"]
 
 ASSET_FIELD = [
     "종목명",

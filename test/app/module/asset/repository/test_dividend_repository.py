@@ -16,10 +16,10 @@ class TestDividendRepository:
         # Then
         assert len(recent_dividends) == 2
 
-        dividend_aapl = next(dividend for dividend in recent_dividends if dividend.stock_code == "AAPL")
-        assert dividend_aapl.stock_code == "AAPL"
+        dividend_aapl = next(dividend for dividend in recent_dividends if dividend.code == "AAPL")
+        assert dividend_aapl.code == "AAPL"
         assert dividend_aapl.date == date(2024, 8, 14)
 
-        dividend_tsla = next(dividend for dividend in recent_dividends if dividend.stock_code == "TSLA")
-        assert dividend_tsla.stock_code == "TSLA"
+        dividend_tsla = next(dividend for dividend in recent_dividends if dividend.code == "TSLA")
+        assert dividend_tsla.code == "TSLA"
         assert dividend_tsla.date == date(2024, 8, 14)

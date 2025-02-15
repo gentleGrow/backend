@@ -5,11 +5,12 @@ from os import getenv
 import yfinance
 from celery import shared_task
 from dotenv import load_dotenv
+from icecream import ic
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.data.common.enum import MarketIndexEnum
 from app.data.yahoo.source.constant import MARKET_TIME_INTERVAL
 from app.data.yahoo.source.service import get_last_week_period_bounds
+from app.module.asset.enum import MarketIndex
 from app.module.asset.model import MarketIndexDaily
 from app.module.asset.repository.market_index_daily_repository import MarketIndexDailyRepository
 from database.dependency import get_mysql_session
@@ -37,7 +38,7 @@ async def fetch_and_save_market_index_data(
     end_period: str,
 ):
     index_data = yfinance.download(
-        index_symbol, start=start_period, end=end_period, interval=MARKET_TIME_INTERVAL, progress=False
+        f"^{index_symbol}", start=start_period, end=end_period, interval=MARKET_TIME_INTERVAL, progress=False
     )
 
     if index_data.empty:
@@ -47,14 +48,15 @@ async def fetch_and_save_market_index_data(
     market_index_records = []
 
     for index, row in index_data.iterrows():
+        ic(index, row)
         market_index_record = MarketIndexDaily(
-            name=index_symbol.lstrip("^"),
+            name=index_symbol,
             date=index.date(),
-            open_price=row["Open"],
-            close_price=row["Close"],
-            high_price=row["High"],
-            low_price=row["Low"],
-            volume=row["Volume"],
+            open_price=row["Open"].item(),
+            close_price=row["Close"].item(),
+            high_price=row["High"].item(),
+            low_price=row["Low"].item(),
+            volume=row["Volume"].item(),
         )
         market_index_records.append(market_index_record)
 
@@ -73,7 +75,7 @@ async def execute_async_task():
     start_period, end_period = get_last_week_period_bounds()
 
     async with get_mysql_session() as session:
-        for index_symbol in MarketIndexEnum:
+        for index_symbol in MarketIndex:
             await fetch_and_save_all_intervals(session, index_symbol, start_period, end_period)
 
     logger.info("일별 시장 지수 수집을 마칩니다.")
@@ -81,7 +83,17 @@ async def execute_async_task():
 
 @shared_task
 def main():
-    asyncio.run(execute_async_task())
+    try:
+        loop = asyncio.get_event_loop()
+    except RuntimeError:
+        loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(loop)
+
+    if loop.is_running():
+        logger.info("main loop가 이미 실행 중입니다. task를 실행합니다.")
+        asyncio.ensure_future(execute_async_task())
+    else:
+        loop.run_until_complete(execute_async_task())
 
 
 if __name__ == "__main__":

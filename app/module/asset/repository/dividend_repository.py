@@ -10,27 +10,27 @@ class DividendRepository:
     @staticmethod
     async def get_dividends_recent(session: AsyncSession, stock_codes: list[str]) -> list[Dividend]:
         subquery = (
-            select(Dividend.stock_code, func.max(Dividend.date).label("max_date"))
-            .where(Dividend.stock_code.in_(stock_codes))
-            .group_by(Dividend.stock_code)
+            select(Dividend.code, func.max(Dividend.date).label("max_date"))
+            .where(Dividend.code.in_(stock_codes))
+            .group_by(Dividend.code)
             .subquery()
         )
 
         query = select(Dividend).join(
-            subquery, (Dividend.stock_code == subquery.c.stock_code) & (Dividend.date == subquery.c.max_date)
+            subquery, (Dividend.code == subquery.c.code) & (Dividend.date == subquery.c.max_date)
         )
 
         result = await session.execute(query)
         return result.scalars().all()
 
     @staticmethod
-    async def get_dividend(session: AsyncSession, stock_code: str) -> Dividend:
-        result = await session.execute(select(Dividend).where(Dividend.stock_code == stock_code))
+    async def get_dividend(session: AsyncSession, code: str) -> Dividend:
+        result = await session.execute(select(Dividend).where(Dividend.code == code))
         return result.scalar_one_or_none()
 
     @staticmethod
     async def get_dividends(session: AsyncSession, stock_codes: list[str]) -> list[Dividend]:
-        result = await session.execute(select(Dividend).where(Dividend.stock_code.in_(stock_codes)))
+        result = await session.execute(select(Dividend).where(Dividend.code.in_(stock_codes)))
         return result.scalars().all()
 
     @staticmethod
@@ -41,7 +41,7 @@ class DividendRepository:
     @staticmethod
     async def upsert(session: AsyncSession, dividend: Dividend) -> None:
         dividend_value = float(dividend.dividend)
-        stock_code_value = str(dividend.stock_code)
+        stock_code_value = str(dividend.code)
 
         query_statement = insert(Dividend).values(
             dividend=dividend_value,
@@ -59,7 +59,7 @@ class DividendRepository:
     async def bulk_upsert(session: AsyncSession, dividends: list[Dividend]) -> None:
         stmt = insert(Dividend).values(
             [
-                {"dividend": float(dividend.dividend), "stock_code": str(dividend.stock_code), "date": dividend.date}
+                {"dividend": float(dividend.dividend), "code": str(dividend.code), "date": dividend.date}
                 for dividend in dividends
             ]
         )

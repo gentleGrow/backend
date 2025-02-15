@@ -7,7 +7,7 @@ from redis.asyncio import Redis
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.common.util.time import get_now_date
-from app.module.asset.constant import INFLATION_RATE, REQUIRED_ASSET_FIELD, THREE_MONTH, THREE_MONTH_DAY, 만, 억
+from app.module.asset.constant import INFLATION_RATE, THREE_MONTH, THREE_MONTH_DAY, 만, 억
 from app.module.asset.enum import ASSETNAME, AmountUnit, PurchaseCurrencyType, StockAsset, TradeType
 from app.module.asset.model import Asset, StockDaily
 from app.module.asset.repository.asset_repository import AssetRepository
@@ -217,15 +217,21 @@ class AssetService:
 
     async def save_asset_by_put(self, session: AsyncSession, request_data: AssetStockPutRequest) -> None:
         asset = await AssetRepository.get_asset_by_id(session, request_data.id)
-        asset.asset_stock.account_type = request_data.account_type if request_data.account_type else None
-        asset.asset_stock.investment_bank = request_data.investment_bank if request_data.investment_bank else None
-        asset.asset_stock.purchase_currency_type = (
-            request_data.purchase_currency_type if request_data.purchase_currency_type else None
-        )
-        asset.asset_stock.trade_date = request_data.trade_date if request_data.trade_date else None
-        asset.asset_stock.trade_price = request_data.trade_price if request_data.trade_price else None
-        asset.asset_stock.quantity = request_data.quantity if request_data.quantity else None
-        asset.asset_stock.trade = request_data.trade if request_data.trade else None
+
+        if request_data.account_type:
+            asset.asset_stock.account_type = request_data.account_type
+        if request_data.investment_bank:
+            asset.asset_stock.investment_bank = request_data.investment_bank
+        if request_data.purchase_currency_type:
+            asset.asset_stock.purchase_currency_type = request_data.purchase_currency_type
+        if request_data.trade_date:
+            asset.asset_stock.trade_date = request_data.trade_date
+        if request_data.trade_price:
+            asset.asset_stock.trade_price = request_data.trade_price
+        if request_data.quantity:
+            asset.asset_stock.quantity = request_data.quantity
+        if request_data.trade:
+            asset.asset_stock.trade = request_data.trade
 
         stock = await StockRepository.get_by_code(session, request_data.stock_code)
         asset.asset_stock.stock_id = stock.id
@@ -349,13 +355,13 @@ class AssetService:
         return result
 
     def get_total_asset_amount(
-        self, assets: list[Asset], current_stock_price_map: dict[str, float], exchange_rate_map: dict[str, float]
+        self, assets: list[Asset], stock_price_map: dict[str, float], exchange_rate_map: dict[str, float]
     ) -> float:
         result = 0.0
 
         for asset in assets:
             result += (
-                current_stock_price_map.get(asset.asset_stock.stock.code)
+                stock_price_map.get(asset.asset_stock.stock.code)
                 * asset.asset_stock.quantity
                 * self.exchange_rate_service.get_won_exchange_rate(asset, exchange_rate_map)
             )
@@ -375,7 +381,7 @@ class AssetService:
 
         stock_elements_by_name = defaultdict(list)
         for stock_asset in stock_asset_elements:
-            stock_name = str(stock_asset.종목명.value)
+            stock_name = str(stock_asset.종목명)
             stock_elements_by_name[stock_name].append(stock_asset)
 
         for stock_name, sub_stock_assets in stock_elements_by_name.items():
@@ -385,7 +391,7 @@ class AssetService:
                 result.append(stock_asset_group)
             else:
                 empty_stock_asset_group = StockAssetGroup(
-                    parent=AggregateStockAsset(종목명=stock_name, 수익률=0.0, 수익금=0.0, 배당금=0.0), sub=sub_stock_assets
+                    parent=AggregateStockAsset(종목명=stock_name, 수익률=0.0, 수익금=0.0, 배당금=0.0, 수량=0.0), sub=sub_stock_assets
                 )
                 result.append(empty_stock_asset_group)
 
@@ -394,19 +400,33 @@ class AssetService:
     def aggregate_stock_assets(self, stock_assets: list[StockAssetSchema]) -> list[AggregateStockAsset]:
         stock_asset_dataframe = pandas.DataFrame(
             {
-                "stock_name": [stock_asset.종목명.value for stock_asset in stock_assets],
-                "profit_rate": [stock_asset.수익률.value for stock_asset in stock_assets],
-                "profit_amount": [stock_asset.수익금.value for stock_asset in stock_assets],
-                "dividend": [stock_asset.배당금.value for stock_asset in stock_assets],
+                "stock_name": [
+                    stock_asset.종목명 for stock_asset in stock_assets if stock_asset.매매 == TradeType.BUY.value
+                ],
+                "profit_rate": [
+                    stock_asset.수익률 for stock_asset in stock_assets if stock_asset.매매 == TradeType.BUY.value
+                ],
+                "profit_amount": [
+                    stock_asset.수익금 for stock_asset in stock_assets if stock_asset.매매 == TradeType.BUY.value
+                ],
+                "dividend": [stock_asset.배당금 for stock_asset in stock_assets if stock_asset.매매 == TradeType.BUY.value],
+                "quantity": [stock_asset.수량 for stock_asset in stock_assets if stock_asset.매매 == TradeType.BUY.value],
             }
         )
 
         aggregated_df = (
             stock_asset_dataframe.groupby("stock_name")
             .agg(
-                avg_profit_rate=("profit_rate", "mean"),
                 total_profit_amount=("profit_amount", "sum"),
                 total_dividend=("dividend", "sum"),
+                total_quantity=("quantity", "sum"),
+                weighted_profit_rate=(
+                    "profit_rate",
+                    lambda profite_rate: (
+                        profite_rate * stock_asset_dataframe.loc[profite_rate.index, "quantity"]
+                    ).sum()
+                    / stock_asset_dataframe.loc[profite_rate.index, "quantity"].sum(),
+                ),
             )
             .reset_index()
         )
@@ -414,9 +434,10 @@ class AssetService:
         return [
             AggregateStockAsset(
                 종목명=row["stock_name"],
-                수익률=row["avg_profit_rate"],
+                수익률=row["weighted_profit_rate"],
                 수익금=row["total_profit_amount"],
                 배당금=row["total_dividend"],
+                수량=row["total_quantity"],
             )
             for _, row in aggregated_df.iterrows()
         ]
@@ -425,8 +446,7 @@ class AssetService:
         result = []
         for asset in assets:
             incomplete_stock_asset_data = self._build_incomplete_stock_asset(asset)
-            incomplete_stock_asset_formatted_data = self._apply_require_sign(incomplete_stock_asset_data)
-            incomplete_stock_asset_schema = StockAssetSchema(**incomplete_stock_asset_formatted_data)
+            incomplete_stock_asset_schema = StockAssetSchema(**incomplete_stock_asset_data)
             result.append(incomplete_stock_asset_schema)
         return result
 
@@ -479,9 +499,7 @@ class AssetService:
                 asset, stock_daily, apply_exchange_rate, current_stock_price_map, dividend_map, purchase_price
             )
 
-            stock_asset_formatted_data = self._apply_require_sign(stock_asset_data)
-
-            stock_asset_schema = StockAssetSchema(**stock_asset_formatted_data)
+            stock_asset_schema = StockAssetSchema(**stock_asset_data)
 
             result.append(stock_asset_schema)
 
@@ -609,13 +627,3 @@ class AssetService:
 
     def _get_purchase_price(self, asset: Asset, stock_daily: TodayTempStockDaily) -> float:
         return asset.asset_stock.trade_price if asset.asset_stock.trade_price else stock_daily.adj_close_price
-
-    def _apply_require_sign(self, stock_asset_data: dict) -> dict:
-        result = {
-            field: {"isRequired": field in REQUIRED_ASSET_FIELD, "value": value}
-            for field, value in stock_asset_data.items()
-        }
-
-        result[StockAsset.ID.value] = stock_asset_data[StockAsset.ID.value]
-        result[StockAsset.PURCHASE_CURRENCY_TYPE.value] = stock_asset_data[StockAsset.PURCHASE_CURRENCY_TYPE.value]
-        return result

@@ -4,10 +4,11 @@ from celery import Celery
 from celery.schedules import crontab
 from dotenv import load_dotenv
 
-import app.data.yahoo.current_exchange_rate  # noqa: F401 > task 위치를 찾는데 필요합니다.
 import app.data.custom.validate_data  # noqa: F401 > task 위치를 찾는데 필요합니다.
-import app.data.yahoo.current_index  # noqa: F401 > task 위치를 찾는데 필요합니다.
-import app.data.yahoo.current_stock  # noqa: F401 > task 위치를 찾는데 필요합니다.
+import app.data.naver.current_index.collector  # noqa: F401 > task 위치를 찾는데 필요합니다.
+import app.data.naver.current_korea_stock.collector  # noqa: F401 > task 위치를 찾는데 필요합니다.
+import app.data.yahoo.current_exchange_rate  # noqa: F401 > task 위치를 찾는데 필요합니다.
+import app.data.yahoo.current_usa_stock  # noqa: F401 > task 위치를 찾는데 필요합니다.
 import app.data.yahoo.dividend  # noqa: F401 > task 위치를 찾는데 필요합니다.
 import app.data.yahoo.index  # noqa: F401 > task 위치를 찾는데 필요합니다.
 import app.data.yahoo.stock  # noqa: F401 > task 위치를 찾는데 필요합니다.
@@ -16,10 +17,13 @@ from database.enum import EnvironmentType
 load_dotenv()
 
 ENVIRONMENT = getenv("ENVIRONMENT", None)
-if ENVIRONMENT == EnvironmentType.DEV:
+
+if ENVIRONMENT == EnvironmentType.LOCAL.value or ENVIRONMENT == EnvironmentType.TEST.value:
     REDIS_HOST = getenv("LOCAL_REDIS_HOST", None)
-else:
-    REDIS_HOST = getenv("REDIS_HOST", None)
+elif ENVIRONMENT == EnvironmentType.DEV.value:
+    REDIS_HOST = getenv("DEV_REDIS_HOST", None)
+elif ENVIRONMENT == EnvironmentType.PROD.value:
+    REDIS_HOST = getenv("PROD_REDIS_HOST", None)
 
 REDIS_PORT = getenv("REDIS_PORT", None)
 
@@ -55,16 +59,20 @@ celery_task.conf.beat_schedule = {
         "task": "app.data.custom.validate_data.main",
         "schedule": crontab(hour=23, minute=0, day_of_week="1-6"),
     },
-    "current_stock": {
-        "task": "app.data.yahoo.current_stock.main",
-        "schedule": crontab(minute=0),
-    },
-    "current_index": {
-        "task": "app.data.yahoo.current_index.main",
-        "schedule": crontab(minute=0),
-    },
     "current_exchange_rate": {
         "task": "app.data.yahoo.current_exchange_rate.main",
-        "schedule": crontab(minute=0),
-    }
+        "schedule": crontab(minute="*/15"),
+    },
+    "current_usa_stock": {
+        "task": "app.data.yahoo.current_usa_stock.main",
+        "schedule": crontab(minute="*/15"),
+    },
+    "current_korea_stock": {
+        "task": "app.data.naver.current_korea_stock.collector.main",
+        "schedule": crontab(minute="*/15"),
+    },
+    "current_index": {
+        "task": "app.data.naver.current_index.collector.main",
+        "schedule": crontab(minute="*/15"),
+    },
 }

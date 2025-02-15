@@ -35,8 +35,8 @@ async def insert_dividend_data(session: AsyncSession, stock_list: list[StockInfo
     for i in range(0, len(stock_list), batch_size):
         stock_list_batch = stock_list[i : i + batch_size]
 
-        dividend_list = []
         for stock in stock_list_batch:
+            dividend_list = []
             try:
 
                 stock_code = format_stock_code(
@@ -53,16 +53,15 @@ async def insert_dividend_data(session: AsyncSession, stock_list: list[StockInfo
                 for dividend_date, dividend_amount in dividends.items():
                     try:
                         dividend = Dividend(
-                            dividend=dividend_amount, stock_code=stock.code, date=pd.to_datetime(dividend_date).date()
+                            dividend=dividend_amount, code=stock.code, date=pd.to_datetime(dividend_date).date()
                         )
                     except Exception:
                         continue
 
                     dividend_list.append(dividend)
+                await DividendRepository.bulk_upsert(session=session, dividends=dividend_list)
             except Exception:
                 continue
-
-        await DividendRepository.bulk_upsert(session=session, dividends=dividend_list)
 
     logger.info("배당 수집을 마칩니다")
 

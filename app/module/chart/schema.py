@@ -97,9 +97,7 @@ class ProfitDetail(BaseModel):
 
 
 class SummaryResponse(BaseModel):
-    # 협의 후 바로 추가할 인자입니다.
-    # increase_asset_amount: float = Field(..., description="오늘의 review 증가액")
-    today_review_rate: float = Field(..., description="오늘의 review 수익금")
+    increase_asset_amount: float = Field(..., description="오늘의 review 증가액")
     total_asset_amount: float = Field(..., description="나의 총 자산")
     total_investment_amount: float = Field(..., description="나의 투자 금액")
     profit: ProfitDetail = Field(..., description="수익 정보")
@@ -170,31 +168,7 @@ class PerformanceAnalysisResponse(BaseModel):
         interval_times: list[datetime] | list[date],
         interval: IntervalType,
     ) -> "PerformanceAnalysisResponse":
-        if interval is IntervalType.FIVEDAY:
-            return cls(
-                xAxises=[interval_time.strftime("%m.%d") for interval_time in interval_times],
-                dates=[interval_time.strftime("%Y.%m.%d %H:%M") for interval_time in interval_times],
-                values1={
-                    "values": [
-                        user_analysis_data[interval_time.replace(tzinfo=None)] for interval_time in interval_times  # type: ignore # 전방 참조로 추후 type이 체킹됨
-                    ],
-                    "name": "내 수익률",
-                },
-                values2={
-                    "values": [
-                        market_analysis_data[interval_time.replace(tzinfo=None)] for interval_time in interval_times  # type: ignore # IntervalType.FIVEDAY 조건에 의해 datetime 보장
-                    ],
-                    "name": "코스피",
-                },
-                unit="%",
-                myReturnRate=mean(
-                    [user_analysis_data[interval_time.replace(tzinfo=None)] for interval_time in interval_times]  # type: ignore # IntervalType.FIVEDAY 조건에 의해 datetime 보장
-                ),
-                contrastMarketReturns=mean(
-                    [market_analysis_data[interval_time.replace(tzinfo=None)] for interval_time in interval_times]  # type: ignore # IntervalType.FIVEDAY 조건에 의해 datetime 보장
-                ),
-            )
-        elif interval is IntervalType.ONEMONTH:
+        if interval is IntervalType.ONEMONTH:
             return cls(
                 xAxises=[interval_time.strftime("%m.%d") for interval_time in interval_times],
                 dates=[interval_time.strftime("%Y.%m.%d") for interval_time in interval_times],
@@ -218,16 +192,16 @@ class PerformanceAnalysisResponse(BaseModel):
                 xAxises=[f"{str(year)[-2:]}.{month}" for year, month in interval_year_month],
                 dates=[f"{year}.{month}" for year, month in interval_year_month],
                 values1={
-                    "values": [user_analysis_data[interval_time] for interval_time in interval_year_month],  # type: ignore # IntervalType.FIVEDAY 조건에 의해 date 보장
+                    "values": [user_analysis_data.get(interval_time, 0) for interval_time in interval_year_month],  # type: ignore # IntervalType.FIVEDAY 조건에 의해 date 보장
                     "name": "내 수익률",
                 },
                 values2={
-                    "values": [market_analysis_data[interval_time] for interval_time in interval_year_month],  # type: ignore # IntervalType.FIVEDAY 조건에 의해 date 보장
+                    "values": [market_analysis_data.get(interval_time, 0) for interval_time in interval_year_month],  # type: ignore # IntervalType.FIVEDAY 조건에 의해 date 보장
                     "name": "코스피",
                 },
                 unit="%",
-                myReturnRate=mean([user_analysis_data[interval_time] for interval_time in interval_year_month]),  # type: ignore # IntervalType.FIVEDAY 조건에 의해 date 보장
-                contrastMarketReturns=mean([market_analysis_data[interval_time] for interval_time in interval_year_month]),  # type: ignore # IntervalType.FIVEDAY 조건에 의해 date 보장
+                myReturnRate=mean([user_analysis_data.get(interval_time, 0) for interval_time in interval_year_month]),  # type: ignore # IntervalType.FIVEDAY 조건에 의해 date 보장
+                contrastMarketReturns=mean([market_analysis_data.get(interval_time, 0) for interval_time in interval_year_month]),  # type: ignore # IntervalType.FIVEDAY 조건에 의해 date 보장
             )
 
 

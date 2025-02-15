@@ -103,7 +103,17 @@ async def execute_async_task():
 
 @shared_task
 def main():
-    asyncio.run(execute_async_task())
+    try:
+        loop = asyncio.get_event_loop()
+    except RuntimeError:
+        loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(loop)
+
+    if loop.is_running():
+        logger.info("main loop가 이미 실행 중입니다. task를 실행합니다.")
+        asyncio.ensure_future(execute_async_task())
+    else:
+        loop.run_until_complete(execute_async_task())
 
 
 if __name__ == "__main__":

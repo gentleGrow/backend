@@ -9,7 +9,7 @@ class AssetValidate:
 
         if asset is None:
             return False
-        elif str(asset.user_id) != user_id:
+        elif str(asset.user_id) != str(user_id):
             return False
         else:
             return True

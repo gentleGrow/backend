@@ -2,6 +2,7 @@ import json
 from collections import defaultdict
 from datetime import date
 
+from fastapi.encoders import jsonable_encoder
 from redis.asyncio import Redis
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -13,8 +14,14 @@ from app.module.asset.services.asset.asset_service import AssetService
 from app.module.asset.services.exchange_rate_service import ExchangeRateService
 from app.module.asset.services.stock.stock_service import StockService
 from app.module.auth.repository import UserRepository
-from app.module.chart.constant import REDIS_RICH_PICK_KEY, REDIS_RICH_PICK_NAME_KEY, RICH_PICK_SECOND
-from app.module.chart.redis_repository import RedisRichPickRepository
+from app.module.chart.constant import (
+    REDIS_RICH_PICK_KEY,
+    REDIS_RICH_PICK_NAME_KEY,
+    REDIS_RICH_PORTFOLIO_KEY,
+    REDIS_RICH_PORTFOLIO_SECOND,
+    RICH_PICK_SECOND,
+)
+from app.module.chart.redis_repository import RedisRichPickRepository, RedisRichPortfolioRepository
 from app.module.chart.schema import PortfolioStockData, RichPickValue, RichPortfolioValue
 
 
@@ -35,10 +42,7 @@ class RichService:
         top_10_stock_codes = await RedisRichPickRepository.get(redis_client, REDIS_RICH_PICK_KEY)
         stock_name_map = await RedisRichPickRepository.get(redis_client, REDIS_RICH_PICK_NAME_KEY)
 
-        # 임시 변수 할당, 추후 변경 예정
-        RichPeople = []  # type: ignore
-
-        if top_10_stock_codes is None or stock_name_map is None:
+        if not top_10_stock_codes or not stock_name_map:
             stock_count: defaultdict = defaultdict(int)
             new_stock_name_map: dict[str, str] = {}
             for person in RichPeople:
@@ -68,7 +72,14 @@ class RichService:
     async def get_rich_portfolio_chart_data(
         self, session: AsyncSession, redis_client: Redis
     ) -> list[PortfolioStockData]:
+        rich_portfolio_raw_data = await RedisRichPortfolioRepository.get(redis_client, REDIS_RICH_PORTFOLIO_KEY)
+        if rich_portfolio_raw_data:
+            rich_data_json = json.loads(rich_portfolio_raw_data)
+            rich_portfolio_data = [RichPortfolioValue(**data) for data in rich_data_json]
+            return rich_portfolio_data
+
         result = []
+
         for person_name in RichPeople:
             user = await UserRepository.get_by_name(session, person_name)
             if not user:
@@ -96,23 +107,23 @@ class RichService:
                     data=[PortfolioStockData(name=code, percent_ratio=rate) for code, rate in asset_percentage.items()],
                 )
             )
+        rich_portfolio_data = jsonable_encoder(result)
+        await RedisRichPortfolioRepository.save(
+            redis_client, REDIS_RICH_PORTFOLIO_KEY, json.dumps(rich_portfolio_data), REDIS_RICH_PORTFOLIO_SECOND
+        )
 
         return result
 
     async def get_full_rich_assets(self, session: AsyncSession) -> list[Asset]:
         result: list[Asset] = []
-        for person_name in RichPeople:
-            user = await UserRepository.get_by_name(session, person_name)
-            if not user:
-                continue
+        users = await UserRepository.get_by_names(session, [person.value for person in RichPeople])
+        user_ids = [user.id for user in users]
 
-            assets = await AssetRepository.get_assets(session, user.id)
-            if not len(assets):
-                continue
+        if not user_ids:
+            return result
 
-            result = result + assets
-
-        return result
+        assets = await AssetRepository.get_assets_by_user_ids(session, user_ids)
+        return assets
 
     def get_top_rich_pick(
         self,

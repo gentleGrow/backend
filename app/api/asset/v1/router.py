@@ -70,6 +70,7 @@ async def update_asset_field(
     await AssetFieldRepository.update(
         session, AssetField(id=asset_field.id, user_id=token.get("user"), field_preference=request_data.root)
     )
+
     return AssetFieldUpdateResponse(status_code=status.HTTP_200_OK, detail="자산관리 필드를 성공적으로 수정 하였습니다.")
 
 
@@ -83,7 +84,7 @@ async def get_bank_account_list() -> BankAccountResponse:
 
 @asset_stock_router.get("/stocks", summary="주시 종목 코드를 반환합니다.", response_model=StockListResponse)
 async def get_stock_list(session: AsyncSession = Depends(get_mysql_session_router)) -> StockListResponse:
-    # 현재는 국내/미국 주식만 반환하고 추후 서비스 안정화가 되면 전세계 주식을 반환합니다.
+    # [INFO] 현재는 국내/미국 주식만 반환하고 추후 서비스 안정화가 되면 전세계 주식을 반환합니다.
     stock_list: list[Stock] = await StockRepository.get_countries_stock(session, [KOREA, USA])
 
     return StockListResponse(
@@ -133,11 +134,12 @@ async def update_asset_stock(
         return validate_response
 
     await asset_service.save_asset_by_put(session, request_data)
+
     await asset_query.cache_user_data(session, redis_client, token.get("user"))
     return AssetStockStatusResponse(status_code=status.HTTP_200_OK, detail="주식 자산을 성공적으로 수정 하였습니다.", field="")
 
 
-@asset_stock_router.delete("/{asset_id}", summary="자산을 삭제합니다.", response_model=DeleteResponse)
+@asset_stock_router.delete("/assetstock/{asset_id}", summary="자산을 삭제합니다.", response_model=DeleteResponse)
 async def delete_asset(
     asset_id: int,
     token: AccessToken = Depends(verify_jwt_token),
@@ -154,7 +156,7 @@ async def delete_asset(
     return DeleteResponse(status_code=status.HTTP_200_OK, detail="주식 자산이 성공적으로 삭제 되었습니다.")
 
 
-@asset_stock_router.delete("/assetstock/{stock_code}", summary="주식 부모 행을 삭제합니다.", response_model=DeleteResponse)
+@asset_stock_router.delete("/assetstock/stock/{stock_code}", summary="주식 부모 행을 삭제합니다.", response_model=DeleteResponse)
 async def delete_asset_stock(
     stock_code: str,
     token: AccessToken = Depends(verify_jwt_token),
@@ -213,7 +215,7 @@ async def get_sample_asset_stock(
     full_stock_asset_elements = incomplete_stock_asset_elements + complete_stock_asset_elements
 
     buy_stock_assets_elements = [
-        buy_asset for buy_asset in filter(lambda asset: asset.매매.value == TradeType.BUY, complete_stock_asset_elements)
+        buy_asset for buy_asset in filter(lambda asset: asset.매매 == TradeType.BUY, complete_stock_asset_elements)
     ]
     aggregate_stock_assets: list[AggregateStockAsset] = asset_service.aggregate_stock_assets(buy_stock_assets_elements)
     stock_assets: list[StockAssetGroup] = asset_service.group_stock_assets(
@@ -284,7 +286,7 @@ async def get_asset_stock(
     full_stock_asset_elements = incomplete_stock_asset_elements + complete_stock_asset_elements
 
     buy_stock_assets_elements = [
-        buy_asset for buy_asset in filter(lambda asset: asset.매매.value == TradeType.BUY, complete_stock_asset_elements)
+        buy_asset for buy_asset in filter(lambda asset: asset.매매 == TradeType.BUY, complete_stock_asset_elements)
     ]
     aggregate_stock_assets: list[AggregateStockAsset] = asset_service.aggregate_stock_assets(buy_stock_assets_elements)
     stock_assets: list[StockAssetGroup] = asset_service.group_stock_assets(
