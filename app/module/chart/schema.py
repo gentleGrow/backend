@@ -283,6 +283,3 @@ class PeoplePortfolioValue(BaseModel):
 
 class PeoplePortfolioResponse(RootModel[list[PeoplePortfolioValue]]):
     pass
-
-
-

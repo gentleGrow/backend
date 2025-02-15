@@ -46,4 +46,3 @@ app.include_router(event_router, prefix="/api/event", tags=["event"])
 @app.get("/health")
 async def health():
     return {"status": "ok"}
-

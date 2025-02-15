@@ -1,10 +1,11 @@
 import asyncio
 import logging
 from os import getenv
-from icecream import ic
+
 import yfinance
 from celery import shared_task
 from dotenv import load_dotenv
+from icecream import ic
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.data.yahoo.source.constant import MARKET_TIME_INTERVAL

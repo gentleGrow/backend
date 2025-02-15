@@ -417,10 +417,10 @@ class AssetService:
         aggregated_df = (
             stock_asset_dataframe.groupby("stock_name")
             .agg(
-                avg_profit_rate=("profit_rate", "mean"),
                 total_profit_amount=("profit_amount", "sum"),
                 total_dividend=("dividend", "sum"),
                 total_quantity=("quantity", "sum"),
+                weighted_profit_rate=("profit_rate", lambda profite_rate: (profite_rate * stock_asset_dataframe.loc[profite_rate.index, "quantity"]).sum() / stock_asset_dataframe.loc[profite_rate.index, "quantity"].sum()),
             )
             .reset_index()
         )
@@ -428,7 +428,7 @@ class AssetService:
         return [
             AggregateStockAsset(
                 종목명=row["stock_name"],
-                수익률=row["avg_profit_rate"],
+                수익률=row["weighted_profit_rate"],
                 수익금=row["total_profit_amount"],
                 배당금=row["total_dividend"],
                 수량=row["total_quantity"],
