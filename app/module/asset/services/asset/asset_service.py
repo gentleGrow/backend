@@ -420,7 +420,13 @@ class AssetService:
                 total_profit_amount=("profit_amount", "sum"),
                 total_dividend=("dividend", "sum"),
                 total_quantity=("quantity", "sum"),
-                weighted_profit_rate=("profit_rate", lambda profite_rate: (profite_rate * stock_asset_dataframe.loc[profite_rate.index, "quantity"]).sum() / stock_asset_dataframe.loc[profite_rate.index, "quantity"].sum()),
+                weighted_profit_rate=(
+                    "profit_rate",
+                    lambda profite_rate: (
+                        profite_rate * stock_asset_dataframe.loc[profite_rate.index, "quantity"]
+                    ).sum()
+                    / stock_asset_dataframe.loc[profite_rate.index, "quantity"].sum(),
+                ),
             )
             .reset_index()
         )
