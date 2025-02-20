@@ -37,6 +37,7 @@ class StockAssetSchema(BaseModel):
     수량: float | str | date | None
     수익금: float | str | date | None
     수익률: float | str | date | None
+    종가: float | str | date | None
     시가: float | str | date | None
     저가: float | str | date | None
     종목명: float | str | date | None
