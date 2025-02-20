@@ -254,6 +254,9 @@ async def get_asset_stock(
     dividend_service: DividendService = Depends(get_dividend_service),
     asset_field_service: AssetFieldService = Depends(get_asset_field_service),
 ) -> AssetStockResponse:
+    """
+        미완성 혹은 매도 행은 부모 수익률에 포함하지 않게 하였습니다.
+    """
     assets: list = await AssetRepository.get_eager(session, token.get("user"), AssetType.STOCK)
     asset_fields: list[str] = await asset_field_service.get_asset_field(session, token.get("user"))
     no_asset_response = AssetStockResponse.validate_assets(assets, asset_fields)
@@ -288,11 +291,14 @@ async def get_asset_stock(
     buy_stock_assets_elements = [
         buy_asset for buy_asset in filter(lambda asset: asset.매매 == TradeType.BUY, complete_stock_asset_elements)
     ]
-    aggregate_stock_assets: list[AggregateStockAsset] = asset_service.aggregate_stock_assets(buy_stock_assets_elements)
+
+    aggregate_stock_assets_profit_rate: dict[str, float] = asset_service.aggreate_stock_assets_profit_rate(complete_asset, current_stock_price_map, stock_daily_map, exchange_rate_map)
+    aggregate_stock_assets: list[AggregateStockAsset] = asset_service.aggregate_stock_assets(buy_stock_assets_elements, aggregate_stock_assets_profit_rate)
+
+
     stock_assets: list[StockAssetGroup] = asset_service.group_stock_assets(
         full_stock_asset_elements, aggregate_stock_assets
     )
-
     total_asset_amount = asset_service.get_total_asset_amount(
         buy_stock_assets, current_stock_price_map, exchange_rate_map
     )
