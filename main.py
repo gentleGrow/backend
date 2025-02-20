@@ -26,18 +26,18 @@ if ENVIRONMENT == EnvironmentType.PROD.value:
         openapi_url=None,
         debug=False,
     )
-    
-    ALLOWED_ORIGINS = getenv("ALLOWED_ORIGINS", "").split(",") 
+
+    ALLOWED_ORIGINS = getenv("ALLOWED_ORIGINS", "").split(",")
     app.add_middleware(
         CORSMiddleware,
         allow_origins=ALLOWED_ORIGINS,
-        allow_credentials=True, 
-        allow_methods=["GET", "POST", "PUT", "DELETE"], 
-        allow_headers=["Authorization", "Content-Type"], 
+        allow_credentials=True,
+        allow_methods=["GET", "POST", "PUT", "DELETE"],
+        allow_headers=["Authorization", "Content-Type"],
     )
 else:
     app = FastAPI()
-    
+
     app.add_middleware(
         CORSMiddleware,
         allow_origins=["*"],

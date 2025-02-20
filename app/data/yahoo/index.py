@@ -20,7 +20,6 @@ load_dotenv()
 
 ENVIRONMENT = getenv("ENVIRONMENT", None)
 
-
 logger = logging.getLogger("index")
 logger.setLevel(logging.INFO)
 
