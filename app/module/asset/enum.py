@@ -23,6 +23,7 @@ class StockAsset(StrEnum):
     DIVIDEND = "배당금"
     HIGHEST_PRICE = "고가"
     INVESTMENT_BANK = "증권사"
+    CLOSE_PRICE = "종가"
     LOWEST_PRICE = "저가"
     OPENING_PRICE = "시가"
     PROFIT_RATE = "수익률"

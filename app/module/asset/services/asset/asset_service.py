@@ -443,7 +443,6 @@ class AssetService:
                 total_profit_amount=("profit_amount", "sum"),
                 total_dividend=("dividend", "sum"),
                 total_quantity=("quantity", "sum"),
-                total_profit_rate=aggregate_stock_assets_profit_rate.get("stock_name", 0.0),
             )
             .reset_index()
         )
@@ -451,7 +450,7 @@ class AssetService:
         return [
             AggregateStockAsset(
                 종목명=row["stock_name"],
-                수익률=row["total_profit_rate"],
+                수익률=aggregate_stock_assets_profit_rate.get(row["stock_name"], 0.0),
                 수익금=row["total_profit_amount"],
                 배당금=row["total_dividend"],
                 수량=row["total_quantity"],
@@ -477,6 +476,7 @@ class AssetService:
             StockAsset.HIGHEST_PRICE.value: None,
             StockAsset.INVESTMENT_BANK.value: asset.asset_stock.investment_bank,
             StockAsset.LOWEST_PRICE.value: None,
+            StockAsset.CLOSE_PRICE.value: None,
             StockAsset.OPENING_PRICE.value: None,
             StockAsset.PROFIT_RATE.value: None,
             StockAsset.PROFIT_AMOUNT.value: None,
@@ -609,6 +609,9 @@ class AssetService:
             else None,
             StockAsset.OPENING_PRICE.value: stock_daily.opening_price * apply_exchange_rate
             if stock_daily.opening_price
+            else None,
+            StockAsset.CLOSE_PRICE.value: stock_daily.adj_close_price * apply_exchange_rate
+            if stock_daily.adj_close_price
             else None,
             StockAsset.PROFIT_RATE.value: profit_rate,
             StockAsset.PROFIT_AMOUNT.value: profit_amount,
