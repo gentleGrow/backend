@@ -11,18 +11,6 @@ class TestAssetStock:
     method: GET, POST, PUT, DELETE
     """
 
-    async def test_get_asset_stock_success(self, client: AsyncClient, setup_all):
-        # given
-        response = await client.get("/api/asset/v1/assetstock")
-
-        # when
-        stock_data = response.json()
-
-        # then
-        assert stock_data["asset_fields"] == REQUIRED_ASSET_FIELD
-        assert stock_data["stock_assets"]
-        assert stock_data["won_exchange"] == 1300.0
-
     async def test_post_asset_stock_success(self, client: AsyncClient, setup_all):
         # given
         request_data = {

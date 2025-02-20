@@ -398,11 +398,11 @@ class AssetService:
         return result
 
     def aggreate_stock_assets_profit_rate(
-        self, 
+        self,
         assets: list[Asset],
-        stock_price_map: dict[str, float], 
-        stock_daily_map: dict[tuple[str, date], StockDaily], 
-        exchange_rate_map: dict[str, float]
+        stock_price_map: dict[str, float],
+        stock_daily_map: dict[tuple[str, date], StockDaily],
+        exchange_rate_map: dict[str, float],
     ) -> dict[str, float]:
         assets_by_name_kr = defaultdict(list)
         for asset in assets:
@@ -413,15 +413,13 @@ class AssetService:
         for name_kr, assets in assets_by_name_kr.items():
             total_asset_amount = self.get_total_asset_amount(assets, stock_price_map, exchange_rate_map)
             total_investment_amount = self.get_total_investment_amount(assets, stock_daily_map, exchange_rate_map)
-            code_profit =  self.asset_stock_service.get_total_profit_rate(total_asset_amount, total_investment_amount)
+            code_profit = self.asset_stock_service.get_total_profit_rate(total_asset_amount, total_investment_amount)
             result[name_kr] = code_profit
-        
+
         return result
 
     def aggregate_stock_assets(
-        self, 
-        stock_assets: list[StockAssetSchema],
-        aggregate_stock_assets_profit_rate: dict[str, float]
+        self, stock_assets: list[StockAssetSchema], aggregate_stock_assets_profit_rate: dict[str, float]
     ) -> list[AggregateStockAsset]:
         stock_asset_dataframe = pandas.DataFrame(
             {
@@ -445,7 +443,7 @@ class AssetService:
                 total_profit_amount=("profit_amount", "sum"),
                 total_dividend=("dividend", "sum"),
                 total_quantity=("quantity", "sum"),
-                total_profit_rate=aggregate_stock_assets_profit_rate.get("stock_name", 0.0), 
+                total_profit_rate=aggregate_stock_assets_profit_rate.get("stock_name", 0.0),
             )
             .reset_index()
         )
