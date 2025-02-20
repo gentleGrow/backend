@@ -397,7 +397,32 @@ class AssetService:
 
         return result
 
-    def aggregate_stock_assets(self, stock_assets: list[StockAssetSchema]) -> list[AggregateStockAsset]:
+    def aggreate_stock_assets_profit_rate(
+        self, 
+        assets: list[Asset],
+        stock_price_map: dict[str, float], 
+        stock_daily_map: dict[tuple[str, date], StockDaily], 
+        exchange_rate_map: dict[str, float]
+    ) -> dict[str, float]:
+        assets_by_name_kr = defaultdict(list)
+        for asset in assets:
+            assets_by_name_kr[asset.asset_stock.stock.name_kr].append(asset)
+
+        result = {}
+
+        for name_kr, assets in assets_by_name_kr.items():
+            total_asset_amount = self.get_total_asset_amount(assets, stock_price_map, exchange_rate_map)
+            total_investment_amount = self.get_total_investment_amount(assets, stock_daily_map, exchange_rate_map)
+            code_profit =  self.asset_stock_service.get_total_profit_rate(total_asset_amount, total_investment_amount)
+            result[name_kr] = code_profit
+        
+        return result
+
+    def aggregate_stock_assets(
+        self, 
+        stock_assets: list[StockAssetSchema],
+        aggregate_stock_assets_profit_rate: dict[str, float]
+    ) -> list[AggregateStockAsset]:
         stock_asset_dataframe = pandas.DataFrame(
             {
                 "stock_name": [
@@ -420,13 +445,7 @@ class AssetService:
                 total_profit_amount=("profit_amount", "sum"),
                 total_dividend=("dividend", "sum"),
                 total_quantity=("quantity", "sum"),
-                weighted_profit_rate=(
-                    "profit_rate",
-                    lambda profite_rate: (
-                        profite_rate * stock_asset_dataframe.loc[profite_rate.index, "quantity"]
-                    ).sum()
-                    / stock_asset_dataframe.loc[profite_rate.index, "quantity"].sum(),
-                ),
+                total_profit_rate=aggregate_stock_assets_profit_rate.get("stock_name", 0.0), 
             )
             .reset_index()
         )
@@ -434,7 +453,7 @@ class AssetService:
         return [
             AggregateStockAsset(
                 종목명=row["stock_name"],
-                수익률=row["weighted_profit_rate"],
+                수익률=row["total_profit_rate"],
                 수익금=row["total_profit_amount"],
                 배당금=row["total_dividend"],
                 수량=row["total_quantity"],
