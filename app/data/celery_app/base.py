@@ -4,6 +4,7 @@ from celery import Celery
 from celery.schedules import crontab
 from dotenv import load_dotenv
 
+import app.data.custom.cache_past_date  # noqa: F401 > task 위치를 찾는데 필요합니다.
 import app.data.custom.validate_data  # noqa: F401 > task 위치를 찾는데 필요합니다.
 import app.data.naver.current_index.collector  # noqa: F401 > task 위치를 찾는데 필요합니다.
 import app.data.naver.current_korea_stock.collector  # noqa: F401 > task 위치를 찾는데 필요합니다.
@@ -43,6 +44,10 @@ celery_task.conf.update(
 
 if ENVIRONMENT == EnvironmentType.PROD.value:
     celery_task.conf.beat_schedule = {
+        "cache_past_date": {
+            "task": "app.data.custom.cache_past_date.main",
+            "schedule": crontab(hour=8, minute=0),
+        },
         "dividend": {
             "task": "app.data.yahoo.dividend.main",
             "schedule": crontab(hour=1, minute=0),
@@ -53,7 +58,7 @@ if ENVIRONMENT == EnvironmentType.PROD.value:
         },
         "stock": {
             "task": "app.data.yahoo.stock.main",
-            "schedule": crontab(hour=2, minute=0),
+            "schedule": crontab(hour=[8, 18], minute=0),
         },
         "validate_data": {
             "task": "app.data.custom.validate_data.main",
@@ -78,6 +83,10 @@ if ENVIRONMENT == EnvironmentType.PROD.value:
     }
 elif ENVIRONMENT == EnvironmentType.DEV.value:
     celery_task.conf.beat_schedule = {
+        "cache_past_date": {
+            "task": "app.data.custom.cache_past_date.main",
+            "schedule": crontab(hour=8, minute=0),
+        },
         "dividend": {
             "task": "app.data.yahoo.dividend.main",
             "schedule": crontab(hour=2, minute=30),
@@ -88,7 +97,7 @@ elif ENVIRONMENT == EnvironmentType.DEV.value:
         },
         "stock": {
             "task": "app.data.yahoo.stock.main",
-            "schedule": crontab(hour=3, minute=30),
+            "schedule": crontab(hour=[9, 17], minute=0),
         },
         "validate_data": {
             "task": "app.data.custom.validate_data.main",

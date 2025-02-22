@@ -7,8 +7,7 @@ from app.common.schema.common_schema import DeleteResponse, PutResponse
 from app.module.asset.constant import KOREA, USA, CurrencyType
 from app.module.asset.dependencies.asset_dependency import get_asset_query, get_asset_service, get_asset_validate
 from app.module.asset.dependencies.asset_field_dependency import get_asset_field_service
-from app.module.asset.dependencies.asset_stock_dependency import get_asset_stock_service
-from app.module.asset.dependencies.common_dependency import get_asset_common_validate
+from app.module.asset.dependencies.asset_stock_dependency import get_asset_stock_service, get_asset_stock_validate
 from app.module.asset.dependencies.dividend_dependency import get_dividend_service
 from app.module.asset.enum import AccountType, AssetType, InvestmentBankType, TradeType
 from app.module.asset.model import Asset, AssetField, Stock
@@ -37,7 +36,7 @@ from app.module.asset.services.asset.asset_service import AssetService
 from app.module.asset.services.asset.asset_validate import AssetValidate
 from app.module.asset.services.asset_field_service import AssetFieldService
 from app.module.asset.services.asset_stock.asset_stock_service import AssetStockService
-from app.module.asset.services.common.common_validate import AssetCommonValidate
+from app.module.asset.services.asset_stock.asset_stock_validate import AssetStockValidate
 from app.module.asset.services.dividend_service import DividendService
 from app.module.auth.constant import DUMMY_USER_ID
 from app.module.auth.schema import AccessToken
@@ -98,7 +97,7 @@ async def create_asset_stock(
     token: AccessToken = Depends(verify_jwt_token),
     session: AsyncSession = Depends(get_mysql_session_router),
     redis_client: Redis = Depends(get_redis_pool),
-    asset_common_validate: AssetCommonValidate = Depends(get_asset_common_validate),
+    asset_stock_validate: AssetStockValidate = Depends(get_asset_stock_validate),
     asset_stock_service: AssetStockService = Depends(get_asset_stock_service),
     asset_query: AssetQuery = Depends(get_asset_query),
 ) -> AssetStockStatusResponse:
@@ -106,7 +105,7 @@ async def create_asset_stock(
     if abnormal_data_response:
         return abnormal_data_response
 
-    validate_response = await asset_common_validate.check_asset_stock_request(session, request_data)
+    validate_response = await asset_stock_validate.check_asset_stock_request(session, request_data)
     if validate_response:
         return validate_response
 
@@ -121,7 +120,7 @@ async def update_asset_stock(
     token: AccessToken = Depends(verify_jwt_token),
     session: AsyncSession = Depends(get_mysql_session_router),
     redis_client: Redis = Depends(get_redis_pool),
-    asset_common_validate: AssetCommonValidate = Depends(get_asset_common_validate),
+    asset_stock_validate: AssetStockValidate = Depends(get_asset_stock_validate),
     asset_service: AssetService = Depends(get_asset_service),
     asset_query: AssetQuery = Depends(get_asset_query),
 ) -> AssetStockStatusResponse:
@@ -129,7 +128,7 @@ async def update_asset_stock(
     if asset_validate_response:
         return asset_validate_response
 
-    validate_response = await asset_common_validate.check_asset_stock_request(session, request_data)
+    validate_response = await asset_stock_validate.check_asset_stock_request(session, request_data)
     if validate_response:
         return validate_response
 
@@ -224,7 +223,6 @@ async def get_sample_asset_stock(
     aggregate_stock_assets: list[AggregateStockAsset] = asset_service.aggregate_stock_assets(
         buy_stock_assets_elements, aggregate_stock_assets_profit_rate
     )
-
     stock_assets: list[StockAssetGroup] = asset_service.group_stock_assets(
         full_stock_asset_elements, aggregate_stock_assets
     )
