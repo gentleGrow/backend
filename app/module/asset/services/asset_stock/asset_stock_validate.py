@@ -2,17 +2,16 @@ from fastapi import status
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.module.asset.constant import KOREA
-from app.module.asset.enum import StockAsset
-from app.module.asset.enum import PurchaseCurrencyType
-from app.module.asset.schema import AssetStockPostRequest, AssetStockPutRequest, AssetStockStatusResponse
+from app.module.asset.enum import PurchaseCurrencyType, StockAsset
 from app.module.asset.repository.stock_repository import StockRepository
+from app.module.asset.schema import AssetStockPostRequest, AssetStockPutRequest, AssetStockStatusResponse
 from app.module.asset.services.stock.stock_validate import StockValidate
 
 
 class AssetStockValidate:
     def __init__(self, stock_validate: StockValidate):
         self.stock_validate = stock_validate
-    
+
     async def check_stock_purchase_type(self, session: AsyncSession, code: str, purchase_type: str) -> bool:
         stock = await StockRepository.get_by_code(session, code)
         if stock.country == KOREA:

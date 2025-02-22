@@ -1,14 +1,13 @@
 from fastapi import APIRouter, Depends, status
 from redis.asyncio import Redis
 from sqlalchemy.ext.asyncio import AsyncSession
-from app.module.asset.services.asset_stock.asset_stock_validate import AssetStockValidate
+
 from app.common.auth.security import verify_jwt_token
 from app.common.schema.common_schema import DeleteResponse, PutResponse
 from app.module.asset.constant import KOREA, USA, CurrencyType
-from app.module.asset.dependencies.asset_stock_dependency import get_asset_stock_validate
 from app.module.asset.dependencies.asset_dependency import get_asset_query, get_asset_service, get_asset_validate
 from app.module.asset.dependencies.asset_field_dependency import get_asset_field_service
-from app.module.asset.dependencies.asset_stock_dependency import get_asset_stock_service
+from app.module.asset.dependencies.asset_stock_dependency import get_asset_stock_service, get_asset_stock_validate
 from app.module.asset.dependencies.dividend_dependency import get_dividend_service
 from app.module.asset.enum import AccountType, AssetType, InvestmentBankType, TradeType
 from app.module.asset.model import Asset, AssetField, Stock
@@ -37,6 +36,7 @@ from app.module.asset.services.asset.asset_service import AssetService
 from app.module.asset.services.asset.asset_validate import AssetValidate
 from app.module.asset.services.asset_field_service import AssetFieldService
 from app.module.asset.services.asset_stock.asset_stock_service import AssetStockService
+from app.module.asset.services.asset_stock.asset_stock_validate import AssetStockValidate
 from app.module.asset.services.dividend_service import DividendService
 from app.module.auth.constant import DUMMY_USER_ID
 from app.module.auth.schema import AccessToken

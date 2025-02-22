@@ -6,6 +6,7 @@ from app.module.asset.services.stock.stock_validate import StockValidate
 exchange_rate_service = ExchangeRateService()
 stock_validate = StockValidate()
 
+
 def get_asset_stock_service() -> AssetStockService:
     return AssetStockService(exchange_rate_service=exchange_rate_service)
 

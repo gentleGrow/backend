@@ -87,10 +87,11 @@ def end_timestamp(year: int, month: int) -> int:
     date = datetime(year, month, last_day, 23, 59)
     return int(time.mktime(date.timetuple()))
 
-def get_past_weekday_date(days: int) -> date:
-        past_date = get_date_past_day(days)
-        while check_date_weekend(past_date):
-            days = days + 1
-            past_date = get_date_past_day(days)
 
-        return past_date
+def get_past_weekday_date(days: int) -> date:
+    past_date = get_date_past_day(days)
+    while check_date_weekend(past_date):
+        days = days + 1
+        past_date = get_date_past_day(days)
+
+    return past_date
