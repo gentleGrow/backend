@@ -2,14 +2,15 @@ from datetime import date
 
 from redis.asyncio import Redis
 from sqlalchemy.ext.asyncio import AsyncSession
-from icecream import ic
+
 from app.common.util.time import get_date_past_day, get_past_weekday_date
+from app.module.asset.constant import PAST_MONTH_DAY, REDIS_STOCK_PAST_DATE_KEY
 from app.module.asset.model import Asset, StockDaily
 from app.module.asset.redis_repository import RedisCurrentPastDateRepository
 from app.module.asset.services.asset.asset_service import AssetService
 from app.module.asset.services.asset_stock.asset_stock_service import AssetStockService
 from app.module.asset.services.stock_daily_service import StockDailyService
-from app.module.asset.constant import REDIS_STOCK_PAST_DATE_KEY, PAST_MONTH_DAY
+
 
 class SummaryService:
     def __init__(
@@ -67,6 +68,5 @@ class SummaryService:
     async def _get_past_stock_open_past_date(self, redis_client: Redis, days: int) -> date:
         result: date | None = await RedisCurrentPastDateRepository().get(redis_client, REDIS_STOCK_PAST_DATE_KEY)
         past_date = get_past_weekday_date(days)
-        
+
         return result or past_date
-        

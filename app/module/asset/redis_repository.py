@@ -1,5 +1,5 @@
-from datetime import date
-from datetime import datetime
+from datetime import date, datetime
+
 from redis.asyncio import Redis
 
 
@@ -64,12 +64,12 @@ class RedisRealTimeMarketIndexRepository:
 class RedisCurrentPastDateRepository:
     @classmethod
     async def get(cls, redis_client: Redis, key: str) -> date | None:
-        date_str: str | None =  await redis_client.get(key)
+        date_str: str | None = await redis_client.get(key)
         if date_str:
             return datetime.strptime(date_str, "%Y-%m-%d").date()
         else:
             return None
-        
+
     @classmethod
-    async def set(cls, redis_client: Redis, key: str, past_date: date, expire_time: int) -> None:
+    async def set(cls, redis_client: Redis, key: str, past_date: str, expire_time: int) -> None:
         await redis_client.set(key, past_date, expire_time)
