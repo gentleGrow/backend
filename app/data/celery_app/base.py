@@ -53,7 +53,7 @@ if ENVIRONMENT == EnvironmentType.PROD.value:
         },
         "stock": {
             "task": "app.data.yahoo.stock.main",
-            "schedule": crontab(hour=2, minute=0),
+            "schedule": crontab(hour=[8, 18], minute=0),
         },
         "validate_data": {
             "task": "app.data.custom.validate_data.main",
@@ -88,7 +88,7 @@ elif ENVIRONMENT == EnvironmentType.DEV.value:
         },
         "stock": {
             "task": "app.data.yahoo.stock.main",
-            "schedule": crontab(hour=3, minute=30),
+            "schedule": crontab(hour=[9, 17], minute=0),
         },
         "validate_data": {
             "task": "app.data.custom.validate_data.main",

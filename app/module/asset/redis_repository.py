@@ -1,5 +1,5 @@
 from redis.asyncio import Redis
-
+from datetime import date
 
 class RedisAllDataRepostiroy:
     @classmethod
@@ -57,3 +57,9 @@ class RedisRealTimeMarketIndexRepository:
         for key, market_index_json in bulk_data:
             pipeline.set(key, market_index_json, ex=expire_time)
         await pipeline.execute()
+
+
+class RedisCurrentPastDateRepository:
+    @classmethod
+    async def get(cls, redis_client: Redis, key: str) -> date | None:
+        return await redis_client.get(key)

@@ -546,7 +546,7 @@ async def get_summary(
     if no_asset_response:
         return no_asset_response
 
-    past_stock_map = await summary_service.get_past_stock_map(session, complete_buy_asset, lastest_stock_daily_map)
+    past_stock_map = await summary_service.get_past_stock_map(session, redis_client, complete_buy_asset, lastest_stock_daily_map)
 
     total_asset_amount = asset_service.get_total_asset_amount(
         complete_buy_asset, current_stock_price_map, exchange_rate_map
@@ -593,7 +593,7 @@ async def get_sample_summary(
     if no_asset_response:
         return no_asset_response
 
-    past_stock_map = await summary_service.get_past_stock_map(session, complete_buy_asset, lastest_stock_daily_map)
+    past_stock_map = await summary_service.get_past_stock_map(session, redis_client, complete_buy_asset, lastest_stock_daily_map)
 
     total_asset_amount = asset_service.get_total_asset_amount(
         complete_buy_asset, current_stock_price_map, exchange_rate_map

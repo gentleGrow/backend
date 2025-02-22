@@ -247,7 +247,6 @@ prometheus-fastapi-instrumentator = "^7.0.0"
 ray = "^2.37.0"
 pyvirtualdisplay = "^3.0"
 aiolimiter = "^1.1.0"
-pykrx = "^1.0.48"
 locust = "^2.32.8"
 
 [tool.poetry.group.dev.dependencies]
