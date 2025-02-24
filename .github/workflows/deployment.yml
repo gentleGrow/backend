@@ -25,9 +25,9 @@ jobs:
       run: |
         aws elasticbeanstalk create-application-version \
           --application-name ${{ secrets.EB_APPLICATION_NAME }} \
-          --version-label ${{ github.sha }}) \
+          --version-label ${{ github.sha }} \
           --source-bundle S3Bucket=$EB_BUCKET,S3Key=app-${{ github.run_number }}.zip
 
         aws elasticbeanstalk update-environment \
           --environment-name ${{ secrets.EB_ENV_NAME }} \
-          --version-label ${{ github.sha }})
+          --version-label ${{ github.sha }}
