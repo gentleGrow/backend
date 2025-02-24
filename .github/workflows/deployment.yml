@@ -19,7 +19,11 @@ jobs:
         aws-region: ${{ secrets.AWS_REGION }}
 
     - name: Zip Application
-      run: zip -r app-${{ github.sha }}.zip .
+      run: zip -r app.zip .
+
+    - name: Upload to S3
+      run: |
+        aws s3 cp app.zip s3://${{ secrets.EB_BUCKET }}/app-${{ github.sha }}.zip
 
     - name: Deploy to Elastic Beanstalk
       run: |
