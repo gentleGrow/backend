@@ -25,13 +25,15 @@ jobs:
       run: |
         aws s3 cp app.zip s3://${{ secrets.EB_BUCKET }}/app-${{ github.sha }}.zip
 
-    - name: Deploy to Elastic Beanstalk
+    - name: Create new Elastic Beanstalk application version
       run: |
         aws elasticbeanstalk create-application-version \
           --application-name ${{ secrets.EB_APPLICATION_NAME }} \
           --version-label ${{ github.sha }} \
           --source-bundle S3Bucket=${{ secrets.EB_BUCKET }},S3Key=app-${{ github.sha }}.zip
 
+    - name: Deploy to Elastic Beanstalk
+      run: |
         aws elasticbeanstalk update-environment \
           --environment-name ${{ secrets.EB_ENV_NAME }} \
           --version-label ${{ github.sha }}
