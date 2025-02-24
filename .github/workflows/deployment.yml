@@ -22,7 +22,7 @@ jobs:
       run: echo "${{ secrets.BACKEND_ENV_CONTENTS }}" > .env
 
     - name: Zip Application
-      run: zip -r app.zip .
+      run: zip -r app.zip . -x ".git/*" ".github/*"
 
     - name: Upload to S3
       run: |
