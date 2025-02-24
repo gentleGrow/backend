@@ -19,14 +19,14 @@ jobs:
         aws-region: ${{ secrets.AWS_REGION }}
 
     - name: Zip Application
-      run: zip -r app.zip .
+      run: zip -r app-${{ github.sha }}.zip .
 
     - name: Deploy to Elastic Beanstalk
       run: |
         aws elasticbeanstalk create-application-version \
           --application-name ${{ secrets.EB_APPLICATION_NAME }} \
           --version-label ${{ github.sha }} \
-          --source-bundle S3Bucket=$EB_BUCKET,S3Key=app-${{ github.run_number }}.zip
+          --source-bundle S3Bucket=${{ secrets.EB_BUCKET }},S3Key=app-${{ github.sha }}.zip
 
         aws elasticbeanstalk update-environment \
           --environment-name ${{ secrets.EB_ENV_NAME }} \
