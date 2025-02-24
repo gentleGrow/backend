@@ -18,6 +18,9 @@ jobs:
         aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
         aws-region: ${{ secrets.AWS_REGION }}
 
+    - name: Save env
+      run: echo "${{ secrets.BACKEND_ENV_CONTENTS }}" > .env
+
     - name: Zip Application
       run: zip -r app.zip .
 
