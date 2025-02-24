@@ -4,6 +4,7 @@ from dotenv import load_dotenv
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from starlette.middleware.sessions import SessionMiddleware
+from starlette.responses import RedirectResponse
 
 from app.api.asset.v1.router import asset_stock_router
 from app.api.auth.v1.router import auth_router
@@ -46,6 +47,10 @@ else:
         allow_headers=["*"],
     )
 
+    @app.get("/{full_path:path}")
+    async def redirect_to_https(full_path: str):
+        return RedirectResponse(url=f"https://www.gaemischool.com/{full_path}", status_code=301)
+
 app.add_middleware(SessionMiddleware, secret_key=SESSION_KEY)
 app.add_middleware(TimeoutMiddleware)
 
@@ -58,3 +63,5 @@ app.include_router(event_router, prefix="/api/event", tags=["event"])
 @app.get("/health")
 async def health():
     return {"status": "ok"}
+
+

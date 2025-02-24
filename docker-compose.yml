@@ -1,16 +1,56 @@
+version: "3.8"
+
 services:
   fastapi:
     build:
       context: .
       dockerfile: Dockerfile
-    container_name: app_container
+    container_name: myapp_container
     ports:
-      - "8000:8000"
+      - "80:80"
+      - "443:443"
     env_file:
       - .env
     restart: always
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
+    depends_on:
+      - mysql
+      - redis
+    command: >
+      sh -c "
+      uvicorn main:app --host 0.0.0.0 --port 80 & 
+      uvicorn main:app --host 0.0.0.0 --port 443 --ssl-keyfile /etc/letsencrypt/live/gaemischool/privkey.pem --ssl-certfile /etc/letsencrypt/live/gaemischool/fullchain.pem"
+    volumes:
+      - ./certs:/etc/letsencrypt
+
+  mysql:
+    image: mysql:8.0
+    container_name: mysql_db
+    restart: always
+    env_file:
+      - .env
+    ports:
+      - "3306:3306"
+    volumes:
+      - mysql_data:/var/lib/mysql
+
+  redis:
+    image: redis:latest
+    container_name: redis_cache
+    restart: always
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+
+  redirect:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: redirect_container
+    ports:
+      - "80:80"
+    command: uvicorn redirect:app --host 0.0.0.0 --port 80
+
+volumes:
+  mysql_data:
+  redis_data:
