@@ -23,12 +23,13 @@ class StockAsset(StrEnum):
     DIVIDEND = "배당금"
     HIGHEST_PRICE = "고가"
     INVESTMENT_BANK = "증권사"
+    CLOSE_PRICE = "종가"
     LOWEST_PRICE = "저가"
     OPENING_PRICE = "시가"
     PROFIT_RATE = "수익률"
-    PROFIT_AMOUNT = "수익금"
-    TRADE_AMOUNT = "거래금"
-    TRADE_PRICE = "거래가"
+    PROFIT_AMOUNT = "수익금"  # [TODO] 명칭 PRECEED으로 변경 필요
+    TRADE_AMOUNT = "거래금"  # 매수/매도 가격 * 수량 (자동 필드)
+    TRADE_PRICE = "거래가"  # 매수/매도 가격(옵션 필드)
     STOCK_NAME = "종목명"
     STOCK_VOLUME = "거래량"
 

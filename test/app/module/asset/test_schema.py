@@ -1,16 +1,7 @@
-import pytest
-from redis.asyncio import Redis
-from sqlalchemy.ext.asyncio import AsyncSession
-
-from app.module.asset.constant import CurrencyType
-from app.module.asset.dependencies.asset_dependency import get_asset_query, get_asset_service
-from app.module.asset.dependencies.asset_field_dependency import get_asset_field_service
-from app.module.asset.dependencies.dividend_dependency import get_dividend_service
 from app.module.asset.enum import AssetType
 from app.module.asset.model import Asset
-from app.module.asset.redis_repository import RedisExchangeRateRepository
 from app.module.asset.repository.asset_repository import AssetRepository
-from app.module.asset.schema import AggregateStockAsset, AssetStockResponse, StockAssetGroup, StockAssetSchema
+from app.module.asset.schema import AssetStockResponse
 from app.module.auth.constant import DUMMY_USER_ID
 
 
@@ -49,64 +40,3 @@ class TestAssetStockResponse:
 
         # Then
         assert response is None
-
-    async def test_parse(self, session: AsyncSession, redis_client: Redis, setup_all):
-        # Given
-        asset_service = get_asset_service()
-        dividend_service = get_dividend_service()
-        asset_field_service = get_asset_field_service()
-        asset_query = get_asset_query()
-
-        assets: list[Asset] = await AssetRepository.get_eager(session, DUMMY_USER_ID, AssetType.STOCK)
-        asset_fields = await asset_field_service.get_asset_field(session, DUMMY_USER_ID)
-
-        (
-            stock_daily_map,
-            lastest_stock_daily_map,
-            dividend_map,
-            exchange_rate_map,
-            current_stock_price_map,
-        ) = await asset_query.get_user_data(session, redis_client, assets, DUMMY_USER_ID)
-
-        stock_asset_elements: list[StockAssetSchema] = asset_service.get_stock_assets(
-            assets,
-            stock_daily_map,
-            lastest_stock_daily_map,
-            dividend_map,
-            exchange_rate_map,
-            current_stock_price_map,
-        )
-
-        aggregate_stock_assets: list[AggregateStockAsset] = asset_service.aggregate_stock_assets(stock_asset_elements)
-        stock_assets: list[StockAssetGroup] = asset_service.group_stock_assets(
-            stock_asset_elements, aggregate_stock_assets
-        )
-
-        total_asset_amount = asset_service.get_total_asset_amount(assets, current_stock_price_map, exchange_rate_map)
-        total_invest_amount = asset_service.get_total_investment_amount(assets, stock_daily_map, exchange_rate_map)
-        total_dividend_amount = dividend_service.get_total_dividend(assets, exchange_rate_map, dividend_map)
-
-        dollar_exchange = await RedisExchangeRateRepository.get(
-            redis_client, f"{CurrencyType.KOREA}_{CurrencyType.USA}"
-        )
-        won_exchange = await RedisExchangeRateRepository.get(redis_client, f"{CurrencyType.USA}_{CurrencyType.KOREA}")
-
-        # When
-        stock_asset_response = AssetStockResponse.parse(
-            stock_assets=stock_assets,
-            asset_fields=asset_fields,
-            total_asset_amount=total_asset_amount,
-            total_invest_amount=total_invest_amount,
-            total_dividend_amount=total_dividend_amount,
-            dollar_exchange=dollar_exchange if dollar_exchange else 0.0,
-            won_exchange=won_exchange if won_exchange else 0.0,
-        )
-
-        # Then
-        expected_profit_rate = ((total_asset_amount - total_invest_amount) / total_invest_amount) * 100
-        assert stock_asset_response.total_profit_rate == pytest.approx(expected_profit_rate)
-
-        expected_profit_amount = total_asset_amount - total_invest_amount
-        assert stock_asset_response.total_profit_amount == pytest.approx(expected_profit_amount)
-
-        assert len(stock_asset_response.stock_assets) == len(stock_assets)

@@ -9,6 +9,11 @@ from app.module.asset.enum import (
     PurchaseCurrencyType,
 )
 
+REDIS_STOCK_PAST_DATE_KEY = "stock_past_date"
+REDIS_STOCK_PAST_DATE_CHECK_CODES = ["AAPL", "005930", "SCHD"]
+PAST_MONTH_DAY = 30
+REDIS_STOCK_EXPIRE_SECOND = 60 * 60 * 24
+
 RICH_TOP_PICK_NUM = 10
 RICH_PEOPLE_DATA_KEY = "rich_data_key"
 USER_DATA_KEY = "user_data_key"

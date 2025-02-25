@@ -12,7 +12,7 @@ def get_current_unix_timestamp() -> int:
     return int(time.time() * 1000)
 
 
-def get_date_past_day(days: int):
+def get_date_past_day(days: int) -> date:
     seoul_tz = ZoneInfo("Asia/Seoul")
     now_in_seoul = datetime.now(seoul_tz)
     return now_in_seoul.date() - timedelta(days=days)
@@ -86,3 +86,12 @@ def end_timestamp(year: int, month: int) -> int:
     last_day = calendar.monthrange(year, month)[1]
     date = datetime(year, month, last_day, 23, 59)
     return int(time.mktime(date.timetuple()))
+
+
+def get_past_weekday_date(days: int) -> date:
+    past_date = get_date_past_day(days)
+    while check_date_weekend(past_date):
+        days = days + 1
+        past_date = get_date_past_day(days)
+
+    return past_date
