@@ -20,25 +20,34 @@ jobs:
         aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
         aws-region: ${{ secrets.AWS_REGION }}
 
+    - name: Save github environment
+      run: |
+        VERSION=$(cat VERSION)
+        echo "VERSION=$VERSION" >> $GITHUB_ENV
+
     - name: Save env
       run: echo "${{ secrets.BACKEND_ENV_CONTENTS }}" > .env
+
+    - name: Change files
+      run: |
+        cp -f docker-compose.prod.yml docker-compose.yml
 
     - name: Zip Application
       run: zip -r app.zip . -x ".git/*" ".github/*"
 
     - name: Upload to S3
       run: |
-        aws s3 cp app.zip s3://${{ secrets.EB_BUCKET }}/app-${{ github.sha }}.zip
+        aws s3 cp app.zip s3://${{ secrets.EB_BUCKET }}/app-${VERSION}.zip
 
     - name: Create new Elastic Beanstalk application version
       run: |
         aws elasticbeanstalk create-application-version \
           --application-name ${{ secrets.EB_APPLICATION_NAME }} \
-          --version-label ${{ github.sha }} \
-          --source-bundle S3Bucket=${{ secrets.EB_BUCKET }},S3Key=app-${{ github.sha }}.zip
+          --version-label ${VERSION} \
+          --source-bundle S3Bucket=${{ secrets.EB_BUCKET }},S3Key=app-${VERSION}.zip
 
     - name: Deploy to Elastic Beanstalk
       run: |
         aws elasticbeanstalk update-environment \
           --environment-name ${{ secrets.EB_ENV_NAME }} \
-          --version-label ${{ github.sha }}
+          --version-label ${VERSION}
