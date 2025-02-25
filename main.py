@@ -47,9 +47,6 @@ else:
         allow_headers=["*"],
     )
 
-    @app.get("/{full_path:path}")
-    async def redirect_to_https(full_path: str):
-        return RedirectResponse(url=f"https://www.gaemischool.com/{full_path}", status_code=301)
 
 app.add_middleware(SessionMiddleware, secret_key=SESSION_KEY)
 app.add_middleware(TimeoutMiddleware)
