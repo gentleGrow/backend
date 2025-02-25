@@ -4,6 +4,7 @@ from celery import Celery
 from celery.schedules import crontab
 from dotenv import load_dotenv
 
+import app.data.custom.cache_past_date  # noqa: F401 > task 위치를 찾는데 필요합니다.
 import app.data.custom.validate_data  # noqa: F401 > task 위치를 찾는데 필요합니다.
 import app.data.naver.current_index.collector  # noqa: F401 > task 위치를 찾는데 필요합니다.
 import app.data.naver.current_korea_stock.collector  # noqa: F401 > task 위치를 찾는데 필요합니다.
@@ -41,38 +42,81 @@ celery_task.conf.update(
     }
 )
 
-
-celery_task.conf.beat_schedule = {
-    "dividend": {
-        "task": "app.data.yahoo.dividend.main",
-        "schedule": crontab(hour=1, minute=0),
-    },
-    "index": {
-        "task": "app.data.yahoo.index.main",
-        "schedule": crontab(minute=0),
-    },
-    "stock": {
-        "task": "app.data.yahoo.stock.main",
-        "schedule": crontab(minute=0),
-    },
-    "validate_data": {
-        "task": "app.data.custom.validate_data.main",
-        "schedule": crontab(hour=23, minute=0, day_of_week="1-6"),
-    },
-    "current_exchange_rate": {
-        "task": "app.data.yahoo.current_exchange_rate.main",
-        "schedule": crontab(minute="*/15"),
-    },
-    "current_usa_stock": {
-        "task": "app.data.yahoo.current_usa_stock.main",
-        "schedule": crontab(minute="*/15"),
-    },
-    "current_korea_stock": {
-        "task": "app.data.naver.current_korea_stock.collector.main",
-        "schedule": crontab(minute="*/15"),
-    },
-    "current_index": {
-        "task": "app.data.naver.current_index.collector.main",
-        "schedule": crontab(minute="*/15"),
-    },
-}
+if ENVIRONMENT == EnvironmentType.PROD.value:
+    celery_task.conf.beat_schedule = {
+        "cache_past_date": {
+            "task": "app.data.custom.cache_past_date.main",
+            "schedule": crontab(hour=8, minute=0),
+        },
+        "dividend": {
+            "task": "app.data.yahoo.dividend.main",
+            "schedule": crontab(hour=1, minute=0),
+        },
+        "index": {
+            "task": "app.data.yahoo.index.main",
+            "schedule": crontab(hour=1, minute=30),
+        },
+        "stock": {
+            "task": "app.data.yahoo.stock.main",
+            "schedule": crontab(hour=[8, 18], minute=0),
+        },
+        "validate_data": {
+            "task": "app.data.custom.validate_data.main",
+            "schedule": crontab(hour=23, minute=0, day_of_week="1-6"),
+        },
+        "current_exchange_rate": {
+            "task": "app.data.yahoo.current_exchange_rate.main",
+            "schedule": crontab(minute=10),
+        },
+        "current_usa_stock": {
+            "task": "app.data.yahoo.current_usa_stock.main",
+            "schedule": crontab(minute=15),
+        },
+        "current_korea_stock": {
+            "task": "app.data.naver.current_korea_stock.collector.main",
+            "schedule": crontab(minute=20),
+        },
+        "current_index": {
+            "task": "app.data.naver.current_index.collector.main",
+            "schedule": crontab(minute=25),
+        },
+    }
+elif ENVIRONMENT == EnvironmentType.DEV.value:
+    celery_task.conf.beat_schedule = {
+        "cache_past_date": {
+            "task": "app.data.custom.cache_past_date.main",
+            "schedule": crontab(hour=8, minute=0),
+        },
+        "dividend": {
+            "task": "app.data.yahoo.dividend.main",
+            "schedule": crontab(hour=2, minute=30),
+        },
+        "index": {
+            "task": "app.data.yahoo.index.main",
+            "schedule": crontab(hour=3, minute=0),
+        },
+        "stock": {
+            "task": "app.data.yahoo.stock.main",
+            "schedule": crontab(hour=[9, 17], minute=0),
+        },
+        "validate_data": {
+            "task": "app.data.custom.validate_data.main",
+            "schedule": crontab(hour=23, minute=0, day_of_week="1-6"),
+        },
+        "current_exchange_rate": {
+            "task": "app.data.yahoo.current_exchange_rate.main",
+            "schedule": crontab(minute=30),
+        },
+        "current_usa_stock": {
+            "task": "app.data.yahoo.current_usa_stock.main",
+            "schedule": crontab(minute=35),
+        },
+        "current_korea_stock": {
+            "task": "app.data.naver.current_korea_stock.collector.main",
+            "schedule": crontab(minute=40),
+        },
+        "current_index": {
+            "task": "app.data.naver.current_index.collector.main",
+            "schedule": crontab(minute=45),
+        },
+    }

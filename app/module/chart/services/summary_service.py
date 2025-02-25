@@ -1,13 +1,15 @@
 from datetime import date
 
+from redis.asyncio import Redis
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.common.util.time import check_date_weekend, get_date_past_day
+from app.common.util.time import get_date_past_day, get_past_weekday_date
+from app.module.asset.constant import PAST_MONTH_DAY, REDIS_STOCK_PAST_DATE_KEY
 from app.module.asset.model import Asset, StockDaily
+from app.module.asset.redis_repository import RedisCurrentPastDateRepository
 from app.module.asset.services.asset.asset_service import AssetService
 from app.module.asset.services.asset_stock.asset_stock_service import AssetStockService
 from app.module.asset.services.stock_daily_service import StockDailyService
-from app.module.chart.constant import PAST_MONTH_DAY
 
 
 class SummaryService:
@@ -39,9 +41,13 @@ class SummaryService:
         return current_total_amount - past_total_amount
 
     async def get_past_stock_map(
-        self, session: AsyncSession, assets: list[Asset], lastest_stock_daily_map: dict[str, StockDaily]
+        self,
+        session: AsyncSession,
+        redis_client: Redis,
+        assets: list[Asset],
+        lastest_stock_daily_map: dict[str, StockDaily],
     ) -> dict[str, float]:
-        past_date = self._get_weekday_date(PAST_MONTH_DAY)
+        past_date = await self._get_past_stock_open_past_date(redis_client, PAST_MONTH_DAY)
         past_stock_daily_map: dict[tuple[str, date], StockDaily] = await self.stock_daily_service.get_date_map(
             session, assets, past_date
         )
@@ -59,10 +65,8 @@ class SummaryService:
 
         return result
 
-    def _get_weekday_date(self, days: int) -> date:
-        past_date = get_date_past_day(days)
-        while check_date_weekend(past_date):
-            days = days + 1
-            past_date = get_date_past_day(days)
+    async def _get_past_stock_open_past_date(self, redis_client: Redis, days: int) -> date:
+        result: date | None = await RedisCurrentPastDateRepository().get(redis_client, REDIS_STOCK_PAST_DATE_KEY)
+        past_date = get_past_weekday_date(days)
 
-        return past_date
+        return result or past_date
