@@ -15,11 +15,6 @@ services:
     depends_on:
       - mysql
       - redis
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
 
   mysql:
     image: mysql:8.0
@@ -50,10 +45,21 @@ services:
       - "443:443"
     volumes:
       - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
-      - ./certbot/conf:/etc/letsencrypt
       - ./certbot/www:/var/www/certbot
+      - ./certbot/conf:/etc/letsencrypt
     depends_on:
       - fastapi
+
+  certbot:
+    image: certbot/certbot
+    container_name: certbot
+    volumes:
+      - ./certbot/conf:/etc/letsencrypt
+      - ./certbot/www:/var/www/certbot
+    entrypoint: >
+      sh -c "certbot certonly --webroot -w /var/www/certbot
+      --email admin@gaemischool.com --agree-tos --no-eff-email
+      -d api.gaemischool.com --rsa-key-size 2048 --force-renewal"
 
 volumes:
   mysql_data:
