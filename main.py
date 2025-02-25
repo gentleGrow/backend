@@ -46,6 +46,7 @@ else:
         allow_headers=["*"],
     )
 
+
 app.add_middleware(SessionMiddleware, secret_key=SESSION_KEY)
 app.add_middleware(TimeoutMiddleware)
 
