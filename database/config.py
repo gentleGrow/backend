@@ -42,6 +42,7 @@ if ENVIRONMENT == EnvironmentType.LOCAL.value or ENVIRONMENT == EnvironmentType.
 
     # [INFO] api 별 쿼리 실행 계획 확인을 위한 custom 이벤트 리스너
     if QUERY_LOG == "True":
+
         @event.listens_for(mysql_engine.sync_engine, "before_cursor_execute")
         def before_cursor_execute(conn, cursor, statement, parameters, context, executemany):
             full_query = statement % parameters

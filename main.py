@@ -4,7 +4,6 @@ from dotenv import load_dotenv
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from starlette.middleware.sessions import SessionMiddleware
-from starlette.responses import RedirectResponse
 
 from app.api.asset.v1.router import asset_stock_router
 from app.api.auth.v1.router import auth_router
@@ -60,5 +59,3 @@ app.include_router(event_router, prefix="/api/event", tags=["event"])
 @app.get("/health")
 async def health():
     return {"status": "ok"}
-
-
