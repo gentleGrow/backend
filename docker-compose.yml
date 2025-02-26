@@ -43,7 +43,7 @@ services:
     container_name: nginx
     ports:
       - "80:80"
-      - "443:443"  
+      - "443:443"
     volumes:
       - ./nginx/nginx.conf:/etc/nginx/conf.d/default.conf
       - /etc/letsencrypt/live/api.gaemischool.com/fullchain.pem:/etc/letsencrypt/live/api.gaemischool.com/fullchain.pem
