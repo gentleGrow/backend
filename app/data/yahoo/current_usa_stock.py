@@ -24,7 +24,7 @@ ENVIRONMENT = getenv("ENVIRONMENT", None)
 logger = logging.getLogger("current_usa_stock")
 logger.setLevel(logging.INFO)
 
-if ENVIRONMENT == EnvironmentType.PROD:
+if ENVIRONMENT == EnvironmentType.PROD or ENVIRONMENT == EnvironmentType.DEV:
     file_handler = logging.FileHandler("/home/backend/current_usa_stock.log", delay=False)
     file_handler.setFormatter(logging.Formatter("%(asctime)s - %(levelname)s - %(message)s"))
     logger.addHandler(file_handler)
@@ -73,6 +73,7 @@ async def execute_async_task():
     stock_list: list[StockInfo] = StockCodeFileReader.get_usa_stock_code_list()
     redis_client = get_redis_pool()
     await process_stock_data(redis_client, stock_list)
+    logger.info("현재 미국 주가를 수집 완료하였습니다.")
 
 
 @shared_task

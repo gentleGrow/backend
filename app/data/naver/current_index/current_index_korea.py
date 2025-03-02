@@ -16,7 +16,7 @@ ENVIRONMENT = os.getenv("ENVIRONMENT", None)
 logger = logging.getLogger("current_index")
 logger.setLevel(logging.INFO)
 
-if ENVIRONMENT == EnvironmentType.PROD:
+if ENVIRONMENT == EnvironmentType.PROD or ENVIRONMENT == EnvironmentType.DEV:
     file_handler = logging.FileHandler("/home/backend/current_index.log", delay=False)
     file_handler.setFormatter(logging.Formatter("%(asctime)s - %(levelname)s - %(message)s"))
     logger.addHandler(file_handler)

@@ -99,10 +99,6 @@ elif ENVIRONMENT == EnvironmentType.DEV.value:
             "task": "app.data.yahoo.stock.main",
             "schedule": crontab(hour=[9, 17], minute=0),
         },
-        "validate_data": {
-            "task": "app.data.custom.validate_data.main",
-            "schedule": crontab(hour=23, minute=0, day_of_week="1-6"),
-        },
         "current_exchange_rate": {
             "task": "app.data.yahoo.current_exchange_rate.main",
             "schedule": crontab(minute=30),
