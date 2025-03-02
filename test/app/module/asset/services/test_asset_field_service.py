@@ -1,6 +1,6 @@
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.module.asset.constant import REQUIRED_ASSET_FIELD
+from app.module.asset.constant import DEFAULT_ASSET_FIELD, REQUIRED_ASSET_FIELD
 from app.module.asset.dependencies.asset_field_dependency import get_asset_field_service
 from app.module.asset.services.asset_field_service import AssetFieldService
 from app.module.auth.constant import DUMMY_USER_ID
@@ -27,7 +27,7 @@ class TestAssetFieldService:
         result = await asset_field_service.get_asset_field(session, new_user_id)
 
         # Then
-        expected_fields = [field for field in REQUIRED_ASSET_FIELD]
+        expected_fields = [field for field in DEFAULT_ASSET_FIELD]
         assert result == expected_fields
 
         # And
