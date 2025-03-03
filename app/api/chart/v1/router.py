@@ -177,6 +177,7 @@ async def get_sample_estimate_dividend(
         exchange_rate_map,
         current_stock_price_map,
     ) = await asset_query.get_user_data(session, redis_client, assets, DUMMY_USER_ID)
+
     dividend_map: dict[tuple[str, date], float] = await dividend_service.get_dividend_map(session, assets)
 
     complete_asset, incomplete_assets = asset_service.separate_assets_by_full_data(assets, stock_daily_map)

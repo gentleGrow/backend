@@ -4,8 +4,6 @@ from datetime import date, timedelta
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.module.asset.constant import MONTHS
-
-# from app.module.asset.constant import MONTHS, 만
 from app.module.asset.model import Asset, Dividend
 from app.module.asset.repository.dividend_repository import DividendRepository
 from app.module.asset.services.exchange_rate_service import ExchangeRateService
@@ -141,22 +139,10 @@ class DividendService:
         total_dividends: dict[date, float] = self._get_full_month_estimate_dividend(
             assets, exchange_rate_map, dividend_map
         )
-
         dividend_data_by_year = self._combine_dividends_by_year_month(total_dividends)
 
         result = {}
         for year, months in dividend_data_by_year.items():
-            # [TODO] 추후 협의 후 수정 할 코드입니다.
-            # over_만 = any(value > 만 for value in months.values())
-            # if over_만:
-            #     data = [months.get(month, 0.0) / 만 if months.get(month, 0.0) > 0 else 0.0 for month in range(1, 13)]
-            #     total = sum(data)
-            #     result[year] = EstimateDividendEveryValue(xAxises=MONTHS, data=data, unit="만원", total=total)
-            # else:
-            #     data = [months.get(month, 0.0) for month in range(1, 13)]
-            #     total = sum(data)
-            #     result[year] = EstimateDividendEveryValue(xAxises=MONTHS, data=data, unit="원", total=total)
-
             data = [months.get(month, 0.0) for month in range(1, 13)]
             total = sum(data)
             result[year] = EstimateDividendEveryValue(xAxises=MONTHS, data=data, unit="원", total=total)
