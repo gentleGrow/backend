@@ -75,12 +75,11 @@ class RedisCurrentPastDateRepository:
         await redis_client.set(key, past_date, expire_time)
 
 
-
 class RedisEstimateDividendRepository:
     @classmethod
     async def get(cls, redis_client: Redis, key: str) -> list:
         return await redis_client.get(key)
 
     @classmethod
-    async def set(cls, redis_client: Redis, key: str, data: list, expire_time: int) -> None:
+    async def set(cls, redis_client: Redis, key: str, data: str, expire_time: int) -> None:
         await redis_client.set(key, data, expire_time)

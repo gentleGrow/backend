@@ -1,4 +1,5 @@
 import asyncio
+import json
 import logging
 from datetime import datetime
 from os import getenv
@@ -6,19 +7,18 @@ from os import getenv
 import yfinance
 from celery import shared_task
 from dotenv import load_dotenv
-from icecream import ic
 from pandas import Series
 from redis.asyncio import Redis
 
 from app.data.common.services.stock_code_file_service import StockCodeFileReader
+from app.data.yahoo.source.constant import REDIS_ESTIMATE_DIVIDEND_KEY, REDIS_ESTIMATE_EXPIRE_SECOND
 from app.data.yahoo.source.enums import Months
 from app.data.yahoo.source.service import format_stock_code
 from app.module.asset.enum import Country
+from app.module.asset.redis_repository import RedisEstimateDividendRepository
 from app.module.asset.schema import StockInfo
 from database.dependency import get_redis_pool
 from database.enum import EnvironmentType
-from app.module.asset.redis_repository import RedisEstimateDividendRepository
-from app.data.yahoo.source.constant import REDIS_ESTIMATE_EXPIRE_SECOND
 
 load_dotenv()
 
@@ -48,17 +48,35 @@ async def save_estimate_dividend(redis_client: Redis, stock_list: list[StockInfo
             if dividends.empty:
                 continue
 
-            # [TODO] stock_info에서 배당성장률 가져오기
-            dividend_growth_rate = stock_info.info.get("dividendRate")
+            dividend_growth_rate = get_cagr_dividend_rate(dividends)
 
             estimate_dividend = get_estimate_dividend(dividends, dividend_growth_rate)
             if not estimate_dividend:
                 continue
 
-            RedisEstimateDividendRepository.set(redis_client, stock.code, estimate_dividend, REDIS_ESTIMATE_EXPIRE_SECOND)
+            await RedisEstimateDividendRepository.set(
+                redis_client,
+                REDIS_ESTIMATE_DIVIDEND_KEY + stock.code,
+                json.dumps(estimate_dividend),
+                REDIS_ESTIMATE_EXPIRE_SECOND,
+            )
 
         except Exception:
             continue
+
+
+def get_cagr_dividend_rate(dividends: Series) -> float:
+    annual_dividends = dividends.resample("YE").sum()
+    annual_dividends = annual_dividends[annual_dividends > 0]
+
+    if len(annual_dividends) > 1:
+        years = len(annual_dividends) - 1
+
+        start_div = annual_dividends.iloc[0]
+        end_div = annual_dividends.iloc[-1]
+        return (end_div / start_div) ** (1 / years) - 1
+    else:
+        return 0
 
 
 def get_estimate_dividend(dividends_raw: Series, dividend_growth_rate: float) -> list:
@@ -70,27 +88,24 @@ def get_estimate_dividend(dividends_raw: Series, dividend_growth_rate: float) ->
     last_year = current_year - 1
     year_before_last = current_year - 2
     year_before_last_last = current_year - 3
- 
+
     current_year_dividends = {date: amount for date, amount in dividends.items() if date.year == current_year}
     last_year_dividends = {date: amount for date, amount in dividends.items() if date.year == last_year}
-    year_before_last_dividends = {
-        date: amount for date, amount in dividends.items() if date.year == year_before_last
-    }
+    year_before_last_dividends = {date: amount for date, amount in dividends.items() if date.year == year_before_last}
     year_before_last_last_dividends = {
         date: amount for date, amount in dividends.items() if date.year == year_before_last_last
     }
 
-
     if not last_year_dividends or not year_before_last_dividends or not year_before_last_last_dividends:
         return []
- 
+
     return get_estimate_dividend_cache(
-            current_year_dividends,
-            last_year_dividends,
-            year_before_last_dividends,
-            year_before_last_last_dividends,
-            dividend_growth_rate,
-        )
+        current_year_dividends,
+        last_year_dividends,
+        year_before_last_dividends,
+        year_before_last_last_dividends,
+        dividend_growth_rate,
+    )
 
 
 def get_estimate_dividend_cache(
@@ -98,7 +113,7 @@ def get_estimate_dividend_cache(
     last_year_dividends: dict,
     year_before_last_dividends: dict,
     year_before_last_last_dividends: dict,
-    dividend_growth_rate: float
+    dividend_growth_rate: float,
 ) -> list:
     result = []
 
@@ -111,29 +126,49 @@ def get_estimate_dividend_cache(
         year_before_last_exist = any(date.month == month.value for date in year_before_last_dividends.keys())
         year_before_last_last_exist = any(date.month == month.value for date in year_before_last_last_dividends.keys())
 
-        if not (last_year_exist and year_before_last_exist and year_before_last_last_exist):
+        if not (last_year_exist or year_before_last_exist or year_before_last_last_exist):
             continue
 
-        estimated_dividend = calculate_estimated_dividend(last_year_dividends, month, dividend_growth_rate)
-        if estimated_dividend:
-            result.append((month, estimated_dividend))
+        month_estimated_dividend = calculate_estimated_dividend(
+            last_year_dividends,
+            year_before_last_dividends,
+            year_before_last_last_dividends,
+            month,
+            dividend_growth_rate,
+        )
 
+        if month_estimated_dividend:
+            result.append((month.value, month_estimated_dividend))
     return result
 
-def calculate_estimated_dividend(last_year_dividends: dict, month: Months, dividend_growth_rate: float) -> float | None:
-    past_dividend = last_year_dividends.get(month.value)
+
+def calculate_estimated_dividend(
+    last_year_dividends: dict,
+    year_before_last_dividends: dict,
+    year_before_last_last_dividends: dict,
+    month: Months,
+    dividend_growth_rate: float,
+) -> float | None:
+    past_dividend = get_dividend_for_month(last_year_dividends, month)
     if past_dividend:
         return past_dividend * (1 + dividend_growth_rate)
-    
-    past_dividend = last_year_dividends.get(month.value)
+
+    past_dividend = get_dividend_for_month(year_before_last_dividends, month)
     if past_dividend:
         return past_dividend * (1 + dividend_growth_rate) * (1 + dividend_growth_rate)
-    
-    past_dividend = last_year_dividends.get(month.value)
+
+    past_dividend = get_dividend_for_month(year_before_last_last_dividends, month)
     if past_dividend:
         return past_dividend * (1 + dividend_growth_rate) * (1 + dividend_growth_rate) * (1 + dividend_growth_rate)
-    
-    return 
+
+    return None
+
+
+def get_dividend_for_month(dividends: dict, month: Months) -> float | None:
+    for date, amount in dividends.items():
+        if date.month == month.value:
+            return amount
+    return None
 
 
 async def execute_async_task():
@@ -144,7 +179,6 @@ async def execute_async_task():
     logger.info("예상 배당 수집이 완료되었습니다.")
 
 
-
 @shared_task
 def main():
     asyncio.run(execute_async_task())
@@ -152,8 +186,3 @@ def main():
 
 if __name__ == "__main__":
     asyncio.run(execute_async_task())
-
-
-
-
-

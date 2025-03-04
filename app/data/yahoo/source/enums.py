@@ -1,5 +1,6 @@
 from enum import Enum
 
+
 class Months(Enum):
     JANUARY = 1
     FEBRUARY = 2
@@ -13,4 +14,3 @@ class Months(Enum):
     OCTOBER = 10
     NOVEMBER = 11
     DECEMBER = 12
-
