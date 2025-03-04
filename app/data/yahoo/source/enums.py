@@ -1,8 +1,16 @@
 from enum import Enum
 
+class Months(Enum):
+    JANUARY = 1
+    FEBRUARY = 2
+    MARCH = 3
+    APRIL = 4
+    MAY = 5
+    JUNE = 6
+    JULY = 7
+    AUGUST = 8
+    SEPTEMBER = 9
+    OCTOBER = 10
+    NOVEMBER = 11
+    DECEMBER = 12
 
-class Quarters(Enum):
-    FIRST_QUARTER = [1, 2, 3]
-    SECOND_QUARTER = [4, 5, 6]
-    THIRD_QUARTER = [7, 8, 9]
-    FOURTH_QUARTER = [10, 11, 12]
