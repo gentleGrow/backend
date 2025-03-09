@@ -20,7 +20,7 @@ ENVIRONMENT = getenv("ENVIRONMENT", None)
 logger = logging.getLogger("current_exchange_rate")
 logger.setLevel(logging.INFO)
 
-if ENVIRONMENT == EnvironmentType.PROD:
+if ENVIRONMENT == EnvironmentType.PROD or ENVIRONMENT == EnvironmentType.DEV:
     file_handler = logging.FileHandler("/home/backend/current_exchange_rate.log", delay=False)
     file_handler.setFormatter(logging.Formatter("%(asctime)s - %(levelname)s - %(message)s"))
     logger.addHandler(file_handler)
@@ -50,6 +50,7 @@ async def execute_async_task():
     logger.info("현재 환율을 수집합니다.")
     redis_client = get_redis_pool()
     await process_exchange_rate_data(redis_client)
+    logger.info("현재 환율을 수집 완료하였습니다.")
 
 
 @shared_task

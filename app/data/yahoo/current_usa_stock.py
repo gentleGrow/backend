@@ -24,7 +24,7 @@ ENVIRONMENT = getenv("ENVIRONMENT", None)
 logger = logging.getLogger("current_usa_stock")
 logger.setLevel(logging.INFO)
 
-if ENVIRONMENT == EnvironmentType.PROD:
+if ENVIRONMENT == EnvironmentType.PROD or ENVIRONMENT == EnvironmentType.DEV:
     file_handler = logging.FileHandler("/home/backend/current_usa_stock.log", delay=False)
     file_handler.setFormatter(logging.Formatter("%(asctime)s - %(levelname)s - %(message)s"))
     logger.addHandler(file_handler)
@@ -57,6 +57,9 @@ def fetch_stock_price(stock_code: str, code: str) -> tuple[str, float]:
     try:
         stock = yfinance.Ticker(stock_code)
 
+        if not stock.info:
+            return code, 0.0
+
         info_currentPrice = stock.info.get("currentPrice")
         info_bid = stock.info.get("bid")
         info_ask = stock.info.get("ask")
@@ -73,6 +76,7 @@ async def execute_async_task():
     stock_list: list[StockInfo] = StockCodeFileReader.get_usa_stock_code_list()
     redis_client = get_redis_pool()
     await process_stock_data(redis_client, stock_list)
+    logger.info("현재 미국 주가를 수집 완료하였습니다.")
 
 
 @shared_task
