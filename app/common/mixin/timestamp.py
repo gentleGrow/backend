@@ -1,14 +1,22 @@
+from datetime import datetime
+from zoneinfo import ZoneInfo
+
 from sqlalchemy import Boolean, Column, DateTime
-from sqlalchemy.sql import func
+
+KST = ZoneInfo("Asia/Seoul")
+
+
+def current_time_kst():
+    return datetime.now(KST)
 
 
 class TimestampMixin:
-    created_at = Column(DateTime, default=func.now(), nullable=False)
+    created_at = Column(DateTime(timezone=True), default=current_time_kst, nullable=False)
     updated_at = Column(
-        DateTime,
-        default=func.now(),
-        onupdate=func.now(),
+        DateTime(timezone=True),
+        default=current_time_kst,
+        onupdate=current_time_kst,
         nullable=False,
     )
-    deleted_at = Column(DateTime, nullable=True)
+    deleted_at = Column(DateTime(timezone=True), nullable=True)
     is_deleted = Column(Boolean, default=False, nullable=False)
