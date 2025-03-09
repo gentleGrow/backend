@@ -11,6 +11,7 @@ import app.data.naver.current_korea_stock.collector  # noqa: F401 > task 위치�
 import app.data.yahoo.current_exchange_rate  # noqa: F401 > task 위치를 찾는데 필요합니다.
 import app.data.yahoo.current_usa_stock  # noqa: F401 > task 위치를 찾는데 필요합니다.
 import app.data.yahoo.dividend  # noqa: F401 > task 위치를 찾는데 필요합니다.
+import app.data.yahoo.estimate_dividend  # noqa: F401 > task 위치를 찾는데 필요합니다.
 import app.data.yahoo.index  # noqa: F401 > task 위치를 찾는데 필요합니다.
 import app.data.yahoo.stock  # noqa: F401 > task 위치를 찾는데 필요합니다.
 from database.enum import EnvironmentType
@@ -44,6 +45,10 @@ celery_task.conf.update(
 
 if ENVIRONMENT == EnvironmentType.PROD.value:
     celery_task.conf.beat_schedule = {
+        "estimate_dividend": {
+            "task": "app.data.yahoo.estimate_dividend.main",
+            "schedule": crontab(hour=12, minute=0),
+        },
         "cache_past_date": {
             "task": "app.data.custom.cache_past_date.main",
             "schedule": crontab(hour=8, minute=0),
@@ -83,6 +88,10 @@ if ENVIRONMENT == EnvironmentType.PROD.value:
     }
 elif ENVIRONMENT == EnvironmentType.DEV.value:
     celery_task.conf.beat_schedule = {
+        "estimate_dividend": {
+            "task": "app.data.yahoo.estimate_dividend.main",
+            "schedule": crontab(hour=7, minute=0),
+        },
         "cache_past_date": {
             "task": "app.data.custom.cache_past_date.main",
             "schedule": crontab(hour=8, minute=0),

@@ -57,7 +57,7 @@ async def save_estimate_dividend(redis_client: Redis, stock_list: list[StockInfo
             await RedisEstimateDividendRepository.set(
                 redis_client,
                 REDIS_ESTIMATE_DIVIDEND_KEY + stock.code,
-                json.dumps(estimate_dividend),
+                json.dumps(estimate_dividend, default=str),
                 REDIS_ESTIMATE_EXPIRE_SECOND,
             )
 
@@ -137,9 +137,29 @@ def get_estimate_dividend_cache(
             dividend_growth_rate,
         )
 
-        if month_estimated_dividend:
-            result.append((month.value, month_estimated_dividend))
+        estimated_date = get_recent_datetime(
+            month.value, last_year_dividends, year_before_last_dividends, year_before_last_last_dividends
+        )
+        if estimated_date:
+            result.append((estimated_date, month_estimated_dividend))
     return result
+
+
+def get_recent_datetime(
+    month: int,
+    last_year_dividends: dict,
+    year_before_last_dividends: dict,
+    year_before_last_last_dividends: dict,
+) -> datetime | None:
+    try:
+        current_year = datetime.now().year
+        for dividends_dict in [last_year_dividends, year_before_last_dividends, year_before_last_last_dividends]:
+            for date in dividends_dict.keys():
+                if date.month == month:
+                    return datetime(current_year, date.month, date.day)
+        return None
+    except Exception:
+        return None
 
 
 def calculate_estimated_dividend(
