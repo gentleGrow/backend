@@ -57,6 +57,9 @@ def fetch_stock_price(stock_code: str, code: str) -> tuple[str, float]:
     try:
         stock = yfinance.Ticker(stock_code)
 
+        if not stock.info:
+            return code, 0.0
+
         info_currentPrice = stock.info.get("currentPrice")
         info_bid = stock.info.get("bid")
         info_ask = stock.info.get("ask")

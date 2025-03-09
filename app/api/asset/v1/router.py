@@ -259,9 +259,6 @@ async def get_asset_stock(
     dividend_service: DividendService = Depends(get_dividend_service),
     asset_field_service: AssetFieldService = Depends(get_asset_field_service),
 ) -> AssetStockResponse:
-    """
-    미완성 혹은 매도 행은 부모 수익률에 포함하지 않게 하였습니다.
-    """
     assets: list = await AssetRepository.get_eager(session, token.get("user"), AssetType.STOCK)
     asset_fields: list[str] = await asset_field_service.get_asset_field(session, token.get("user"))
     no_asset_response = AssetStockResponse.validate_assets(assets, asset_fields)
