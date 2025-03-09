@@ -1,10 +1,14 @@
+import json
 from collections import defaultdict
 from datetime import date, timedelta
 
+from redis.asyncio import Redis
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.data.yahoo.source.constant import REDIS_ESTIMATE_DIVIDEND_KEY
 from app.module.asset.constant import MONTHS
 from app.module.asset.model import Asset, Dividend
+from app.module.asset.redis_repository import RedisEstimateDividendRepository
 from app.module.asset.repository.dividend_repository import DividendRepository
 from app.module.asset.services.exchange_rate_service import ExchangeRateService
 from app.module.chart.schema import EstimateDividendEveryValue, EstimateDividendTypeValue
@@ -139,7 +143,8 @@ class DividendService:
         total_dividends: dict[date, float] = self._get_full_month_estimate_dividend(
             assets, exchange_rate_map, dividend_map
         )
-        dividend_data_by_year = self._combine_dividends_by_year_month(total_dividends)
+
+        dividend_data_by_year: dict[str, dict[int, float]] = self._combine_dividends_by_year_month(total_dividends)
 
         result = {}
         for year, months in dividend_data_by_year.items():
@@ -192,3 +197,24 @@ class DividendService:
         )
 
         return filtered_dividends[0][0] if filtered_dividends else None
+
+    async def add_future_dividend(
+        self, redis_client: Redis, assets: list[Asset], dividend_map: dict[tuple[str, date], float]
+    ):
+        stock_codes = list(set([REDIS_ESTIMATE_DIVIDEND_KEY + asset.asset_stock.stock.code for asset in assets]))
+        future_dividend_raws = await RedisEstimateDividendRepository.bulk_get(redis_client, stock_codes)
+        future_dividends = {
+            stock_code: json.loads(item) for stock_code, item in zip(stock_codes, future_dividend_raws) if item
+        }
+
+        for stock_code, dividends in future_dividends.items():
+            stripped_code = (
+                stock_code[len(REDIS_ESTIMATE_DIVIDEND_KEY) :]
+                if stock_code.startswith(REDIS_ESTIMATE_DIVIDEND_KEY)
+                else stock_code
+            )
+            for dividend_date, dividend_amount in dividends:
+                dividend_date_obj = date.fromisoformat(dividend_date.split(" ")[0])
+                dividend_map[(stripped_code, dividend_date_obj)] = dividend_amount
+
+        return dividend_map

@@ -192,9 +192,13 @@ async def get_sample_estimate_dividend(
         if no_asset_response:
             return no_asset_response
 
+    future_dividend_map: dict[tuple[str, date], float] = await dividend_service.add_future_dividend(
+        redis_client, complete_buy_asset, dividend_map
+    )
+
     if category == EstimateDividendType.EVERY:
         every_dividend_data: dict[str, EstimateDividendEveryValue] = dividend_service.get_dividend_every_chart_data(
-            complete_buy_asset, exchange_rate_map, dividend_map
+            complete_buy_asset, exchange_rate_map, future_dividend_map
         )
         return EstimateDividendEveryResponse(every_dividend_data)
     else:
@@ -240,9 +244,13 @@ async def get_estimate_dividend(
         if no_asset_response:
             return no_asset_response
 
+    future_dividend_map: dict[tuple[str, date], float] = await dividend_service.add_future_dividend(
+        redis_client, complete_buy_asset, dividend_map
+    )
+
     if category == EstimateDividendType.EVERY:
         every_dividend_data: dict[str, EstimateDividendEveryValue] = dividend_service.get_dividend_every_chart_data(
-            complete_buy_asset, exchange_rate_map, dividend_map
+            complete_buy_asset, exchange_rate_map, future_dividend_map
         )
         return EstimateDividendEveryResponse(every_dividend_data)
     else:
