@@ -77,6 +77,10 @@ class RedisCurrentPastDateRepository:
 
 class RedisEstimateDividendRepository:
     @classmethod
+    async def bulk_get(cls, redis_client: Redis, keys: list[str]) -> list[str]:
+        return await redis_client.mget(keys)
+
+    @classmethod
     async def get(cls, redis_client: Redis, key: str) -> list:
         return await redis_client.get(key)
 
