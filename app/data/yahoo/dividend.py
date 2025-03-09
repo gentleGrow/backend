@@ -25,7 +25,7 @@ ENVIRONMENT = getenv("ENVIRONMENT", None)
 logger = logging.getLogger("dividend")
 logger.setLevel(logging.INFO)
 
-if ENVIRONMENT == EnvironmentType.PROD:
+if ENVIRONMENT == EnvironmentType.PROD or ENVIRONMENT == EnvironmentType.DEV:
     file_handler = logging.FileHandler("/home/backend/dividend.log", delay=False)
     file_handler.setFormatter(logging.Formatter("%(asctime)s - %(levelname)s - %(message)s"))
     logger.addHandler(file_handler)
@@ -38,7 +38,6 @@ async def insert_dividend_data(session: AsyncSession, stock_list: list[StockInfo
         for stock in stock_list_batch:
             dividend_list = []
             try:
-
                 stock_code = format_stock_code(
                     stock.code.strip(), Country[stock.country.upper().strip()], stock.market_index.upper().strip()
                 )
