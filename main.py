@@ -58,11 +58,6 @@ app.include_router(asset_stock_router, prefix="/api/asset", tags=["asset"])
 app.include_router(event_router, prefix="/api/event", tags=["event"])
 
 
-@app.get("/health")
-async def health():
-    return {"status": "ok"}
-
-
 @app.exception_handler(AppException)
 async def custom_app_exception_handler(request: Request, exc: AppException):
     return JSONResponse(
@@ -74,3 +69,8 @@ async def custom_app_exception_handler(request: Request, exc: AppException):
             "path": request.url.path,
         },
     )
+
+
+@app.get("/health")
+async def health():
+    return {"status": "ok"}
