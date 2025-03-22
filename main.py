@@ -1,14 +1,16 @@
 from os import getenv
 
 from dotenv import load_dotenv
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
 from starlette.middleware.sessions import SessionMiddleware
 
 from app.api.asset.v1.router import asset_stock_router
 from app.api.auth.v1.router import auth_router
 from app.api.chart.v1.router import chart_router
 from app.api.event.v1.router import event_router
+from app.common.exception.base import AppException
 from app.common.middleware.request import TimeoutMiddleware
 from database.enum import EnvironmentType
 
@@ -59,3 +61,16 @@ app.include_router(event_router, prefix="/api/event", tags=["event"])
 @app.get("/health")
 async def health():
     return {"status": "ok"}
+
+
+@app.exception_handler(AppException)
+async def custom_app_exception_handler(request: Request, exc: AppException):
+    return JSONResponse(
+        status_code=exc.status_code,
+        content={
+            "message": exc.detail["message"],
+            "code": exc.detail["code"],
+            "status": exc.status_code,
+            "path": request.url.path,
+        },
+    )

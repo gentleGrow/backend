@@ -7,6 +7,13 @@ from app.common.schema.common_schema import DeleteResponse, PostResponse
 from app.module.auth.constant import REDIS_JWT_REFRESH_EXPIRE_TIME_SECOND, SESSION_SPECIAL_KEY
 from app.module.auth.dependencies.user_dependency import get_user_service
 from app.module.auth.enum import ProviderEnum
+from app.module.auth.exceptions import (
+    InvalidGoogleTokenException,
+    InvalidKakaoTokenException,
+    InvalidNaverTokenException,
+    MissingEmailException,
+    MissingSocialIDException,
+)
 from app.module.auth.jwt import JWTBuilder
 from app.module.auth.model import User
 from app.module.auth.redis_repository import RedisSessionRepository
@@ -100,28 +107,26 @@ async def naver_login(
     session: AsyncSession = Depends(get_mysql_session_router),
     redis_client: Redis = Depends(get_redis_pool),
 ) -> TokenResponse:
-    access_token = request.access_token
-    if not access_token:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="naver access token이 넘어오지 않았습니다.",
-        )
-
     try:
-        user_info = await Naver.verify_token(access_token)
-    except ValueError as e:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
+        id_info = await Naver.verify_token(request.access_token)
+    except ValueError:
+        raise InvalidNaverTokenException()
 
-    social_id = user_info["response"].get("id")
+    social_id = id_info["response"].get("id")
+    user_email = id_info["response"].get("email")
+
     if social_id is None:
-        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="access token에 유저 정보가 없습니다.")
+        raise MissingSocialIDException()
+
+    if user_email is None:
+        raise MissingEmailException()
 
     user = await UserRepository.get_by_social_id(session, social_id, ProviderEnum.NAVER)
 
     if user is None:
         user = User(
             social_id=social_id,
-            email=user_info["response"].get("email"),
+            email=user_email,
             provider=ProviderEnum.NAVER.value,
         )
         user = await UserRepository.create(session, user)
@@ -147,28 +152,26 @@ async def kakao_login(
     session: AsyncSession = Depends(get_mysql_session_router),
     redis_client: Redis = Depends(get_redis_pool),
 ) -> TokenResponse:
-    id_token = request.id_token
-    if not id_token:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="카카오 id token이 넘어오지 않았습니다.",
-        )
-
     try:
-        id_info = await Kakao.verify_token(id_token)
-    except ValueError as e:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
+        id_info = await Kakao.verify_token(request.id_token)
+    except ValueError:
+        raise InvalidKakaoTokenException()
 
-    social_id = id_info.get("sub")
+    social_id = id_info.get("sub", None)
+    user_email = id_info.get("email", None)
+
     if social_id is None:
-        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="id token에 유저 정보가 없습니다.")
+        raise MissingSocialIDException
+
+    if user_email is None:
+        raise MissingEmailException()
 
     user = await UserRepository.get_by_social_id(session, social_id, ProviderEnum.KAKAO)
 
     if user is None:
         user = User(
             social_id=social_id,
-            email=id_info.get("email", None),
+            email=user_email,
             provider=ProviderEnum.KAKAO.value,
         )
         user = await UserRepository.create(session, user)
@@ -194,22 +197,23 @@ async def google_login(
     session: AsyncSession = Depends(get_mysql_session_router),
     redis_client: Redis = Depends(get_redis_pool),
 ) -> TokenResponse:
-    id_token = request.id_token
-
     try:
-        id_info = await Google.verify_token(id_token)
-    except ValueError as e:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
+        id_info = await Google.verify_token(request.id_token)
+    except ValueError:
+        raise InvalidGoogleTokenException()
 
-    social_id = id_info.get("sub")
+    social_id = id_info.get("sub", None)
+    user_email = id_info.get("email", None)
 
     if social_id is None:
-        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="id token에 유저 정보가 없습니다.")
+        raise MissingSocialIDException()
+
+    if user_email is None:
+        raise MissingEmailException()
 
     user = await UserRepository.get_by_social_id(session, social_id, ProviderEnum.GOOGLE)
-
     if user is None:
-        user = User(social_id=social_id, provider=ProviderEnum.GOOGLE.value, email=id_info.get("email", None))
+        user = User(social_id=social_id, provider=ProviderEnum.GOOGLE.value, email=user_email)
         user = await UserRepository.create(session, user)
 
     access_token = JWTBuilder.generate_access_token(user.id, social_id)
@@ -241,7 +245,6 @@ async def refresh_access_token(
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="refresh token안에 유저 정보가 들어있지 않습니다.")
 
     stored_refresh_token = await RedisSessionRepository.get(redis_client, f"{social_id}_{SESSION_SPECIAL_KEY}")
-
     if stored_refresh_token is None:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
