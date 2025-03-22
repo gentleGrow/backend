@@ -7,13 +7,6 @@ from app.common.schema.common_schema import DeleteResponse, PostResponse
 from app.module.auth.constant import REDIS_JWT_REFRESH_EXPIRE_TIME_SECOND, SESSION_SPECIAL_KEY
 from app.module.auth.dependencies.user_dependency import get_user_service
 from app.module.auth.enum import ProviderEnum
-from app.module.auth.exceptions import (
-    InvalidGoogleTokenException,
-    InvalidKakaoTokenException,
-    InvalidNaverTokenException,
-    MissingEmailException,
-    MissingSocialIDException,
-)
 from app.module.auth.jwt import JWTBuilder
 from app.module.auth.model import User
 from app.module.auth.redis_repository import RedisSessionRepository
@@ -30,7 +23,7 @@ from app.module.auth.schema import (
     UserDeleteRequest,
     UserInfoResponse,
 )
-from app.module.auth.services.oauth_service import Google, Kakao, Naver
+from app.module.auth.services.oauth_service import GoogleService, KakaoService, NaverService
 from app.module.auth.services.user_service import UserService
 from database.dependency import get_mysql_session_router, get_redis_pool
 
@@ -107,22 +100,9 @@ async def naver_login(
     session: AsyncSession = Depends(get_mysql_session_router),
     redis_client: Redis = Depends(get_redis_pool),
 ) -> TokenResponse:
-    try:
-        id_info = await Naver.verify_token(request.access_token)
-    except ValueError:
-        raise InvalidNaverTokenException()
-
-    social_id = id_info["response"].get("id")
-    user_email = id_info["response"].get("email")
-
-    if social_id is None:
-        raise MissingSocialIDException()
-
-    if user_email is None:
-        raise MissingEmailException()
+    social_id, user_email = await NaverService.verify_token(request.access_token)
 
     user = await UserRepository.get_by_social_id(session, social_id, ProviderEnum.NAVER)
-
     if user is None:
         user = User(
             social_id=social_id,
@@ -152,22 +132,9 @@ async def kakao_login(
     session: AsyncSession = Depends(get_mysql_session_router),
     redis_client: Redis = Depends(get_redis_pool),
 ) -> TokenResponse:
-    try:
-        id_info = await Kakao.verify_token(request.id_token)
-    except ValueError:
-        raise InvalidKakaoTokenException()
-
-    social_id = id_info.get("sub", None)
-    user_email = id_info.get("email", None)
-
-    if social_id is None:
-        raise MissingSocialIDException
-
-    if user_email is None:
-        raise MissingEmailException()
+    social_id, user_email = await KakaoService.verify_token(request.id_token)
 
     user = await UserRepository.get_by_social_id(session, social_id, ProviderEnum.KAKAO)
-
     if user is None:
         user = User(
             social_id=social_id,
@@ -197,19 +164,7 @@ async def google_login(
     session: AsyncSession = Depends(get_mysql_session_router),
     redis_client: Redis = Depends(get_redis_pool),
 ) -> TokenResponse:
-    try:
-        id_info = await Google.verify_token(request.id_token)
-    except ValueError:
-        raise InvalidGoogleTokenException()
-
-    social_id = id_info.get("sub", None)
-    user_email = id_info.get("email", None)
-
-    if social_id is None:
-        raise MissingSocialIDException()
-
-    if user_email is None:
-        raise MissingEmailException()
+    social_id, user_email = await GoogleService.verify_token(request.id_token)
 
     user = await UserRepository.get_by_social_id(session, social_id, ProviderEnum.GOOGLE)
     if user is None:
