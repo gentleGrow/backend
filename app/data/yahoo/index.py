@@ -5,7 +5,6 @@ from os import getenv
 import yfinance
 from celery import shared_task
 from dotenv import load_dotenv
-from icecream import ic
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.data.yahoo.source.constant import MARKET_TIME_INTERVAL
@@ -47,7 +46,6 @@ async def fetch_and_save_market_index_data(
     market_index_records = []
 
     for index, row in index_data.iterrows():
-        ic(index, row)
         market_index_record = MarketIndexDaily(
             name=index_symbol,
             date=index.date(),
