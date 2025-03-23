@@ -6,7 +6,13 @@ from fastapi import status
 from google.auth.transport import requests
 from google.oauth2 import id_token
 
-from app.common.util.logging import logging
+from app.module.auth.exceptions import (
+    InvalidGoogleTokenException,
+    InvalidKakaoTokenException,
+    InvalidNaverTokenException,
+    MissingEmailException,
+    MissingSocialIDException,
+)
 
 load_dotenv()
 
@@ -15,37 +21,65 @@ KAKAO_TOKEN_INFO_URL = getenv("KAKAO_TOKEN_INFO_URL", None)
 NAVER_USER_INFO_URL = getenv("NAVER_USER_INFO_URL", None)
 
 
-class Naver:
-    @staticmethod
-    async def verify_token(token: str) -> dict:
+class NaverService:
+    @classmethod
+    async def verify_token(cls, token: str) -> tuple[str, str]:
         headers = {"Authorization": f"Bearer {token}"}
         async with httpx.AsyncClient() as client:
             response = await client.get(NAVER_USER_INFO_URL, headers=headers)
 
-            if response.status_code != status.HTTP_200_OK:
-                logging.error(f"Token verification failed: {response.status_code} {response.text}")
-                raise ValueError(f"Token verification failed: {response.status_code} {response.text}")
-            return response.json()
+            if response.status_code is not status.HTTP_200_OK:
+                raise InvalidNaverTokenException()
+
+            id_info = response.json()
+            social_id = id_info["response"].get("id")
+            user_email = id_info["response"].get("email")
+
+            if social_id is None:
+                raise MissingSocialIDException()
+
+            if user_email is None:
+                raise MissingEmailException()
+
+            return social_id, user_email
 
 
-class Kakao:
-    @staticmethod
-    async def verify_token(id_token: str) -> dict:
+class KakaoService:
+    @classmethod
+    async def verify_token(cls, id_token: str) -> tuple[str, str]:
         data = {"id_token": id_token}
         headers = {"Content-Type": "application/x-www-form-urlencoded;charset=utf-8"}
         async with httpx.AsyncClient() as client:
             response = await client.post(KAKAO_TOKEN_INFO_URL, data=data, headers=headers)
             if response.status_code is not status.HTTP_200_OK:
-                error_response = response.json()
-                raise ValueError(error_response.get("error_description"))
-            else:
-                return response.json()
+                raise InvalidKakaoTokenException()
+
+            id_info: dict = response.json()
+            social_id = id_info.get("sub", None)
+            user_email = id_info.get("email", None)
+
+            if social_id is None:
+                raise MissingSocialIDException
+
+            if user_email is None:
+                raise MissingEmailException()
+
+            return social_id, user_email
 
 
-class Google:
-    @staticmethod
-    async def verify_token(token: str) -> dict:
+class GoogleService:
+    @classmethod
+    async def verify_token(cls, token: str) -> tuple[str, str]:
         try:
-            return id_token.verify_oauth2_token(token, requests.Request(), GOOGLE_CLIENT_ID)
-        except ValueError as e:
-            raise ValueError(str(e))
+            id_info: dict = id_token.verify_oauth2_token(token, requests.Request(), GOOGLE_CLIENT_ID)
+            social_id = id_info.get("sub", None)
+            user_email = id_info.get("email", None)
+            if social_id is None:
+                raise MissingSocialIDException()
+
+            if user_email is None:
+                raise MissingEmailException()
+
+            return social_id, user_email
+        except ValueError:
+            raise InvalidGoogleTokenException()
